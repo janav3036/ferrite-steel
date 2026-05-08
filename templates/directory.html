@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}User Directory — Ferite Steel{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">User Directory</h4>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm mb-5">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Branch</th>
+                    <th>Role</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                {% if user.is_active %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.get_full_name|default:"—" }}</td>
+                    <td>{{ user.branch|default:"—" }}</td>
+                    <td><span class="badge bg-secondary">{{ user.role }}</span></td>
+                    <td class="d-flex gap-2">
+                        <a href="{% url 'edit_user_role' user.id %}" class="btn btn-sm btn-outline-dark">Edit Role</a>
+                        {% if user.id != request.user.id %}
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                            Delete
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% with pending=users|dictsort:"username" %}
+{% if users %}
+<h5 class="mb-3">Pending Approvals</h5>
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-warning">
+                <tr>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                {% if not user.is_active %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.get_full_name|default:"—" }}</td>
+                    <td>{{ user.email|default:"—" }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form method="post" action="{% url 'approve_user' user.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                    data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                                Reject
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="deleteUsername"></strong>? This cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('deleteModal').addEventListener('show.bs.modal', function (e) {
+        var btn = e.relatedTarget;
+        document.getElementById('deleteUsername').textContent = btn.getAttribute('data-username');
+        document.getElementById('deleteForm').action = '/delete-user/' + btn.getAttribute('data-user-id') + '/';
+    });
+</script>
+
+{% endblock %}

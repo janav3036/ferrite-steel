@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Quotations — Ferite Steel{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Quotations</h2>
+
+{% if quotations %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Number</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Total (₹)</th>
+                <th>Created By</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for q in quotations %}
+            <tr>
+                <td>{{ q.quotation_number }}</td>
+                <td>{{ q.lead.customer_name|default:"—" }}</td>
+                <td>
+                    <span class="badge
+                        {% if q.status == 'draft' %}bg-secondary
+                        {% elif q.status == 'approved' %}bg-success
+                        {% elif q.status == 'sent' %}bg-primary
+                        {% else %}bg-danger{% endif %}">
+                        {{ q.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ q.total_amount }}</td>
+                <td>{{ q.created_by.username|default:"—" }}</td>
+                <td>{{ q.created_at|date:"d M Y" }}</td>
+                <td><a href="{% url 'quotation_detail' q.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">No quotations yet.</p>
+{% endif %}
+
+<h4 class="mt-5 mb-3">Leads Awaiting Quotation</h4>
+
+{% if unquoted_leads %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-warning">
+            <tr>
+                <th>#</th>
+                <th>Customer</th>
+                <th>Source</th>
+                <th>Created By</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in unquoted_leads %}
+            <tr>
+                <td>{{ lead.pk }}</td>
+                <td>{{ lead.customer_name|default:"—" }}</td>
+                <td>{{ lead.get_source_display }}</td>
+                <td>{{ lead.created_by.username|default:"—" }}</td>
+                <td>{{ lead.created_at|date:"d M Y" }}</td>
+                <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-warning">View Lead</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-muted">All leads have been quoted.</p>
+{% endif %}
+{% endblock %}

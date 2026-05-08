@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Lead #{{ lead.pk }} — Ferite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Lead #{{ lead.pk }}</h2>
+    <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary">← Back</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Customer Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">{{ lead.customer_name|default:"—" }}</dd>
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">{{ lead.customer_phone|default:"—" }}</dd>
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ lead.customer_email|default:"—" }}</dd>
+                    <dt class="col-sm-4">Source</dt>
+                    <dd class="col-sm-8">{{ lead.get_source_display }}</dd>
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge
+                            {% if lead.status == 'new' %}bg-secondary
+                            {% elif lead.status == 'processing' %}bg-warning text-dark
+                            {% elif lead.status == 'quoted' %}bg-success
+                            {% else %}bg-danger{% endif %}">
+                            {{ lead.get_status_display }}
+                        </span>
+                    </dd>
+                    <dt class="col-sm-4">Created By</dt>
+                    <dd class="col-sm-8">{{ lead.created_by.username|default:"—" }}</dd>
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">{{ lead.created_at|date:"d M Y, H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold">Enquiry Text</div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-wrap;">{{ lead.raw_text }}</p>
+            </div>
+        </div>
+    </div>
+
+    {% if lead.notes %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Notes</div>
+            <div class="card-body"><p class="mb-0">{{ lead.notes }}</p></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+                Quotations
+                <span class="badge bg-secondary">{{ lead.quotations.count }}</span>
+            </div>
+            <div class="card-body">
+                {% if lead.quotations.all %}
+                <ul class="list-group list-group-flush">
+                    {% for q in lead.quotations.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'quotation_detail' q.pk %}">{{ q }}</a>
+                        <span class="badge
+                            {% if q.status == 'draft' %}bg-secondary
+                            {% elif q.status == 'approved' %}bg-success
+                            {% elif q.status == 'sent' %}bg-primary
+                            {% else %}bg-danger{% endif %}">
+                            {{ q.get_status_display }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No quotations yet. LLM generation will be wired up in Phase 2.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

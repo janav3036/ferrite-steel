@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ quotation }} — Ferite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{{ quotation }}</h2>
+    <a href="{% url 'quotation_list' %}" class="btn btn-outline-secondary">← Back</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge
+                            {% if quotation.status == 'draft' %}bg-secondary
+                            {% elif quotation.status == 'approved' %}bg-success
+                            {% elif quotation.status == 'sent' %}bg-primary
+                            {% else %}bg-danger{% endif %}">
+                            {{ quotation.get_status_display }}
+                        </span>
+                    </dd>
+                    <dt class="col-sm-5">Lead</dt>
+                    <dd class="col-sm-7"><a href="{% url 'lead_detail' quotation.lead.pk %}">Lead #{{ quotation.lead.pk }}</a></dd>
+                    <dt class="col-sm-5">Customer</dt>
+                    <dd class="col-sm-7">{{ quotation.lead.customer_name|default:"—" }}</dd>
+                    <dt class="col-sm-5">Valid Until</dt>
+                    <dd class="col-sm-7">{{ quotation.valid_until|date:"d M Y"|default:"—" }}</dd>
+                    <dt class="col-sm-5">Created By</dt>
+                    <dd class="col-sm-7">{{ quotation.created_by.username|default:"—" }}</dd>
+                    <dt class="col-sm-5">Created</dt>
+                    <dd class="col-sm-7">{{ quotation.created_at|date:"d M Y, H:i" }}</dd>
+                    {% if quotation.approved_by %}
+                    <dt class="col-sm-5">Approved By</dt>
+                    <dd class="col-sm-7">{{ quotation.approved_by.username }}</dd>
+                    <dt class="col-sm-5">Approved</dt>
+                    <dd class="col-sm-7">{{ quotation.approved_at|date:"d M Y, H:i" }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Line Items</div>
+            {% if quotation.line_items.all %}
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit</th>
+                            <th>Unit Price</th>
+                            <th>Disc %</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in quotation.line_items.all %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>₹{{ item.unit_price }}</td>
+                            <td>{{ item.discount_percent }}%</td>
+                            <td>₹{{ item.total_price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="5" class="text-end">Total</td>
+                            <td>₹{{ quotation.total_amount }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="card-body">
+                <p class="text-muted mb-0">No line items. LLM generation will populate these in Phase 2.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if quotation.status == 'draft' and request.user.role in 'manager,admin' %}
+    <div class="col-12">
+        <form method="post" action="{% url 'quotation_approve' quotation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Approve Quotation</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
