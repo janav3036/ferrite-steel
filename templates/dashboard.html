@@ -4,7 +4,13 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Dashboard</h2>
-    <span class="text-muted">This week's activity</span>
+    <div class="d-flex gap-2">
+        {% if request.user.team == 'market' or request.user.role == 'admin' %}
+        <a href="{% url 'market_order_create' %}" class="btn btn-outline-dark">+ Market Order</a>
+        {% endif %}
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary">+ New Lead</a>
+        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary">+ New Quotation</a>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -42,7 +48,22 @@
     </div>
 </div>
 
-{% if request.user.role == 'admin' or request.user.role == 'manager' %}
+{% if request.user.team == 'market' or request.user.role == 'admin' %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card border-dark">
+            <div class="card-header bg-dark text-white fw-semibold">Market Orders</div>
+            <div class="card-body d-flex gap-3 align-items-center">
+                <a href="{% url 'market_order_list' %}" class="btn btn-outline-dark">View Orders</a>
+                <a href="{% url 'market_order_create' %}" class="btn btn-dark">+ New Market Order</a>
+                <a href="{% url 'broker_list' %}" class="btn btn-outline-secondary">Brokers</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if request.user.role == 'admin' or request.user.role == 'lead' %}
 <div class="card">
     <div class="card-header fw-semibold">Weekly Breakdown</div>
     <div class="card-body p-0">

@@ -8,7 +8,7 @@ class AddUserForm(UserCreationForm):
         model = CustomUser
         fields = [
             'username', 'first_name', 'last_name', 'email',
-            'role', 'phone', 'branch', 'employee_id',
+            'team', 'role', 'phone', 'branch', 'employee_id',
             'password1', 'password2',
         ]
 
@@ -16,7 +16,7 @@ class AddUserForm(UserCreationForm):
 class EditRoleForm(ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['role']
+        fields = ['team', 'role']
 
 class RegistrationForm(UserCreationForm):
     class Meta:

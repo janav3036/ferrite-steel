@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Brokers — Ferite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Brokers</h4>
+    {% if request.user.role in 'lead admin' %}
+    <a href="{% url 'broker_create' %}" class="btn btn-dark">+ Add Broker</a>
+    {% endif %}
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% if brokers %}
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Active</th>
+                    <th>Open Orders</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for broker in brokers %}
+                <tr>
+                    <td class="fw-semibold">{{ broker.name }}</td>
+                    <td>{{ broker.company|default:"—" }}</td>
+                    <td>{{ broker.phone|default:"—" }}</td>
+                    <td>{{ broker.location|default:"—" }}</td>
+                    <td>
+                        {% if broker.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ broker.orders.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="text-muted">No brokers yet. <a href="{% url 'broker_create' %}">Add one.</a></div>
+{% endif %}
+{% endblock %}

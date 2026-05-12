@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ quotation.quotation_number }} — Ferite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Edit {{ quotation.quotation_number }}</h2>
+    <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">← Cancel</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Quotation header -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Quotation Details</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-4">
+                    <label class="form-label">Payment Terms</label>
+                    {{ form.payment_terms }}
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label">Valid Until</label>
+                    {{ form.valid_until }}
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label">Transport Extra (₹)</label>
+                    {{ form.transport_extra }}
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Delivery Address</label>
+                    {{ form.delivery_address }}
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label">SGST %</label>
+                    {{ form.sgst_percent }}
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label">CGST %</label>
+                    {{ form.cgst_percent }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line items -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+            Line Items
+            <button type="button" id="add-row" class="btn btn-sm btn-outline-primary">+ Add Item</button>
+        </div>
+        <div class="card-body p-0">
+            {{ formset.management_form }}
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:30px">#</th>
+                            <th>Description</th>
+                            <th>Make</th>
+                            <th style="width:90px">Length</th>
+                            <th style="width:70px">PCS</th>
+                            <th style="width:90px">TON</th>
+                            <th style="width:110px">Rate (₹)</th>
+                            <th style="width:110px">Amount (₹)</th>
+                            <th style="width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="formset-body">
+                        {% for item_form in formset %}
+                        <tr class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
+                            <td class="text-muted row-num">{{ forloop.counter }}</td>
+                            <td>{{ item_form.product_name }}</td>
+                            <td>{{ item_form.make }}</td>
+                            <td>{{ item_form.length }}</td>
+                            <td>{{ item_form.pcs }}</td>
+                            <td>{{ item_form.quantity }}</td>
+                            <td>{{ item_form.unit_price }}</td>
+                            <td>{{ item_form.total_price }}</td>
+                            <td class="text-center">
+                                {{ item_form.DELETE }}
+                                {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-dark">Save Quotation</button>
+    </div>
+</form>
+
+<!-- Empty form template for JS cloning -->
+<table style="display:none">
+    <tbody>
+        <tr id="empty-form-template" class="line-item-row">
+            <td class="text-muted row-num"></td>
+            <td>{{ formset.empty_form.product_name }}</td>
+            <td>{{ formset.empty_form.make }}</td>
+            <td>{{ formset.empty_form.length }}</td>
+            <td>{{ formset.empty_form.pcs }}</td>
+            <td>{{ formset.empty_form.quantity }}</td>
+            <td>{{ formset.empty_form.unit_price }}</td>
+            <td>{{ formset.empty_form.total_price }}</td>
+            <td class="text-center">
+                {{ formset.empty_form.DELETE }}
+                {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                <button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<script>
+const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
+
+function recalcRow(row) {
+    const rate = parseFloat(row.querySelector('[name$="-unit_price"]').value) || 0;
+    const qty = parseFloat(row.querySelector('[name$="-quantity"]').value) || 0;
+    const total = (rate * qty).toFixed(2);
+    row.querySelector('[name$="-total_price"]').value = total;
+}
+
+function updateRowNumbers() {
+    let n = 1;
+    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+        row.querySelector('.row-num').textContent = n++;
+    });
+}
+
+// Auto-calculate amount on input
+document.getElementById('formset-body').addEventListener('input', function(e) {
+    if (e.target.name && (e.target.name.endsWith('-unit_price') || e.target.name.endsWith('-quantity'))) {
+        recalcRow(e.target.closest('tr'));
+    }
+});
+
+// Add row
+document.getElementById('add-row').addEventListener('click', function() {
+    const formNum = parseInt(totalFormsInput.value);
+    const template = document.getElementById('empty-form-template').innerHTML;
+    const newRow = template.replace(/__prefix__/g, formNum);
+    const tbody = document.getElementById('formset-body');
+    tbody.insertAdjacentHTML('beforeend', newRow);
+    totalFormsInput.value = formNum + 1;
+    updateRowNumbers();
+});
+
+// Remove row
+document.getElementById('formset-body').addEventListener('click', function(e) {
+    if (!e.target.matches('.remove-row')) return;
+    const row = e.target.closest('tr');
+    const deleteCheckbox = row.querySelector('[name$="-DELETE"]');
+    if (deleteCheckbox) {
+        deleteCheckbox.checked = true;
+        row.classList.add('d-none');
+    } else {
+        row.remove();
+        totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+    }
+    updateRowNumbers();
+});
+
+updateRowNumbers();
+</script>
+{% endblock %}

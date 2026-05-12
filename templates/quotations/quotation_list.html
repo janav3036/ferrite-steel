@@ -2,7 +2,13 @@
 {% block title %}Quotations — Ferite Steel{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Quotations</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Quotations</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary">+ New Lead</a>
+        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary">+ New Quotation</a>
+    </div>
+</div>
 
 {% if quotations %}
 <div class="table-responsive">
@@ -12,6 +18,7 @@
                 <th>Number</th>
                 <th>Customer</th>
                 <th>Status</th>
+                <th>Outcome</th>
                 <th>Total (₹)</th>
                 <th>Created By</th>
                 <th>Date</th>
@@ -30,6 +37,14 @@
                         {% elif q.status == 'sent' %}bg-primary
                         {% else %}bg-danger{% endif %}">
                         {{ q.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge
+                        {% if q.outcome == 'win' %}bg-success
+                        {% elif q.outcome == 'loss' %}bg-danger
+                        {% else %}bg-light text-dark{% endif %}">
+                        {{ q.get_outcome_display }}
                     </span>
                 </td>
                 <td>{{ q.total_amount }}</td>

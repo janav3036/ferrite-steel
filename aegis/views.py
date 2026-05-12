@@ -14,7 +14,7 @@ def dashboard(request):
     today = timezone.now()
     week_start = today - timedelta(days=today.weekday())
 
-    if request.user.role in ('admin', 'manager'):
+    if request.user.role in ('admin', 'lead'):
         leads = Lead.objects.filter(created_at__gte=week_start)
         quotations = Quotation.objects.filter(created_at__gte=week_start)
     else:

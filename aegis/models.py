@@ -2,13 +2,25 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
-class CustomUser(AbstractUser): 
-    ROLE_CHOICES = [
-        ('sales', 'Sales'),
-        ('manager', 'Manager'),
-        ('admin', 'Admin'),
+class CustomUser(AbstractUser):
+    TEAM_CHOICES = [
+        ('team_9',    'Team 9'),
+        ('cs',        'CS Team'),
+        ('market',    'Market Team'),
+        ('corporate', 'Corporate Team'),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='sales')
+
+    ROLE_CHOICES = [
+        ('admin',        'Admin'),
+        ('lead',         'Team Lead'),
+        ('member',       'Member'),
+        ('primary',      'Primary Member'),
+        ('rolling',      'Rolling Member'),
+        ('loading_dock', 'Loading Dock'),
+    ]
+
+    team = models.CharField(max_length=20, choices=TEAM_CHOICES, blank=True, null=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
     phone = models.CharField(max_length=20, blank=True, null=True)
     employee_id = models.IntegerField(blank=True, null=True)
     branch = models.CharField(max_length=20,blank=True, null=True)

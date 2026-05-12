@@ -67,8 +67,11 @@
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-                Quotations
-                <span class="badge bg-secondary">{{ lead.quotations.count }}</span>
+                <span>Quotations <span class="badge bg-secondary ms-1">{{ lead.quotations.count }}</span></span>
+                <form method="post" action="{% url 'quotation_create' lead.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary">+ Create Quotation</button>
+                </form>
             </div>
             <div class="card-body">
                 {% if lead.quotations.all %}
@@ -87,7 +90,7 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p class="text-muted mb-0">No quotations yet. LLM generation will be wired up in Phase 2.</p>
+                <p class="text-muted mb-0">No quotations yet.</p>
                 {% endif %}
             </div>
         </div>

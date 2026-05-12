@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm 12mm; }
+  body { font-family: Arial, sans-serif; font-size: 10px; color: #000; }
+  h1 { font-size: 14px; margin: 0; }
+  .company-name { font-size: 16px; font-weight: bold; text-align: center; }
+  .company-address { font-size: 9px; text-align: center; color: #333; }
+  .title { font-size: 18px; font-weight: bold; letter-spacing: 6px; text-align: center; margin: 8px 0 4px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #000; padding: 3px 5px; }
+  th { background: #d9d9d9; font-weight: bold; text-align: center; }
+  td.num { text-align: right; }
+  td.center { text-align: center; }
+  .totals-table td { border: none; }
+  .totals-table td:first-child { text-align: right; padding-right: 10px; font-weight: bold; width: 60%; }
+  .totals-table td:last-child { text-align: right; border-bottom: 1px solid #ccc; min-width: 100px; }
+  .bank-box { border: 1px solid #000; padding: 5px 8px; font-size: 9px; }
+  .footer-note { font-size: 9px; font-style: italic; color: #555; }
+  .bold { font-weight: bold; }
+  .grand-total td { font-size: 12px; font-weight: bold; background: #d9d9d9; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="company-name">FERRITE STRUCTURAL STEEL PVT. LTD.</div>
+<div class="company-address">803 Excel Plaza, B-wing, 90feet road, near Ganesh Mandir, Ghatkopar-East 400075</div>
+<div class="company-address">GSTIN/UIN : 27AACCF4875H1ZE &nbsp;&nbsp;&nbsp; CIN : U27200MH2014PTC259228</div>
+
+{% if quotation.lead.broker %}
+<div class="title" style="color:#c00;">INTERNAL — RATES ONLY</div>
+{% else %}
+<div class="title">Q U O T A T I O N</div>
+{% endif %}
+
+<!-- Meta row -->
+<table style="margin-bottom:6px;">
+  <tr>
+    <td style="border:none; width:60%;">
+      <strong>To:</strong> {{ quotation.lead.customer_name|default:"—" }}<br>
+      {% if quotation.lead.company %}<strong>Company:</strong> {{ quotation.lead.company }}<br>{% endif %}
+      {% if quotation.lead.customer_phone %}{{ quotation.lead.customer_phone }}<br>{% endif %}
+      {% if quotation.delivery_address %}<strong>Delivery:</strong> {{ quotation.delivery_address }}{% endif %}
+    </td>
+    <td style="border:none; width:40%; vertical-align:top; text-align:right;">
+      <strong>Quotation No:</strong> {{ quotation.quotation_number }}<br>
+      <strong>Date:</strong> {{ quotation.created_at|date:"d M Y" }}<br>
+      <strong>Payment:</strong> {{ quotation.payment_terms }}
+    </td>
+  </tr>
+</table>
+
+<!-- Line items -->
+<table>
+  <thead>
+    <tr>
+      <th style="width:25px">SN</th>
+      <th>Description</th>
+      <th style="width:90px">Make</th>
+      <th style="width:60px">Length</th>
+      <th style="width:40px">PCS</th>
+      <th style="width:55px">TON</th>
+      <th style="width:70px">Rate (₹)</th>
+      <th style="width:80px">Amount (₹)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td class="center">{{ forloop.counter }}</td>
+      <td>{{ item.product_name }}</td>
+      <td class="center">{{ item.make|default:"—" }}</td>
+      <td class="num">{{ item.length|default:"—" }}</td>
+      <td class="num">{{ item.pcs|default:"—" }}</td>
+      <td class="num">{{ item.quantity }}</td>
+      <td class="num">{{ item.unit_price }}</td>
+      <td class="num">{{ item.total_price }}</td>
+    </tr>
+    {% endfor %}
+    <!-- Padding rows -->
+    {% with pad=items|length %}
+    {% if pad < 8 %}{% for i in "12345678"|make_list %}{% if forloop.counter > pad %}<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endif %}{% endfor %}{% endif %}
+    {% endwith %}
+  </tbody>
+</table>
+
+<p class="footer-note">* This is an estimate weight. Billing will be done on actual weight.</p>
+
+<!-- Totals + Bank side by side -->
+<table style="margin-top:6px; border:none;">
+  <tr style="border:none;">
+    <!-- Bank details -->
+    <td style="border:none; width:48%; vertical-align:top;">
+      <div class="bank-box">
+        <strong>RTGS Details</strong><br>
+        Ferrite Structural Steels Pvt Ltd.<br>
+        Standard Chartered Bank<br>
+        A/c : 24505076473<br>
+        IFSC Code : SCBL0036066<br>
+        Branch : CHEMBUR
+      </div>
+    </td>
+    <!-- Totals -->
+    <td style="border:none; width:52%; vertical-align:top; padding-left:10px;">
+      <table class="totals-table">
+        <tr><td>Total TON</td><td>{{ total_tons }}</td></tr>
+        <tr><td>Total Item Value (₹)</td><td>{{ item_value }}</td></tr>
+        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra }}</td></tr>
+        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra }}</td></tr>
+        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value }}</td></tr>
+        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst }}</td></tr>
+        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst }}</td></tr>
+        <tr class="grand-total">
+          <td style="text-align:right; padding-right:10px; border:1px solid #000;">Total Amount (₹)</td>
+          <td style="text-align:right; border:1px solid #000;">{{ grand_total }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin-top:10px; font-size:9px; font-weight:bold;">RATE VALID FOR TODAY ONLY</p>
+
+</body>
+</html>

@@ -6,13 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <title>{% block title %}Ferite Steel{% endblock %}</title>
+    <title>{% block title %}Ferrite Steel{% endblock %}</title>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand fw-semibold" href="/dashboard/">Ferite Steel</a>
+            <a class="navbar-brand fw-semibold" href="/dashboard/">Ferrite Steel</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -28,7 +28,7 @@
                     <li class="nav-item">
                         <a class="nav-link disabled">Training</a>
                     </li>
-                    {% if request.user.role == 'manager' or request.user.role == 'admin' %}
+                    {% if request.user.role == 'lead' or request.user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link disabled">Credit Risk</a>
                     </li>
@@ -51,8 +51,13 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <h6 class="dropdown-header">{{ request.user.get_full_name|default:request.user.username}} <span class="badge bg-secondary ms-1">{{ request.user.role }}</span></h6>
-                                
+                                <h6 class="dropdown-header">
+                                    {{ request.user.get_full_name|default:request.user.username }}
+                                    <span class="badge bg-secondary ms-1">{{ request.user.get_role_display }}</span>
+                                    {% if request.user.team %}
+                                    <span class="badge bg-primary ms-1">{{ request.user.get_team_display }}</span>
+                                    {% endif %}
+                                </h6>
                             </li>
                             
                             {% if request.user.role == 'admin' %}

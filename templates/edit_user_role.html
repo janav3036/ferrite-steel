@@ -29,6 +29,23 @@
                 <form method="post">
                     {% csrf_token %}
                     <div class="mb-3">
+                        <label for="{{ form.team.id_for_label }}" class="form-label">Team</label>
+                        <select name="{{ form.team.html_name }}"
+                                class="form-select {% if form.team.errors %}is-invalid{% endif %}"
+                                id="{{ form.team.id_for_label }}">
+                            <option value="">— None (Admin) —</option>
+                            {% for value, label in form.fields.team.choices %}
+                                {% if value %}
+                                    <option value="{{ value }}" {% if form.team.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        {% for error in form.team.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
                         <label for="{{ form.role.id_for_label }}" class="form-label">Role</label>
                         <select name="{{ form.role.html_name }}"
                                 class="form-select {% if form.role.errors %}is-invalid{% endif %}"
@@ -53,4 +70,36 @@
 
     </div>
 </div>
+
+<script>
+const TEAM_ROLES = {
+    '':          [['admin', 'Admin']],
+    'team_9':    [['lead', 'Team Lead'], ['member', 'Member']],
+    'cs':        [['lead', 'Team Lead'], ['member', 'Member']],
+    'corporate': [['lead', 'Team Lead'], ['member', 'Member']],
+    'market':    [['lead', 'Team Lead'], ['primary', 'Primary Member'],
+                  ['rolling', 'Rolling Member'], ['loading_dock', 'Loading Dock']],
+};
+
+function filterRoles() {
+    const teamSel = document.getElementById('id_team');
+    const roleSel = document.getElementById('id_role');
+    const currentRole = roleSel.value;
+    const allowed = TEAM_ROLES[teamSel.value] || TEAM_ROLES[''];
+    roleSel.innerHTML = '';
+    allowed.forEach(function([val, label]) {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        if (val === currentRole) opt.selected = true;
+        roleSel.appendChild(opt);
+    });
+    if (!allowed.some(function([val]) { return val === currentRole; })) {
+        roleSel.selectedIndex = 0;
+    }
+}
+
+document.getElementById('id_team').addEventListener('change', filterRoles);
+filterRoles();
+</script>
 {% endblock %}
