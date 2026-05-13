@@ -2,11 +2,11 @@
 Wrapper for together.ai LLM calls with tool use / function calling.
 All views must call this service layer — never call together.ai directly.
 """
-import os
+import json
+from ferite_steel.ai import together_client
+from .tools.pricing import lookup_pricing, TOOL_DEFINITION as PRICING_TOOL
 
-
-TOGETHER_API_KEY = os.environ.get('TOGETHER_API_KEY', '')
-TOGETHER_MODEL = os.environ.get('TOGETHER_MODEL', 'meta-llama/Llama-3.3-70B-Instruct-Turbo')
+TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 
 def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
@@ -40,6 +40,76 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
         ]
     }
 
-    Stub — wire together.ai client here in Phase 2 once API key is available.
     """
-    raise NotImplementedError('LLM service not yet implemented — Phase 2 in progress.')
+
+    system_prompt = (
+        "You are a quotation assistant for an iron and steel distribution company in India. "
+        "Given a customer enquiry, use the lookup_pricing tool to find rates for the requested products. "
+        "When calling lookup_pricing, use short search terms — search by size (e.g. '12mm') or product type (e.g. 'TMT') separately, not the full description. "
+        "Then return a JSON object (and nothing else) with this exact structure:\n"
+        "{\n"
+        '  "payment_terms": "Advance",\n'
+        '  "delivery_address": "",\n'
+        '  "transport_extra": 0,\n'
+        '  "sgst_percent": 9,\n'
+        '  "cgst_percent": 9,\n'
+        '  "notes": "",\n'
+        '  "valid_until": null,\n'
+        '  "line_items": [\n'
+        '    {"product_name": "", "make": "", "length": null, "pcs": null, '
+        '"quantity": 0, "unit_price": 0, "notes": ""}\n'
+        "  ]\n"
+        "}\n"
+        "If a product is not found, include it with unit_price=0 and notes='Price not found — fill manually'. "
+        "Never return anything outside the JSON object."
+    )
+
+    parts = [f"Customer enquiry: \n{lead.raw_text or '(no enquiry text)'}"]
+    if lead.notes:
+        parts.append(f"Lead notes:\n{lead.notes}")
+    if entity_notes:
+        parts.append(f"Customer/Broker notes:\n{entity_notes}")
+    user_message = "\n\n".join(parts)
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message}
+    ]
+
+    response = together_client.chat.completions.create(
+        model = TOGETHER_MODEL,
+        messages = messages,
+        tools = [PRICING_TOOL],
+        tool_choice = "auto",
+    )
+
+    while True:
+        message = response.choices[0].message
+
+        if not message.tool_calls:
+            break
+
+        messages.append({
+            'role': 'assistant',
+            'content': message.content or '',
+            'tool_calls': message.tool_calls,
+        })
+
+        for tool_call in message.tool_calls:
+            args = json.loads(tool_call.function.arguments)
+            result = lookup_pricing(**args)
+            messages.append({
+                'role': 'tool',
+                'tool_call_id': tool_call.id,
+                'content': json.dumps(result),
+            })
+
+        response = together_client.chat.completions.create(
+            model=TOGETHER_MODEL,
+            messages=messages,
+            tools=[PRICING_TOOL],
+            tool_choice='auto',
+        )
+
+    raw = response.choices[0].message.content or ''
+    return json.loads(raw)
