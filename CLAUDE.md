@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 14 May 2026 (session 4)
+**Last updated:** 14 May 2026 (session 5)
 
 ---
 
@@ -76,8 +76,7 @@ python manage.py createsuperuser
 python manage.py collectstatic
 ```
 
-**Together.ai SDK is not yet installed** — `quotations/services/llm.py` is a stub.
-Install when implementing Phase 2: `pip install together` then pin in requirements.txt.
+**Together.ai SDK installed** (`together==2.14.0`). `generate_quotation_draft` is fully wired.
 
 ---
 
@@ -123,8 +122,8 @@ decision must be defensible to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1: Complete. Phase 2 UI largely complete — LLM integration and ingestion pending.**
-**Current phase: Phase 2 — quotation UI/flow done; awaiting WhatsApp API approval and LLM wiring.**
+**Phase 1: Complete. Phase 2 UI complete. LLM quotation draft generation wired and tested. Email ingestion and WhatsApp ingestion still pending.**
+**Current phase: Phase 2 — quotation UI/flow done; LLM wired; awaiting WhatsApp API approval and email ingestion build.**
 **First deliverable: Quotation Automator (Module 2).**
 
 ### What is built
@@ -146,7 +145,8 @@ decision must be defensible to a non-technical client.
 - Broker-sourced quotations: Send button hidden, "Internal Copy" badge shown; PDF header reads "INTERNAL — RATES ONLY"
 - Send button: dummy (marks status='sent') — pending WhatsApp/email wiring
 - Approve flow: lead and admin roles only
-- LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` stub with full JSON output schema documented; raises `NotImplementedError` until wired; `quotation_create` calls it with graceful fallback to blank editor
+- LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; tested end-to-end (confirmed: LLM splits queries by size/type, 4 tool calls fired); `quotation_create` calls it with graceful fallback to blank editor
+- `ferite_steel/ai.py` — shared Together client (`together_client`) used by all service layers; initialized once at import time from `TOGETHER_API_KEY` env var
 - `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list
 - Broker model: list + create views at `/database/brokers/`; registered in database admin
 - MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
@@ -160,15 +160,16 @@ decision must be defensible to a non-technical client.
 - `ProductKeyword` model — company-specific term mappings (e.g. "sariya" → "TMT Bars") injected into LLM system prompt
 - `TeamEmailConfig` model — IMAP credentials per team for email ingestion
 - `classify_message(text)` in `llm.py` — Step 1 LLM call; checks if a message is a product inquiry before creating a lead
-- `generate_quotation_draft` full scaffold — system prompt with keyword injection, not-found item handling, together.ai TODO wiring
+- `generate_quotation_draft` keyword injection — `ProductKeyword` model not yet built; system prompt currently has no client-term mappings
 - `poll_emails` management command — IMAP polling with header pre-filter + classifier; demo uses a dummy Gmail account
 - Email ingestion: dummy Gmail account for demo (to be deleted post-demo); WhatsApp ingestion deferred until Meta approval
 - Customer handover view (`customer_handover`) — lead/admin only; `handling_team` field exists, view not yet built
 - Product rates — all 0 after import (Excel rate column was blank); must be filled via admin
+- TMT products missing from catalog — were not present in imported Excel; must be added manually or via a second import
 
 ### Pending before Phase 2 LLM logic can complete
 - WhatsApp Business API Meta approval
-- together.ai API key confirmed + together.ai client wired in `quotations/services/llm.py`
+- Email ingestion (`poll_emails` + `classify_message`) still to build
 - Hosting decision confirmed (see Section 8)
 
 ---
@@ -182,7 +183,8 @@ decision must be defensible to a non-technical client.
 - **ORM:** Django ORM only — no raw SQL unless unavoidable
 - **Installed packages:** `psycopg2-binary` (PostgreSQL), `python-dotenv` (env vars),
   `whitenoise` (static files), `django-jazzmin` (admin theme),
-  `djangorestframework` (installed, not yet used in views)
+  `djangorestframework` (installed, not yet used in views),
+  `together==2.14.0` (LLM API client — wired in `ferite_steel/ai.py`)
 
 ### Frontend
 - **CSS Framework:** Bootstrap 5
@@ -500,8 +502,10 @@ These are open technical questions. Do not proceed with affected modules until r
 - **Module 6 (Chatbot) tier:** Client has not confirmed tier. Do not finalize scope or fee.
 - **Voice Stand-in:** Not greenlit. Do not plan or scaffold anything.
 - **Corporate team roles:** Client said "not sure" — keeping lead + member for now. Confirm at next meeting.
-- **LLM wiring:** `generate_quotation_draft` and `classify_message` in `quotations/services/llm.py` raise `NotImplementedError`. Full scaffold (system prompt, keyword injection, together.ai call structure) planned for next session. Wire actual API call once together.ai API key confirmed.
+- **LLM wiring — `classify_message`:** Still a stub. Needed before email/WhatsApp ingestion goes live.
+- **ProductKeyword injection:** `generate_quotation_draft` works but has no client-term mappings yet. `ProductKeyword` model not yet built.
 - **Product rates:** All 523 imported products have rate=0. Client must provide rates.
+- **TMT products missing:** Not present in imported catalog — must be added manually or via re-import.
 - **Email dummy account:** Dummy Gmail to be configured in `TeamEmailConfig` for demo. Credentials will be provided by Janav — do not hardcode.
 
 ---
@@ -643,6 +647,7 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 10. **ProductKeyword model:** Company-specific client terms stored in PostgreSQL, admin-editable. Fetched at call time and injected into the LLM system prompt — not hardcoded in code.
 11. **lookup_pricing returns `found: bool`:** Tool always returns `{"found": true/false, "results": [...]}`. Not-found items are included in the quotation draft with `unit_price=0` and `notes="Price not found — fill manually"` — never silently dropped.
 12. **Team-scoped views:** All summary views (customer list, lead list, quotation list) default to showing the requesting user's team data. Admin and `?scope=all` query param shows all records. Leads/admins see the handover button on customer records.
+13. **Shared AI client:** `ferite_steel/ai.py` holds the single `together_client` instance. All service layers import from there — never instantiate `Together(...)` directly in a service or view. If a new app needs LLM access, import from `ferite_steel.ai`, don't create a new client.
 
 ---
 
@@ -654,7 +659,8 @@ ferite_steel/                      ← project root
 ├── ferite_steel/                  ← Django project config
 │   ├── settings.py
 │   ├── urls.py
-│   └── wsgi.py
+│   ├── wsgi.py
+│   └── ai.py                      ← shared Together client (together_client); imported by all LLM service layers
 │
 ├── aegis/                         ← auth & user management
 │   ├── models.py                  ← CustomUser (team + role fields)
@@ -686,7 +692,7 @@ ferite_steel/                      ← project root
 │   │   └── commands/
 │   │       └── poll_emails.py     ← IMAP ingestion: header filter → classify → create Lead (planned)
 │   └── services/
-│       ├── llm.py                 ← generate_quotation_draft(lead, entity_notes) — stub + scaffold planned
+│       ├── llm.py                 ← generate_quotation_draft(lead, entity_notes) — LIVE; tool-use loop with lookup_pricing
 │       │                             classify_message(text) — stub (planned)
 │       │                             _build_keyword_context() — fetches ProductKeyword (planned)
 │       └── tools/
@@ -823,7 +829,7 @@ Future apps to create per module: `credit_risk`, `training`, `leads`.
 
 | Service               | Status                          | Notes                                        |
 |-----------------------|---------------------------------|----------------------------------------------|
-| together.ai           | Active — Janav has access       | Primary LLM for all modules                  |
+| together.ai           | Active — API key set, SDK wired | `together==2.14.0` installed; `generate_quotation_draft` tested end-to-end |
 | WhatsApp Business API | Pending Meta approval           | Client must initiate — do NOT assume live     |
 | ConvoGenie            | Client has account — reviewing  | Integration scope TBD (see Section 9)        |
 | SAP                   | Deprioritised                   | Daily Excel replaces direct integration      |
