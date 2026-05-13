@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 13 May 2026 (session 3)
+**Last updated:** 14 May 2026 (session 4)
 
 ---
 
@@ -133,41 +133,42 @@ decision must be defensible to a non-technical client.
 - `CustomUser` model in `aegis` app with `team` field (`team_9`/`cs`/`market`/`corporate`) and role choices (`admin`/`lead`/`member`/`primary`/`rolling`/`loading_dock`)
 - Full auth flow: login, logout, register (pending admin approval), password reset
 - User management: add user, directory, edit role, approve, delete — all admin-gated; forms include team dropdown with **JavaScript role filter** (role options update dynamically based on selected team)
-- `base.html` built — all templates extend it; nav gated by `request.user.role`
+- `base.html` built — all templates extend it; nav gated by `request.user.role`; Database dropdown in nav (Customers, Products, Brokers for market/admin)
 - Dashboard with lead/quotation stats, scoped by role (admin/lead see all; member sees own); + New Lead / + New Quotation / + Market Order buttons (Market Order button visible to market team + admin only)
-- `quotations` app: `Customer`, `Lead`, `Quotation`, `QuotationLineItem`, `PricingEntry`, `Broker`, `MarketOrder` models
+- `database` app: `Product`, `Customer`, `Broker` models (moved from quotations in session 4)
+- `quotations` app: `Lead`, `Quotation`, `QuotationLineItem`, `MarketOrder` models; references `database.Broker` and `database.Customer` via FK strings
 - Lead: company, industry, location, broker (optional FK) fields; list/create/detail views
 - Quotation: full edit flow with inline formset (line items), JS auto-calculation (amount = rate × tons), WeasyPrint PDF
 - Quotation versioning: Revise creates v2/v3 etc. cloned from current; all versions share a root's outcome
-- Customer model: transport cost memory + `notes` field for AI context — upserted on every quotation save; pre-fills transport_extra on edit for returning customers
+- Customer model: transport cost memory + `notes` field for AI context — upserted on every quotation save; pre-fills transport_extra on edit for returning customers; `handling_team` field
+- Customer list + detail views with team scope; customer edit view
 - Outcome (Win/Loss/Not Updated): shown on quotation detail as quick-select buttons; stored only on root quotation; shared across all versions
 - Broker-sourced quotations: Send button hidden, "Internal Copy" badge shown; PDF header reads "INTERNAL — RATES ONLY"
 - Send button: dummy (marks status='sent') — pending WhatsApp/email wiring
 - Approve flow: lead and admin roles only
 - LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` stub with full JSON output schema documented; raises `NotImplementedError` until wired; `quotation_create` calls it with graceful fallback to blank editor
-- `lookup_pricing` tool definition at `quotations/services/tools/pricing.py`
-- Broker model: name, company, phone, email, location, `notes` (AI context), is_active; list + create views at `/quotations/brokers/`; registered in admin
+- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list
+- Broker model: list + create views at `/database/brokers/`; registered in database admin
 - MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
-- Django admin themed with `django-jazzmin`; Customer, Broker, MarketOrder registered
+- **Product catalog** (session 4): `Product` model with `type` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `location`, `quantity`, `rate`, `pieces`. Full CRUD: list with type tabs + text search (size/HSN/grade/location) + sub-type dropdown filter; add; edit (sub-type JS re-populates on type change); delete
+- `import_products.py` at project root — one-time script; imported 523 products from `ProductList_updated.xlsx`; auto-generated HSN codes `IMP-0001…`; rates all 0 (column was blank in Excel — fill via admin)
+- Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder registered
 - Static files served via `whitenoise`
 - WeasyPrint installed (`pip install weasyprint` + `brew install pango` on macOS)
 
 ### What is NOT yet built (planned for next session)
-- `Customer.handling_team` field — team assignment per customer; handover flow (lead/admin only)
-- Customer list + detail views with team scope (`?scope=all` toggle for admin)
 - `ProductKeyword` model — company-specific term mappings (e.g. "sariya" → "TMT Bars") injected into LLM system prompt
 - `TeamEmailConfig` model — IMAP credentials per team for email ingestion
-- Product catalog view at `/quotations/products/` + CSV upload view for bulk `PricingEntry` upsert
 - `classify_message(text)` in `llm.py` — Step 1 LLM call; checks if a message is a product inquiry before creating a lead
 - `generate_quotation_draft` full scaffold — system prompt with keyword injection, not-found item handling, together.ai TODO wiring
-- `lookup_pricing` tool update — return `found: bool` alongside results
 - `poll_emails` management command — IMAP polling with header pre-filter + classifier; demo uses a dummy Gmail account
 - Email ingestion: dummy Gmail account for demo (to be deleted post-demo); WhatsApp ingestion deferred until Meta approval
+- Customer handover view (`customer_handover`) — lead/admin only; `handling_team` field exists, view not yet built
+- Product rates — all 0 after import (Excel rate column was blank); must be filled via admin
 
 ### Pending before Phase 2 LLM logic can complete
 - WhatsApp Business API Meta approval
 - together.ai API key confirmed + together.ai client wired in `quotations/services/llm.py`
-- Product Excel format reviewed (user to share file — see Section 10)
 - Hosting decision confirmed (see Section 8)
 
 ---
@@ -262,22 +263,38 @@ in the nav badge on `base.html`. Role filter JS is in `add_user.html` and `edit_
 - `branch` — CharField
 - `employee_id` — IntegerField
 
-### Customer (quotations.models.Customer)
+### Product (database.models.Product)
+Master product catalog. 523 rows imported from client Excel (rates all 0 — fill via admin).
+- `hsn_code` — CharField unique (auto-generated `IMP-0001…` during import; update with real HSN codes when available)
+- `type` — CharField choices: `main`, `rolling`, `plate`
+- `sub_type` — CharField choices: `angle`, `channel`, `ub`, `uc`, `beam`, `flat`, `red_material`, `tmt`; blank=True. Valid sub-types per type enforced via JS in add/edit forms and `SUB_TYPE_MAP` class attribute
+- `size` — CharField
+- `length` — CharField blank (free text, e.g. "12 mtr", "8-11 mtr")
+- `grade`, `location` — CharFields blank
+- `pieces` — IntegerField null/blank
+- `quantity` — DecimalField (T)
+- `rate` — DecimalField (₹/T)
+- `is_active` — BooleanField (default True)
+- `last_updated` — auto_now DateTimeField
+Views: product_list (type tabs + search + sub-type filter), product_add, product_edit, product_delete. All at `/database/products/`.
+
+### Customer (database.models.Customer)
 Stores remembered transport costs per customer, matched by name + company (case-insensitive).
 - `name`, `company`, `location`, `phone`, `email` — CharFields
 - `transport_extra` — DecimalField (default 0)
 - `loading_rate` — DecimalField (default 0.5 — ₹/ton)
 - `notes` — TextField blank (AI context: discount preferences, special terms, etc.)
-- `handling_team` — CharField choices: TEAM_CHOICES, nullable/blank (**planned — not yet built**; migration required)
+- `handling_team` — CharField choices: TEAM_CHOICES, nullable/blank
 - `updated_at` — auto_now DateTimeField
-Auto-upserted whenever a quotation is saved.
+Auto-upserted whenever a quotation is saved. Views at `/database/customers/`.
 
-### Broker (quotations.models.Broker)
+### Broker (database.models.Broker)
 Stores broker information for the Market team. Separate from Customer (different flow direction, no transport cost memory).
 - `name`, `company`, `location`, `phone`, `email` — CharFields
 - `notes` — TextField blank (AI context: usual margins, preferred products, etc.)
 - `is_active` — BooleanField (default True)
 - `created_at` — auto_now_add DateTimeField
+Views at `/database/brokers/`.
 
 ### Lead (quotations.models.Lead)
 - `customer_name`, `customer_phone`, `customer_email` — contact info
@@ -438,8 +455,8 @@ pricing Module 6. Do not quote a chatbot fee until this is resolved.
 These are outstanding questions that only the client can answer. Do not assume
 resolved until explicitly confirmed.
 
-### Product Pricing Excel
-1. Share the product pricing Excel file so the CSV upload and `PricingEntry` model design can be validated against the actual column structure before building the upload view.
+### Product rates
+1. All 523 imported product rates are 0 — the RATE column in the Excel was blank. Ask client to either provide a rate file or fill them in via admin.
 
 ### Stock & Inventory
 2. Who or what generates/maintains the daily Excel stock files — manual entry or
@@ -484,7 +501,7 @@ These are open technical questions. Do not proceed with affected modules until r
 - **Voice Stand-in:** Not greenlit. Do not plan or scaffold anything.
 - **Corporate team roles:** Client said "not sure" — keeping lead + member for now. Confirm at next meeting.
 - **LLM wiring:** `generate_quotation_draft` and `classify_message` in `quotations/services/llm.py` raise `NotImplementedError`. Full scaffold (system prompt, keyword injection, together.ai call structure) planned for next session. Wire actual API call once together.ai API key confirmed.
-- **Product Excel structure:** User to share the pricing Excel — need to confirm column layout before finalising CSV upload view and `PricingEntry` field set.
+- **Product rates:** All 523 imported products have rate=0. Client must provide rates.
 - **Email dummy account:** Dummy Gmail to be configured in `TeamEmailConfig` for demo. Credentials will be provided by Janav — do not hardcode.
 
 ---
@@ -645,17 +662,24 @@ ferite_steel/                      ← project root
 │   ├── forms.py                   ← AddUserForm, EditRoleForm (both include team field)
 │   └── urls.py
 │
+├── database/                      ← shared entity models (session 4)
+│   ├── models.py                  ← Product, Customer, Broker
+│   ├── views.py                   ← product_list/add/edit/delete, customer_list/detail/add/edit, broker_list/create
+│   ├── forms.py                   ← ProductForm, CustomerForm, BrokerForm
+│   ├── admin.py                   ← Product, Customer, Broker registered
+│   ├── urls.py                    ← /database/ prefix
+│   └── migrations/                ← 0001–0007
+│
 ├── quotations/                    ← Module 2
-│   ├── models.py                  ← Customer, PricingEntry, Broker, Lead, Quotation, QuotationLineItem, MarketOrder
-│   │                                 + ProductKeyword, TeamEmailConfig, Customer.handling_team (planned)
-│   ├── views.py                   ← all quotation, lead, broker, and market order views
-│   │                                 + customer_list, customer_detail, customer_handover,
-│   │                                   product_list, product_upload (planned)
+│   ├── models.py                  ← Lead, Quotation, QuotationLineItem, MarketOrder
+│   │                                 + ProductKeyword, TeamEmailConfig (planned)
+│   ├── views.py                   ← all quotation, lead, and market order views
+│   │                                 + customer_handover (planned)
 │   ├── forms.py                   ← ManualLeadForm, QuotationEditForm, LineItemFormSet,
-│   │                                 BrokerForm, MarketOrderForm, MarketOrderRateForm,
+│   │                                 MarketOrderForm, MarketOrderRateForm,
 │   │                                 MarketOrderAssignForm, MarketOrderDOForm
-│   │                                 + CustomerHandoverForm, ProductUploadForm (planned)
-│   ├── admin.py                   ← Customer, Broker, MarketOrder, Lead, Quotation registered
+│   │                                 + CustomerHandoverForm (planned)
+│   ├── admin.py                   ← MarketOrder, Lead, Quotation registered
 │   │                                 + ProductKeyword, TeamEmailConfig (planned)
 │   ├── urls.py
 │   ├── management/
@@ -666,14 +690,26 @@ ferite_steel/                      ← project root
 │       │                             classify_message(text) — stub (planned)
 │       │                             _build_keyword_context() — fetches ProductKeyword (planned)
 │       └── tools/
-│           └── pricing.py         ← lookup_pricing tool — returns found: bool + results
+│           └── pricing.py         ← lookup_pricing tool — queries database.Product; returns found: bool + results
+│
+├── import_products.py             ← one-time script; imports ProductList_updated.xlsx → database.Product
 │
 ├── templates/                     ← global templates (all extend base.html)
-│   ├── base.html                  ← nav gated by role; team badge in user menu
+│   ├── base.html                  ← nav gated by role; Database dropdown (Customers/Products/Brokers)
 │   ├── dashboard.html             ← + New Lead / + New Quotation / + Market Order buttons
 │   ├── add_user.html              ← includes JS team→role filter
 │   ├── edit_user_role.html        ← includes JS team→role filter
 │   ├── registration/              ← login, password reset
+│   ├── database/
+│   │   ├── product_list.html      ← type tabs + text search + sub-type filter + result count
+│   │   ├── product_add.html       ← JS sub-type filter by type; Plate hides sub-type field
+│   │   ├── product_edit.html      ← same JS; pre-selects current sub_type
+│   │   ├── customer_list.html     ← team-scoped
+│   │   ├── customer_detail.html   ← lead history
+│   │   ├── customer_add.html
+│   │   ├── customer_edit.html
+│   │   ├── broker_list.html
+│   │   └── broker_create.html
 │   └── quotations/
 │       ├── lead_list.html
 │       ├── lead_detail.html
@@ -683,15 +719,9 @@ ferite_steel/                      ← project root
 │       ├── quotation_edit.html    ← inline formset + JS auto-calc
 │       ├── quotation_pdf.html     ← WeasyPrint A4; "INTERNAL — RATES ONLY" header for broker quotations
 │       ├── quotation_select_lead.html
-│       ├── broker_list.html
-│       ├── broker_create.html
 │       ├── market_order_list.html
 │       ├── market_order_create.html
-│       ├── market_order_detail.html  ← 4-step flow: rate → confirm → assign DO → DO number
-│       ├── customer_list.html        ← team-scoped + ?scope=all toggle (planned)
-│       ├── customer_detail.html      ← history + handover button (planned)
-│       ├── product_list.html         ← PricingEntry catalog (planned)
-│       └── product_upload.html       ← CSV upload form, admin only (planned)
+│       └── market_order_detail.html  ← 4-step flow: rate → confirm → assign DO → DO number
 │
 ├── .claude/
 │   ├── settings.json
@@ -745,8 +775,6 @@ Use `python manage.py` not `python3 manage.py`.
 | `/quotations/leads/`                          | lead_list                    |
 | `/quotations/leads/create/`                   | lead_create                  |
 | `/quotations/leads/<pk>/`                     | lead_detail                  |
-| `/quotations/brokers/`                        | broker_list                  |
-| `/quotations/brokers/create/`                 | broker_create                |
 | `/quotations/market-orders/`                  | market_order_list            |
 | `/quotations/market-orders/create/`           | market_order_create          |
 | `/quotations/market-orders/<pk>/`             | market_order_detail          |
@@ -754,11 +782,21 @@ Use `python manage.py` not `python3 manage.py`.
 | `/quotations/market-orders/<pk>/confirm/`     | market_order_confirm         |
 | `/quotations/market-orders/<pk>/assign-do/`   | market_order_assign_do       |
 | `/quotations/market-orders/<pk>/set-do/`      | market_order_set_do          |
-| `/quotations/customers/`                      | customer_list (planned)      |
-| `/quotations/customers/<pk>/`                 | customer_detail (planned)    |
-| `/quotations/customers/<pk>/handover/`        | customer_handover (planned)  |
-| `/quotations/products/`                       | product_list (planned)       |
-| `/quotations/products/upload/`                | product_upload (planned)     |
+
+**database** (prefix: `/database/`):
+
+| URL                                           | View / Name       |
+|-----------------------------------------------|-------------------|
+| `/database/products/`                         | product_list      |
+| `/database/products/add/`                     | product_add       |
+| `/database/products/<pk>/edit/`               | product_edit      |
+| `/database/products/<pk>/delete/`             | product_delete    |
+| `/database/customers/`                        | customer_list     |
+| `/database/customers/add/`                    | customer_add      |
+| `/database/customers/<pk>/`                   | customer_detail   |
+| `/database/customers/<pk>/edit/`              | customer_edit     |
+| `/database/brokers/`                          | broker_list       |
+| `/database/brokers/add/`                      | broker_create     |
 
 **admin**: `/admin/` — jazzmin-themed Django admin.
 
@@ -769,7 +807,8 @@ Use `python manage.py` not `python3 manage.py`.
 | App          | Purpose                                                                        |
 |--------------|--------------------------------------------------------------------------------|
 | `aegis`      | Auth & user management — CustomUser                                            |
-| `quotations` | Module 2 — Lead, Quotation, PricingEntry, Broker, MarketOrder, LLM service    |
+| `database`   | Shared entity models — Product, Customer, Broker; CRUD views                  |
+| `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service       |
 | `ares`       | Not yet created                                           |
 | `athena`     | Not yet created                                           |
 | `hephaestus` | Not yet created                                           |
