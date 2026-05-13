@@ -9,10 +9,11 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .forms import (
-    BrokerForm, ManualLeadForm, MarketOrderForm, MarketOrderRateForm,
+    ManualLeadForm, MarketOrderForm, MarketOrderRateForm,
     MarketOrderAssignForm, MarketOrderDOForm, QuotationEditForm, LineItemFormSet,
 )
-from .models import Broker, Customer, Lead, MarketOrder, Quotation, QuotationLineItem
+from database.models import Broker, Customer
+from .models import Lead, MarketOrder, Quotation, QuotationLineItem
 from .services.llm import generate_quotation_draft
 
 
@@ -324,28 +325,6 @@ def _require_market_or_admin(request):
     return request.user.team == 'market' or request.user.role == 'admin'
 
 
-@login_required
-def broker_list(request):
-    if not _require_market_or_admin(request):
-        return redirect('dashboard')
-    brokers = Broker.objects.all()
-    return render(request, 'quotations/broker_list.html', {'brokers': brokers})
-
-
-@login_required
-def broker_create(request):
-    if not (request.user.role in ('lead', 'admin') and
-            (request.user.team == 'market' or request.user.role == 'admin')):
-        return redirect('dashboard')
-    if request.method == 'POST':
-        form = BrokerForm(request.POST)
-        if form.is_valid():
-            broker = form.save()
-            messages.success(request, f'Broker "{broker.name}" added.')
-            return redirect('broker_list')
-    else:
-        form = BrokerForm()
-    return render(request, 'quotations/broker_create.html', {'form': form})
 
 
 # ── Market Order views ────────────────────────────────────────────────────────

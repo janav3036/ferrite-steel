@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Products — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Product Catalog</h4>
+        <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">+ Add Product</a>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if not type_filter %}active{% endif %}" href="{% url 'product_list' %}{% if q %}?q={{ q }}{% endif %}">All</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if type_filter == 'main' %}active{% endif %}" href="{% url 'product_list' %}?type=main{% if q %}&q={{ q }}{% endif %}">Main</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if type_filter == 'rolling' %}active{% endif %}" href="{% url 'product_list' %}?type=rolling{% if q %}&q={{ q }}{% endif %}">Rolling</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if type_filter == 'plate' %}active{% endif %}" href="{% url 'product_list' %}?type=plate{% if q %}&q={{ q }}{% endif %}">Plate</a>
+        </li>
+    </ul>
+
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        {% if type_filter %}<input type="hidden" name="type" value="{{ type_filter }}">{% endif %}
+        <div class="col-md-5">
+            <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+                   placeholder="Search size, HSN code, grade, location…">
+        </div>
+        <div class="col-md-3">
+            <select name="sub_type" class="form-select form-select-sm">
+                <option value="">All sub-types</option>
+                {% for val, label in sub_type_choices %}
+                <option value="{{ val }}" {% if sub_type_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
+        </div>
+        {% if q or sub_type_filter %}
+        <div class="col-auto">
+            <a href="{% url 'product_list' %}{% if type_filter %}?type={{ type_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+        </div>
+        {% endif %}
+    </form>
+
+    <p class="text-muted small mb-2">{{ products|length }} result{{ products|length|pluralize }}</p>
+
+    {% if products %}
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>HSN Code</th>
+                    <th>Type</th>
+                    <th>Sub-type</th>
+                    <th>Size</th>
+                    <th>Length (m)</th>
+                    <th>Grade</th>
+                    <th>Location</th>
+                    <th>Pieces</th>
+                    <th>Qty (T)</th>
+                    <th>Rate (₹/T)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td class="text-muted small">{{ p.hsn_code }}</td>
+                    <td><span class="badge bg-secondary">{{ p.get_type_display }}</span></td>
+                    <td>{% if p.sub_type %}<span class="badge bg-light text-dark border">{{ p.get_sub_type_display }}</span>{% else %}—{% endif %}</td>
+                    <td>{{ p.size }}</td>
+                    <td>{{ p.length|default:"—" }}</td>
+                    <td>{{ p.grade|default:"—" }}</td>
+                    <td>{{ p.location|default:"—" }}</td>
+                    <td>{{ p.pieces|default:"—" }}</td>
+                    <td>{{ p.quantity }}</td>
+                    <td>₹{{ p.rate }}</td>
+                    <td class="text-nowrap">
+                        <a href="{% url 'product_edit' p.pk %}" class="btn btn-outline-secondary btn-sm me-1">Edit</a>
+                        <form method="post" action="{% url 'product_delete' p.pk %}"
+                              onsubmit="return confirm('Delete {{ p.size }}?')"
+                              class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No products found. <a href="{% url 'product_add' %}">Add the first product.</a></div>
+    {% endif %}
+</div>
+{% endblock %}

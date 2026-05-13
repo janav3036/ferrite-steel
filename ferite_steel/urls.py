@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('aegis.urls')),
     path('quotations/', include('quotations.urls')),
+    path('database/', include('database.urls')),
 ]
 
 

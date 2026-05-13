@@ -16,10 +16,6 @@ urlpatterns = [
     path('<int:pk>/send/', views.quotation_send, name='quotation_send'),
     path('<int:pk>/approve/', views.quotation_approve, name='quotation_approve'),
 
-    # Brokers
-    path('brokers/', views.broker_list, name='broker_list'),
-    path('brokers/create/', views.broker_create, name='broker_create'),
-
     # Market Orders
     path('market-orders/', views.market_order_list, name='market_order_list'),
     path('market-orders/create/', views.market_order_create, name='market_order_create'),

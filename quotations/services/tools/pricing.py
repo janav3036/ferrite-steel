@@ -1,8 +1,9 @@
 """
-Tool definition: look up a product in the master pricing sheet.
+Tool definition: look up a product in the master product catalog.
 The LLM calls this tool during quotation generation.
 """
-from quotations.models import PricingEntry
+from django.db.models import Q
+from database.models import Product
 
 
 TOOL_DEFINITION = {
@@ -10,15 +11,15 @@ TOOL_DEFINITION = {
     'function': {
         'name': 'lookup_pricing',
         'description': (
-            'Look up the base price and unit for a steel product by name or code. '
-            'Returns pricing data from the master pricing sheet.'
+            'Look up rate and stock for a steel product by size, sub-type, or HSN code. '
+            'Returns data from the product catalog. Always returns found: true/false.'
         ),
         'parameters': {
             'type': 'object',
             'properties': {
                 'query': {
                     'type': 'string',
-                    'description': 'Product name or product code to search for',
+                    'description': 'Size, sub-type, or HSN code to search for (e.g. "12mm", "Angle", "72141000")',
                 },
             },
             'required': ['query'],
@@ -30,26 +31,31 @@ TOOL_DEFINITION = {
 def lookup_pricing(query: str) -> dict:
     """
     Called when the LLM invokes the lookup_pricing tool.
-    Returns matching products from PricingEntry, or an empty list if none found.
+    Returns found: bool plus matching products from the catalog.
     """
-    results = PricingEntry.objects.filter(
+    results = Product.objects.filter(
         is_active=True,
     ).filter(
-        product_name__icontains=query,
-    ) | PricingEntry.objects.filter(
-        is_active=True,
-        product_code__icontains=query,
-    )
+        Q(size__icontains=query) | Q(hsn_code__icontains=query) | Q(sub_type__icontains=query)
+    ).distinct()
+
+    data = [
+        {
+            'hsn_code': p.hsn_code,
+            'type': p.get_type_display(),
+            'sub_type': p.get_sub_type_display(),
+            'size': p.size,
+            'length': p.length or None,
+            'pieces': p.pieces,
+            'grade': p.grade,
+            'location': p.location,
+            'quantity': str(p.quantity),
+            'rate': str(p.rate),
+        }
+        for p in results
+    ]
 
     return {
-        'results': [
-            {
-                'product_code': p.product_code,
-                'product_name': p.product_name,
-                'unit': p.unit,
-                'base_price': str(p.base_price),
-                'min_quantity': str(p.min_quantity),
-            }
-            for p in results.distinct()
-        ]
+        'found': bool(data),
+        'results': data,
     }

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.name }} — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">{{ customer.name }}{% if customer.company %} <small class="text-muted">{{ customer.company }}</small>{% endif %}</h4>
+        <div class="d-flex gap-2">
+            <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+            <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">← Customers</a>
+        </div>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header fw-semibold">Contact</div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt class="text-muted small">Location</dt>
+                        <dd>{{ customer.location|default:"—" }}</dd>
+                        <dt class="text-muted small">Phone</dt>
+                        <dd>{{ customer.phone|default:"—" }}</dd>
+                        <dt class="text-muted small">Email</dt>
+                        <dd>{{ customer.email|default:"—" }}</dd>
+                        <dt class="text-muted small">Handling Team</dt>
+                        <dd>
+                            {% if customer.handling_team %}
+                            <span class="badge bg-primary">{{ customer.get_handling_team_display }}</span>
+                            {% else %}—{% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header fw-semibold">Pricing Defaults</div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt class="text-muted small">Transport Extra</dt>
+                        <dd>₹{{ customer.transport_extra }}</dd>
+                        <dt class="text-muted small">Loading Rate</dt>
+                        <dd>₹{{ customer.loading_rate }}/T</dd>
+                        <dt class="text-muted small">Last Updated</dt>
+                        <dd class="text-muted small">{{ customer.updated_at|date:"d M Y, H:i" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Notes <small class="text-muted">(AI context)</small></div>
+                <div class="card-body">
+                    {% if customer.notes %}
+                    <p class="mb-0 small">{{ customer.notes }}</p>
+                    {% else %}
+                    <p class="text-muted small mb-0">No notes.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="mt-4 mb-3">Lead History</h5>
+    {% if leads %}
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Lead #</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <td>Lead #{{ lead.pk }}</td>
+                    <td>{{ lead.get_source_display }}</td>
+                    <td><span class="badge bg-secondary">{{ lead.get_status_display }}</span></td>
+                    <td class="text-muted small">{{ lead.created_at|date:"d M Y" }}</td>
+                    <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-outline-secondary btn-sm">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No leads found for this customer.</p>
+    {% endif %}
+</div>
+{% endblock %}

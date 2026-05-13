@@ -25,6 +25,17 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'quotation_list' %}">Quotations</a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Database</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'customer_list' %}">Customers</a></li>
+                            <li><a class="dropdown-item" href="{% url 'product_list' %}">Products</a></li>
+                            {% if request.user.team == 'market' or request.user.role == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'broker_list' %}">Brokers</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link disabled">Training</a>
                     </li>

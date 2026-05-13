@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Add Product — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Add Product</h4>
+        <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">← Back to Catalog</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">HSN Code <span class="text-danger">*</span></label>
+                        {{ form.hsn_code }}
+                        {% if form.hsn_code.errors %}
+                        <div class="text-danger small">{{ form.hsn_code.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Size <span class="text-danger">*</span></label>
+                        {{ form.size }}
+                        {% if form.size.errors %}
+                        <div class="text-danger small">{{ form.size.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Length (m)</label>
+                        {{ form.length }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Type <span class="text-danger">*</span></label>
+                        {{ form.type }}
+                        {% if form.type.errors %}
+                        <div class="text-danger small">{{ form.type.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4" id="sub_type_wrapper">
+                        <label class="form-label">Sub-type</label>
+                        {{ form.sub_type }}
+                        {% if form.sub_type.errors %}
+                        <div class="text-danger small">{{ form.sub_type.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Grade</label>
+                        {{ form.grade }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Quantity (T) <span class="text-danger">*</span></label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                        <div class="text-danger small">{{ form.quantity.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Rate (₹/T) <span class="text-danger">*</span></label>
+                        {{ form.rate }}
+                        {% if form.rate.errors %}
+                        <div class="text-danger small">{{ form.rate.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Pieces</label>
+                        {{ form.pieces }}
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label">Location</label>
+                        {{ form.location }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            {{ form.is_active }}
+                            <label class="form-check-label ms-2">Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUB_TYPE_MAP = {
+    'main':    [['angle','Angle'],['channel','Channel'],['ub','UB'],['uc','UC'],['beam','Beam'],['red_material','Red Material'],['tmt','TMT']],
+    'rolling': [['angle','Angle'],['channel','Channel'],['beam','Beam'],['flat','Flat']],
+    'plate':   [],
+};
+
+const typeSelect = document.getElementById('id_type');
+const subTypeSelect = document.getElementById('id_sub_type');
+const subTypeWrapper = document.getElementById('sub_type_wrapper');
+
+function updateSubTypes() {
+    const type = typeSelect.value;
+    const options = SUB_TYPE_MAP[type] || [];
+
+    subTypeSelect.innerHTML = '<option value="">—</option>';
+    options.forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        subTypeSelect.appendChild(opt);
+    });
+
+    subTypeWrapper.style.display = options.length === 0 ? 'none' : '';
+}
+
+typeSelect.addEventListener('change', updateSubTypes);
+updateSubTypes();
+</script>
+{% endblock %}

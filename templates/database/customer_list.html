@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Customers — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+            Customers
+            {% if request.user.role == 'admin' %}
+            <small class="text-muted fs-6 ms-2">
+                {% if scope == 'all' %}
+                    All teams
+                {% else %}
+                    All teams
+                {% endif %}
+            </small>
+            {% elif request.user.team %}
+            <small class="text-muted fs-6 ms-2">{{ request.user.get_team_display }}</small>
+            {% endif %}
+        </h4>
+        <a href="{% url 'customer_add' %}" class="btn btn-primary btn-sm">+ Add Customer</a>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if customers %}
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Location</th>
+                    <th>Phone</th>
+                    <th>Handling Team</th>
+                    <th>Transport (₹)</th>
+                    <th>Loading (₹/T)</th>
+                    <th>Last Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td><a href="{% url 'customer_detail' c.pk %}">{{ c.name }}</a></td>
+                    <td>{{ c.company|default:"—" }}</td>
+                    <td>{{ c.location|default:"—" }}</td>
+                    <td>{{ c.phone|default:"—" }}</td>
+                    <td>
+                        {% if c.handling_team %}
+                        <span class="badge bg-primary">{{ c.get_handling_team_display }}</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>₹{{ c.transport_extra }}</td>
+                    <td>₹{{ c.loading_rate }}</td>
+                    <td class="text-muted small">{{ c.updated_at|date:"d M Y" }}</td>
+                    <td>
+                        <a href="{% url 'customer_edit' c.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No customers yet.
+        <a href="{% url 'customer_add' %}">Add the first customer.</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

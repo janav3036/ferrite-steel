@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Broker, Lead, MarketOrder, Quotation, QuotationLineItem
+from database.models import Broker
+from .models import Lead, MarketOrder, Quotation, QuotationLineItem
 
 
 class ManualLeadForm(forms.ModelForm):
@@ -70,22 +71,6 @@ LineItemFormSet = inlineformset_factory(
     extra=1,
     can_delete=True,
 )
-
-
-class BrokerForm(forms.ModelForm):
-    class Meta:
-        model = Broker
-        fields = ['name', 'company', 'phone', 'email', 'location', 'notes', 'is_active']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'company': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'location': forms.TextInput(attrs={'class': 'form-control'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
-        labels = {'notes': 'Notes (AI context)'}
 
 
 class MarketOrderForm(forms.ModelForm):
