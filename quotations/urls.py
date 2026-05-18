@@ -5,6 +5,7 @@ urlpatterns = [
     path('leads/', views.lead_list, name='lead_list'),
     path('leads/create/', views.lead_create, name='lead_create'),
     path('leads/<int:pk>/', views.lead_detail, name='lead_detail'),
+    path('leads/<int:pk>/delete/', views.lead_delete, name='lead_delete'),
     path('', views.quotation_list, name='quotation_list'),
     path('select-lead/', views.quotation_select_lead, name='quotation_select_lead'),
     path('create/<int:lead_pk>/', views.quotation_create, name='quotation_create'),

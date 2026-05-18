@@ -42,7 +42,14 @@
                 </td>
                 <td>{{ lead.created_by.username|default:"—" }}</td>
                 <td>{{ lead.created_at|date:"d M Y" }}</td>
-                <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                <td class="d-flex gap-1">
+                    <a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                    <form method="post" action="{% url 'lead_delete' lead.pk %}"
+                          onsubmit="return confirm('Delete Lead #{{ lead.pk }}{% if lead.customer_name %} — {{ lead.customer_name }}{% endif %}? This cannot be undone.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

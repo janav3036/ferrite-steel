@@ -126,13 +126,19 @@ class Quotation(models.Model):
 
 
 class QuotationLineItem(models.Model):
+    UOM_CHOICES = [
+        ('ton', 'T'),
+        ('kg', 'KG'),
+    ]
+
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='line_items')
     hsn_code = models.CharField(max_length=20, blank=True)
     product_name = models.CharField(max_length=255)
     make = models.CharField(max_length=100, blank=True)
     length = models.CharField(max_length=50, blank=True)
     pcs = models.IntegerField(null=True, blank=True)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(max_digits=10, decimal_places=3)
+    uom = models.CharField(max_length=3, choices=UOM_CHOICES, default='ton')
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=14, decimal_places=2)
     notes = models.CharField(max_length=500, blank=True)

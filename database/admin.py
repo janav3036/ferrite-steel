@@ -18,8 +18,12 @@ class BrokerAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'company', 'handling_team', 'location', 'transport_extra', 'loading_rate', 'updated_at')
-    list_filter = ('handling_team',)
-    search_fields = ('name', 'company')
-    fields = ('name', 'company', 'location', 'phone', 'email',
-              'transport_extra', 'loading_rate', 'handling_team', 'notes')
+    list_display = ('customer_code', 'name', 'company', 'handling_team', 'gst_number', 'payment_terms', 'transport_extra', 'loading_rate', 'updated_at')
+    list_filter = ('handling_team', 'payment_terms')
+    search_fields = ('customer_code', 'name', 'company', 'gst_number')
+    fields = (
+        'customer_code', 'name', 'company', 'phone', 'email',
+        'gst_number', 'billing_address', 'shipping_address',
+        'payment_terms', 'transport_extra', 'loading_rate',
+        'handling_team', 'notes', 'competitors',
+    )

@@ -4,7 +4,13 @@
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">{{ customer.name }}{% if customer.company %} <small class="text-muted">{{ customer.company }}</small>{% endif %}</h4>
+        <div>
+            <h4 class="mb-0">
+                {{ customer.name }}
+                {% if customer.company %}<small class="text-muted">{{ customer.company }}</small>{% endif %}
+            </h4>
+            {% if customer.customer_code %}<span class="badge bg-secondary">{{ customer.customer_code }}</span>{% endif %}
+        </div>
         <div class="d-flex gap-2">
             <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
             <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">← Customers</a>
@@ -21,17 +27,20 @@
     {% endif %}
 
     <div class="row g-3">
+        <!-- Contact -->
         <div class="col-md-4">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-header fw-semibold">Contact</div>
                 <div class="card-body">
                     <dl class="mb-0">
-                        <dt class="text-muted small">Location</dt>
-                        <dd>{{ customer.location|default:"—" }}</dd>
                         <dt class="text-muted small">Phone</dt>
                         <dd>{{ customer.phone|default:"—" }}</dd>
                         <dt class="text-muted small">Email</dt>
                         <dd>{{ customer.email|default:"—" }}</dd>
+                        <dt class="text-muted small">GST Number</dt>
+                        <dd>{{ customer.gst_number|default:"—" }}</dd>
+                        <dt class="text-muted small">Relationship Manager</dt>
+                        <dd>{{ customer.rm|default:"—" }}</dd>
                         <dt class="text-muted small">Handling Team</dt>
                         <dd>
                             {% if request.user.role == 'lead' or request.user.role == 'admin' %}
@@ -59,11 +68,29 @@
             </div>
         </div>
 
+        <!-- Addresses -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header fw-semibold">Pricing Defaults</div>
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Addresses</div>
                 <div class="card-body">
                     <dl class="mb-0">
+                        <dt class="text-muted small">Billing Address</dt>
+                        <dd style="white-space: pre-line;">{{ customer.billing_address|default:"—" }}</dd>
+                        <dt class="text-muted small">Shipping Address</dt>
+                        <dd style="white-space: pre-line;">{{ customer.shipping_address|default:"—" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commercial -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Commercial</div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt class="text-muted small">Payment Terms</dt>
+                        <dd>{{ customer.get_payment_terms_display|default:"—" }}</dd>
                         <dt class="text-muted small">Transport Extra</dt>
                         <dd>₹{{ customer.transport_extra }}</dd>
                         <dt class="text-muted small">Loading Rate</dt>
@@ -75,14 +102,35 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <!-- Notes -->
+        <div class="col-md-6">
             <div class="card h-100">
                 <div class="card-header fw-semibold">Notes <small class="text-muted">(AI context)</small></div>
                 <div class="card-body">
                     {% if customer.notes %}
-                    <p class="mb-0 small">{{ customer.notes }}</p>
+                    <p class="mb-0 small" style="white-space: pre-line;">{{ customer.notes }}</p>
                     {% else %}
                     <p class="text-muted small mb-0">No notes.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitors -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Competitors</div>
+                <div class="card-body">
+                    {% if customer.competitors %}
+                    <ul class="mb-0 ps-3 small">
+                        {% for line in customer.competitors.splitlines %}
+                        {% if line.strip %}
+                        <li>{{ line.strip }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted small mb-0">None recorded.</p>
                     {% endif %}
                 </div>
             </div>

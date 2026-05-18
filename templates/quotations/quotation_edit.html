@@ -3,7 +3,10 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Edit {{ quotation.quotation_number }}</h2>
+    <div>
+        <h2 class="mb-0">Edit {{ quotation.quotation_number }}</h2>
+        {% if lead.customer_name %}<span class="text-muted fs-6">{{ lead.customer_name }}{% if lead.company %} — {{ lead.company }}{% endif %}</span>{% endif %}
+    </div>
     <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">← Cancel</a>
 </div>
 
@@ -47,6 +50,32 @@
         </div>
     </div>
 
+    <!-- Pricing Breakdown (internal) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">
+            Pricing Breakdown
+            <small class="text-muted fw-normal">(₹/T — internal only, not shown on quotation)</small>
+        </div>
+        <div class="card-body">
+            <div class="row g-2">
+                {% for addon in addon_display %}
+                <div class="col">
+                    <label class="form-label small mb-1">{{ addon.label }}</label>
+                    <input type="number" id="addon-{{ addon.key }}" name="addon_{{ addon.key }}"
+                           class="form-control form-control-sm addon-field" step="0.01" placeholder="0"
+                           value="{{ addon.value }}">
+                </div>
+                {% endfor %}
+            </div>
+            {% if customer_notes %}
+            <details class="mt-3">
+                <summary class="text-muted small" style="cursor:pointer">Customer notes (reference)</summary>
+                <pre class="small text-muted mt-1 p-2 bg-light rounded" style="white-space: pre-wrap;">{{ customer_notes }}</pre>
+            </details>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Line items -->
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
@@ -62,11 +91,12 @@
                             <th style="width:30px">#</th>
                             <th style="width:100px">HSN Code</th>
                             <th>Product</th>
-                            <th style="width:90px">Make</th>
-                            <th style="width:90px">Length</th>
-                            <th style="width:90px">TON</th>
-                            <th style="width:70px">PCS</th>
-                            <th style="width:110px">Rate (₹)</th>
+                            <th style="width:80px">Make</th>
+                            <th style="width:80px">Length</th>
+                            <th style="width:120px">Qty / UOM</th>
+                            <th style="width:60px">PCS</th>
+                            <th style="width:100px">Purch. Rate</th>
+                            <th style="width:100px">Sell Rate</th>
                             <th style="width:110px">Amount (₹)</th>
                             <th>Notes</th>
                             <th style="width:60px"></th>
@@ -83,8 +113,13 @@
                             </td>
                             <td>{{ item_form.make }}</td>
                             <td>{{ item_form.length }}</td>
-                            <td>{{ item_form.quantity }}</td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    {{ item_form.quantity }}{{ item_form.uom }}
+                                </div>
+                            </td>
                             <td>{{ item_form.pcs }}</td>
+                            <td><input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00"></td>
                             <td>{{ item_form.unit_price }}</td>
                             <td>{{ item_form.total_price }}</td>
                             <td>{{ item_form.notes }}</td>
@@ -202,17 +237,33 @@
 const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
 const transportInput  = document.getElementById('id_transport_extra');
 
+const ADDON_IDS = ['addon-parity','addon-cutting','addon-loading','addon-transport',
+                   'addon-margin','addon-interest','addon-commission'];
+
+function getAddonTotal() {
+    return ADDON_IDS.reduce((sum, id) => sum + (parseFloat(document.getElementById(id)?.value) || 0), 0);
+}
+
 function recalcRow(row) {
-    const rate = parseFloat(row.querySelector('.rate-field').value) || 0;
-    const qty  = parseFloat(row.querySelector('.qty-field').value)  || 0;
-    row.querySelector('.amt-field').value = (rate * qty).toFixed(2);
+    const purchaseRateInput = row.querySelector('.purchase-rate-field');
+    if (!purchaseRateInput || !purchaseRateInput.value.trim()) return;
+    const purchaseRate = parseFloat(purchaseRateInput.value) || 0;
+    const qty  = parseFloat(row.querySelector('.qty-field').value) || 0;
+    const uom  = row.querySelector('.uom-field')?.value || 'ton';
+    const tons = uom === 'kg' ? qty / 1000 : qty;
+    const finalRate = purchaseRate + getAddonTotal();
+    const finalRateField = row.querySelector('.final-rate-field');
+    if (finalRateField) finalRateField.value = finalRate.toFixed(2);
+    row.querySelector('.amt-field').value = (finalRate * tons).toFixed(2);
 }
 
 function updateSummary() {
     let totalTons = 0;
     let itemValue = 0;
     document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
-        totalTons += parseFloat(row.querySelector('.qty-field').value)  || 0;
+        const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
+        const uom = row.querySelector('.uom-field')?.value || 'ton';
+        totalTons += uom === 'kg' ? qty / 1000 : qty;
         itemValue += parseFloat(row.querySelector('.amt-field').value) || 0;
     });
     const loading   = totalTons * 0.5;
@@ -237,6 +288,23 @@ document.getElementById('formset-body').addEventListener('input', function(e) {
     const row = e.target.closest('tr');
     if (row) recalcRow(row);
     updateSummary();
+});
+
+document.getElementById('formset-body').addEventListener('change', function(e) {
+    if (!e.target.matches('.uom-field')) return;
+    const row = e.target.closest('tr');
+    if (row) recalcRow(row);
+    updateSummary();
+});
+
+// Recalculate all rows with a purchase rate whenever any addon changes
+ADDON_IDS.forEach(id => {
+    document.getElementById(id)?.addEventListener('input', function() {
+        document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+            recalcRow(row);
+        });
+        updateSummary();
+    });
 });
 
 if (transportInput) {
@@ -475,14 +543,14 @@ pickerBody.addEventListener('click', function(e) {
     const makeField = pickerTargetRow.querySelector('[name$="-make"]');
     const lenField  = pickerTargetRow.querySelector('[name$="-length"]');
     const hsnField  = pickerTargetRow.querySelector('[name$="-hsn_code"]');
-    const rateField = pickerTargetRow.querySelector('.rate-field');
+    const purchaseRateField = pickerTargetRow.querySelector('.purchase-rate-field');
 
     if (nameField) nameField.value = productName;
     if (makeField) makeField.value = mk;
     if (lenField)  lenField.value  = lk;
     if (hsnField)  hsnField.value  = hsnCode;
-    if (rateField) {
-        rateField.value = rate;
+    if (purchaseRateField) {
+        purchaseRateField.value = rate;
         recalcRow(pickerTargetRow);
         updateSummary();
     }

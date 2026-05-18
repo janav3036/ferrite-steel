@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 
 
@@ -64,15 +65,32 @@ class Customer(models.Model):
         ('market', 'Market Team'),
         ('corporate', 'Corporate Team'),
     ]
+    PAYMENT_TERMS_CHOICES = [
+        ('advance', 'Advance'),
+        ('cash', 'Cash'),
+    ]
 
+    customer_code = models.CharField(max_length=30, unique=True, null=True, blank=True)
     name = models.CharField(max_length=255)
     company = models.CharField(max_length=255, blank=True)
-    location = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
+    gst_number = models.CharField(max_length=20, blank=True)
+    billing_address = models.TextField(blank=True)
+    shipping_address = models.TextField(blank=True)
+    payment_terms = models.CharField(max_length=10, choices=PAYMENT_TERMS_CHOICES, blank=True)
     transport_extra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     loading_rate = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.5'))
     notes = models.TextField(blank=True, help_text='AI context: discount preferences, special terms, etc.')
+    competitors = models.TextField(blank=True, help_text='One competitor per line.')
+    rm = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='managed_customers',
+        verbose_name='Relationship Manager',
+    )
     handling_team = models.CharField(max_length=20, choices=TEAM_CHOICES, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

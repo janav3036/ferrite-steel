@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 18 May 2026 (session 7)
+**Last updated:** 19 May 2026 (session 8)
 
 ---
 
@@ -136,22 +136,24 @@ decision must be defensible to a non-technical client.
 - Dashboard with lead/quotation stats, scoped by role (admin/lead see all; member sees own); + New Lead / + New Quotation / + Market Order buttons (Market Order button visible to market team + admin only)
 - `database` app: `Product`, `Customer`, `Broker` models (moved from quotations in session 4)
 - `quotations` app: `Lead`, `Quotation`, `QuotationLineItem`, `MarketOrder` models; references `database.Broker` and `database.Customer` via FK strings
-- Lead: company, industry, location, broker (optional FK) fields; list/create/detail views
+- Lead: company, industry, location, broker (optional FK) fields; list/create/detail/delete views; delete button on list and detail (with cascade warning modal on detail)
 - Quotation: full edit flow with inline formset (line items), JS auto-calculation (amount = rate × tons), WeasyPrint PDF
 - Quotation versioning: Revise creates v2/v3 etc. cloned from current; all versions share a root's outcome
-- Customer model: transport cost memory + `notes` field for AI context — upserted on every quotation save; pre-fills transport_extra on edit for returning customers; `handling_team` field
-- Customer list + detail views with team scope; customer edit view
+- **Customer model** (expanded session 8): `customer_code`, `billing_address`, `shipping_address`, `gst_number`, `payment_terms` (advance/cash), `competitors` (TextField, one per line), `rm` (FK to CustomUser, nullable) added; `location` removed. Auto-upserted whenever a quotation is saved. `handling_team` field retained.
+- Customer list + detail views with team scope; customer edit view; list columns: Code, Name, Company, Phone, GST No., Payment Terms, Handling Team
 - Outcome (Win/Loss/Not Updated): shown on quotation detail as quick-select buttons; stored only on root quotation; shared across all versions
 - Broker-sourced quotations: Send button visible but sends text-only rate email (no PDF); PDF header reads "INTERNAL — RATES ONLY"
 - Send button: links to `quotation_send` compose/confirm view; sends via SMTP using `TeamEmailConfig`; PDF attached for non-broker leads; broker leads get text-only rate email
 - Approve flow: lead and admin roles only
-- LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; tested end-to-end (confirmed: LLM splits queries by size/type, 4 tool calls fired); `quotation_create` calls it with graceful fallback to blank editor
+- LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; system prompt instructs LLM to ignore rates in enquiry text and focus only on the newest part of reply chains; UOM context (ton/kg, 1T=1000KG) included; `quotation_create` calls it with graceful fallback to blank editor
 - `ferite_steel/ai.py` — shared Together client (`together_client`) used by all service layers; initialized once at import time from `TOGETHER_API_KEY` env var
 - `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list (result dicts use `make` key, not `type`)
 - Broker model: list + create views at `/database/brokers/`; registered in database admin
 - MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
 - **Product catalog** (session 4, updated session 7): `Product` model with `make` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `godown`, `site` (Site 1/Site 2), `quantity`, `rate`, `pieces`. Product list is a **grouped view**: rows grouped by sub_type + size; cascading dropdowns — Make → Length → Grade → Site — resolve to the specific variant; rate/qty/HSN/godown update live. No make tabs or sub-type filter; just a text search box. Product catalog JSON endpoint at `/database/products/catalog.json`. Add/edit forms include Godown + Site fields.
-- **Quotation line item picker** (session 7): each line item row in the quotation edit form has a "⌕ pick" button that opens a modal with the full grouped catalog (same cascade as product list). Selecting a variant auto-fills product_name, make, length, hsn_code, and unit_price on the line item.
+- **Quotation line item picker** (session 7, updated session 8): each line item row in the quotation edit form has a "⌕ pick" button that opens a modal with the full grouped catalog. Selecting a variant auto-fills product_name, make, length, hsn_code, and sets the **purchase rate** input (not unit_price directly — see Pricing Breakdown below).
+- **Quotation line item UOM** (session 8): `uom` field (ton/kg) on `QuotationLineItem`. Dropdown in edit table. Server-side: `total_price = (quantity / 1000) * unit_price` if `uom == 'kg'`, else `quantity * unit_price`. LLM draft respects UOM as stated by customer.
+- **Pricing breakdown** (session 8): quotation edit form shows a per-line Pricing Breakdown card with Purchase Rate (catalog value, not stored) + 7 add-on inputs (Parity, Cutting, Loading, Transport, Margin, Interest, Commission — not model fields). JS sums them into `unit_price` (readonly final sell rate, stored in DB). Customer never sees these add-ons — only the final sell rate appears on PDF/quotation. Last-used add-on values persisted to customer notes under a `--- Pricing Add-ons ---` section; pre-filled on next quotation for the same customer. Helpers in `quotations/views.py`: `_parse_addon_notes()`, `_update_addon_notes()`.
 - `import_products.py` at project root — one-time script; imported 523 products from `ProductList_updated.xlsx`; auto-generated HSN codes `IMP-0001…`; rates all 0 (column was blank in Excel — fill via admin)
 - Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder, **ProductKeyword, TeamEmailConfig** registered
 - Static files served via `whitenoise`
@@ -159,8 +161,10 @@ decision must be defensible to a non-technical client.
 - **`ProductKeyword` model** (session 6): maps client trade terms (e.g. "sariya") to canonical product names; admin-editable; `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every `generate_quotation_draft` call
 - **`TeamEmailConfig` model** (session 6): IMAP credentials per team for email ingestion; unique per team; admin-only management; password field has help text to use an App Password
 - **`classify_message(text)`** (session 6): LLM classifier — returns True if text is a product inquiry; called before creating any Lead from inbound messages; uses a YES/NO single-word response from together.ai
-- **`poll_emails` management command** (session 6): full IMAP ingestion — connects to each active TeamEmailConfig inbox, fetches UNSEEN messages, pre-filters spam senders, calls `classify_message`, creates Leads for genuine inquiries, marks emails as Seen. `--dry-run` flag for testing without side effects.
+- **`poll_emails` management command** (session 6, improved session 8): full IMAP ingestion — connects to each active TeamEmailConfig inbox, fetches UNSEEN messages, pre-filters spam senders, calls `classify_message`, creates Leads for genuine inquiries, marks emails as Seen. `--dry-run` flag for testing without side effects. `_strip_reply_chain()` handles Gmail reply chains (On ... wrote:), Outlook reply blocks (From: + Sent: with optional blank line between them), `-----Original Message-----`, and nested `--------- Forwarded message ---------` (cut only after real content seen — outer forward wrapper is preserved).
 - **Email send flow** (session 6): `quotation_send` view now shows a compose/confirm form (`quotation_send_confirm.html`) pre-filled with subject and body. On submit: looks up active `TeamEmailConfig` for the lead's team, generates PDF via WeasyPrint (non-broker only), sends via SMTP (host derived by replacing "imap." with "smtp."). Broker quotations get a text-only rate email (no PDF). Falls back to "marked as sent" if no active config exists.
+- **Quotation list** (session 8): "All Quotations" and "All Leads" nav links at top of quotation list page.
+- Quotation edit header shows customer name and company for context.
 
 ### What is NOT yet built (planned for next session)
 - Email ingestion live test — `poll_emails` is built; needs a dummy Gmail account added to `TeamEmailConfig` in admin with a valid App Password (Janav to provide credentials); to be deleted post-demo
@@ -286,14 +290,20 @@ Views: product_list (grouped view + text search), product_add, product_edit, pro
 `_build_product_groups(products)` helper in `database/views.py` — groups a queryset into nested dict: sub_type+size → make → length → grade → site → {id, rate, qty, hsn, godown, site_display}. Used by both product_list and product_catalog_json.
 
 ### Customer (database.models.Customer)
-Stores remembered transport costs per customer, matched by name + company (case-insensitive).
-- `name`, `company`, `location`, `phone`, `email` — CharFields
+Stores remembered transport costs and commercial details per customer, matched by name + company (case-insensitive).
+- `customer_code` — CharField unique, null/blank (client assigns codes; pre-filled when client provides their DB)
+- `name`, `company`, `phone`, `email` — CharFields
+- `billing_address`, `shipping_address` — TextFields blank (replaced old `location` field)
+- `gst_number` — CharField blank
+- `payment_terms` — CharField choices: `advance`/`cash`, blank
 - `transport_extra` — DecimalField (default 0)
 - `loading_rate` — DecimalField (default 0.5 — ₹/ton)
-- `notes` — TextField blank (AI context: discount preferences, special terms, etc.)
+- `notes` — TextField blank (AI context + `--- Pricing Add-ons ---` section written by quotation_edit)
+- `competitors` — TextField blank (one competitor per line; display only)
+- `rm` — FK to `settings.AUTH_USER_MODEL` (relationship manager; nullable, SET_NULL)
 - `handling_team` — CharField choices: TEAM_CHOICES, nullable/blank
 - `updated_at` — auto_now DateTimeField
-Auto-upserted whenever a quotation is saved. Views at `/database/customers/`.
+Auto-upserted whenever a quotation is saved. Views at `/database/customers/`. List columns: Code, Name, Company, Phone, GST No., Payment Terms, Handling Team.
 
 ### Broker (database.models.Broker)
 Stores broker information for the Market team. Separate from Customer (different flow direction, no transport cost memory).
@@ -329,12 +339,14 @@ Broker-sourced quotations (where `lead.broker` is not null) are internal-only: S
 ### QuotationLineItem (quotations.models.QuotationLineItem)
 - `quotation` — FK to Quotation
 - `product_name`, `make` — CharFields
-- `length` — CharField blank (free text, e.g. "12 mtr"; was DecimalField before session 7)
+- `length` — CharField blank (free text, e.g. "12 mtr")
 - `pcs` — IntegerField nullable
-- `quantity` — DecimalField (tons)
-- `unit_price`, `total_price` — DecimalFields
+- `uom` — CharField choices: `ton`/`kg`, default `ton` (added session 8)
+- `quantity` — DecimalField decimal_places=3 (ton or kg as per uom)
+- `unit_price` — DecimalField (final sell rate; readonly in form; JS-calculated from purchase_rate + 7 add-ons)
+- `total_price` — DecimalField (server-side: `(quantity/1000)*unit_price` if kg, else `quantity*unit_price`)
 - `notes` — CharField
-`make` is included in `LineItemForm.fields` and rendered as a column in the quotation edit table. The "⌕ pick" button on each row opens the product picker modal.
+`make` and `uom` rendered as columns in quotation edit table. The "⌕ pick" button fills the purchase-rate input (client-side only); JS then recalcs `unit_price` from purchase_rate + add-ons.
 
 ### MarketOrder (quotations.models.MarketOrder)
 Tracks the Market team's broker order logistics flow, independent of the Quotation model.

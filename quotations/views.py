@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
@@ -65,6 +66,8 @@ def quotation_detail(request, pk):
 def quotation_edit(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
     lead = quotation.lead
+    customer = _find_customer(lead)
+    addon_notes = _parse_addon_notes(customer.notes if customer else '')
 
     if request.method == 'POST':
         form = QuotationEditForm(request.POST, instance=quotation)
@@ -75,7 +78,8 @@ def quotation_edit(request, pk):
             for item in items:
                 item.quantity = item.quantity or Decimal('0')
                 item.unit_price = item.unit_price or Decimal('0')
-                item.total_price = item.quantity * item.unit_price
+                tons = item.quantity / Decimal('1000') if item.uom == 'kg' else item.quantity
+                item.total_price = tons * item.unit_price
                 item.save()
             for item in formset.deleted_objects:
                 item.delete()
@@ -83,21 +87,38 @@ def quotation_edit(request, pk):
             quotation.total_amount = total
             quotation.save(update_fields=['total_amount'])
             _upsert_customer(lead, quotation.transport_extra)
+            # Persist addon values to customer notes
+            addons = {k: request.POST.get(f'addon_{k}', '') for k in _ADDON_KEYS}
+            if any(v.strip() for v in addons.values()):
+                cust = _find_customer(lead)
+                if cust:
+                    _update_addon_notes(cust, addons)
             messages.success(request, 'Quotation saved.')
             return redirect('quotation_detail', pk=pk)
     else:
         initial = {}
         if quotation.transport_extra == 0 and not lead.broker:
-            customer = _find_customer(lead)
             if customer:
                 initial['transport_extra'] = customer.transport_extra
         form = QuotationEditForm(instance=quotation, initial=initial)
         formset = LineItemFormSet(instance=quotation)
 
+    addon_labels = [
+        ('parity', 'Parity'), ('cutting', 'Cutting'), ('loading', 'Loading'),
+        ('transport', 'Transport'), ('margin', 'Margin'),
+        ('interest', 'Interest'), ('commission', 'Commission'),
+    ]
+    addon_display = [
+        {'key': k, 'label': lbl, 'value': addon_notes.get(k, '')}
+        for k, lbl in addon_labels
+    ]
     return render(request, 'quotations/quotation_edit.html', {
         'quotation': quotation,
+        'lead': lead,
         'form': form,
         'formset': formset,
+        'addon_display': addon_display,
+        'customer_notes': customer.notes if customer else '',
     })
 
 
@@ -115,6 +136,43 @@ def _find_customer(lead):
     return None
 
 
+_ADDON_KEYS = ['parity', 'cutting', 'loading', 'transport', 'margin', 'interest', 'commission']
+_ADDON_SECTION_RE = re.compile(r'---\s*Pricing Add-ons.*?---', re.DOTALL | re.IGNORECASE)
+
+
+def _parse_addon_notes(notes: str) -> dict:
+    """Extract last-used pricing add-on values from the structured section in customer notes."""
+    match = _ADDON_SECTION_RE.search(notes or '')
+    if not match:
+        return {}
+    section = match.group(0)
+    result = {}
+    for key in _ADDON_KEYS:
+        m = re.search(rf'{key}\s*:\s*([^\n]+)', section, re.IGNORECASE)
+        if m:
+            result[key] = m.group(1).strip()
+    return result
+
+
+def _update_addon_notes(customer, addons: dict):
+    """Replace or append the pricing add-ons section in the customer's notes field."""
+    lines = ['--- Pricing Add-ons (last used) ---']
+    labels = {
+        'parity': 'Parity', 'cutting': 'Cutting', 'loading': 'Loading',
+        'transport': 'Transport', 'margin': 'Margin',
+        'interest': 'Interest', 'commission': 'Commission',
+    }
+    for key, label in labels.items():
+        val = addons.get(key, '').strip()
+        if val:
+            lines.append(f'{label}: {val}')
+    lines.append('---')
+    new_section = '\n'.join(lines)
+    notes = _ADDON_SECTION_RE.sub('', customer.notes or '').strip()
+    customer.notes = f'{notes}\n\n{new_section}'.strip() if notes else new_section
+    customer.save(update_fields=['notes'])
+
+
 def _upsert_customer(lead, transport_extra):
     if not lead.customer_name and not lead.customer_email:
         return
@@ -123,13 +181,13 @@ def _upsert_customer(lead, transport_extra):
         customer.transport_extra = transport_extra
         customer.phone = lead.customer_phone or customer.phone
         customer.email = lead.customer_email or customer.email
-        customer.location = lead.location or customer.location
+        customer.billing_address = lead.location or customer.billing_address
         customer.save()
     else:
         Customer.objects.create(
             name=lead.customer_name,
             company=lead.company,
-            location=lead.location,
+            billing_address=lead.location or '',
             phone=lead.customer_phone,
             email=lead.customer_email,
             transport_extra=transport_extra,
@@ -216,6 +274,7 @@ def quotation_revise(request, pk):
             length=item.length,
             pcs=item.pcs,
             quantity=item.quantity,
+            uom=item.uom,
             unit_price=item.unit_price,
             total_price=item.total_price,
             notes=item.notes,
@@ -408,6 +467,8 @@ def quotation_create(request, lead_pk):
             for item in draft.get('line_items', []):
                 qty = Decimal(str(item.get('quantity') or 0))
                 price = Decimal(str(item.get('unit_price') or 0))
+                uom = item.get('uom', 'ton')
+                tons = qty / Decimal('1000') if uom == 'kg' else qty
                 QuotationLineItem.objects.create(
                     quotation=quotation,
                     hsn_code=item.get('hsn_code', ''),
@@ -415,8 +476,9 @@ def quotation_create(request, lead_pk):
                     length=item.get('length'),
                     pcs=item.get('pcs'),
                     quantity=qty,
+                    uom=uom,
                     unit_price=price,
-                    total_price=qty * price,
+                    total_price=tons * price,
                     notes=item.get('notes', ''),
                 )
         except Exception:
@@ -424,7 +486,7 @@ def quotation_create(request, lead_pk):
 
         # Pre-fill transport and delivery address from returning customer
         if not lead.broker:
-            address = (customer.location if customer else '') or lead.location
+            address = (customer.billing_address if customer else '') or lead.location
             update_fields = []
             if customer and quotation.transport_extra == Decimal('0') and customer.transport_extra:
                 quotation.transport_extra = customer.transport_extra
@@ -451,6 +513,17 @@ def quotation_delete(request, pk):
     quotation.delete()
     messages.success(request, f'{number} deleted.')
     return redirect('quotation_list')
+
+
+@login_required
+def lead_delete(request, pk):
+    if request.method != 'POST':
+        return redirect('lead_detail', pk=pk)
+    lead = get_object_or_404(Lead, pk=pk)
+    name = lead.customer_name or f'Lead #{lead.pk}'
+    lead.delete()
+    messages.success(request, f'Lead "{name}" and all its quotations deleted.')
+    return redirect('lead_list')
 
 
 @login_required
