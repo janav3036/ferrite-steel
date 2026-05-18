@@ -9,6 +9,40 @@ from .tools.pricing import lookup_pricing, TOOL_DEFINITION as PRICING_TOOL
 TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 
+def _build_keyword_context() -> str:
+    from quotations.models import ProductKeyword
+    keywords = ProductKeyword.objects.filter(is_active=True).values_list('keyword', 'maps_to')
+    if not keywords:
+        return ''
+    lines = '\n'.join(f'  "{kw}" means "{mt}"' for kw, mt in keywords)
+    return f'Client terminology guide (local/trade names to use when calling lookup_pricing):\n{lines}'
+
+
+def classify_message(text: str) -> bool:
+    """
+    Returns True if text is a product inquiry for iron/steel goods, False otherwise.
+    Call this before creating a Lead from any inbound message (email, WhatsApp).
+    """
+    response = together_client.chat.completions.create(
+        model=TOGETHER_MODEL,
+        messages=[
+            {
+                'role': 'system',
+                'content': (
+                    'You are a classifier for an iron and steel distribution company in India. '
+                    'Decide whether the message below is a product inquiry — i.e. the sender '
+                    'is asking about steel or iron products, prices, availability, or requesting '
+                    'a quotation. Reply with exactly one word: YES or NO.'
+                ),
+            },
+            {'role': 'user', 'content': text},
+        ],
+        max_tokens=5,
+    )
+    answer = (response.choices[0].message.content or '').strip().upper()
+    return answer.startswith('YES')
+
+
 def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
     """
     Generate a quotation draft using the lead's enquiry text, lead notes, and
@@ -42,11 +76,13 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
 
     """
 
+    keyword_context = _build_keyword_context()
     system_prompt = (
         "You are a quotation assistant for an iron and steel distribution company in India. "
         "Given a customer enquiry, use the lookup_pricing tool to find rates for the requested products. "
         "When calling lookup_pricing, use short search terms — search by size (e.g. '12mm') or product type (e.g. 'TMT') separately, not the full description. "
-        "Then return a JSON object (and nothing else) with this exact structure:\n"
+        + (f"\n{keyword_context}\n" if keyword_context else "")
+        + "Then return a JSON object (and nothing else) with this exact structure:\n"
         "{\n"
         '  "payment_terms": "Advance",\n'
         '  "delivery_address": "",\n'
@@ -56,7 +92,7 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
         '  "notes": "",\n'
         '  "valid_until": null,\n'
         '  "line_items": [\n'
-        '    {"product_name": "", "make": "", "length": null, "pcs": null, '
+        '    {"hsn_code": "", "product_name": "", "length": null, "pcs": null, '
         '"quantity": 0, "unit_price": 0, "notes": ""}\n'
         "  ]\n"
         "}\n"

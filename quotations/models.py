@@ -12,6 +12,7 @@ class Lead(models.Model):
         ('new', 'New'),
         ('processing', 'Processing'),
         ('quoted', 'Quoted'),
+        ('closed', 'Closed'),
         ('rejected', 'Rejected'),
     ]
 
@@ -62,6 +63,11 @@ class Quotation(models.Model):
         ('not_updated', 'Not Updated'),
     ]
 
+    PAYMENT_TERMS_CHOICES = [
+        ('Advance', 'Advance'),
+        ('Cash', 'Cash'),
+    ]
+
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='quotations')
     parent_quotation = models.ForeignKey(
         'self', null=True, blank=True,
@@ -76,7 +82,7 @@ class Quotation(models.Model):
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     valid_until = models.DateField(null=True, blank=True)
-    payment_terms = models.CharField(max_length=100, default='Advance')
+    payment_terms = models.CharField(max_length=100, choices=PAYMENT_TERMS_CHOICES, default='Advance')
     delivery_address = models.TextField(blank=True)
     transport_extra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sgst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=9)
@@ -121,9 +127,10 @@ class Quotation(models.Model):
 
 class QuotationLineItem(models.Model):
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='line_items')
+    hsn_code = models.CharField(max_length=20, blank=True)
     product_name = models.CharField(max_length=255)
     make = models.CharField(max_length=100, blank=True)
-    length = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    length = models.CharField(max_length=50, blank=True)
     pcs = models.IntegerField(null=True, blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -194,3 +201,44 @@ class MarketOrder(models.Model):
 
     def __str__(self):
         return f'MO-{self.pk:05d} — {self.broker.name} ({self.get_status_display()})'
+
+
+class ProductKeyword(models.Model):
+    keyword   = models.CharField(max_length=100, help_text='What clients say, e.g. "sariya", "patti", "12mm rod"')
+    maps_to   = models.CharField(max_length=100, help_text='Canonical product name, e.g. "TMT Bars 12mm"')
+    notes     = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Product Keyword'
+        verbose_name_plural = 'Product Keywords'
+        ordering = ['keyword']
+
+    def __str__(self):
+        return f'{self.keyword} → {self.maps_to}'
+
+
+class TeamEmailConfig(models.Model):
+    TEAM_CHOICES = [
+        ('team_9',    'Team 9'),
+        ('cs',        'CS Team'),
+        ('market',    'Market Team'),
+        ('corporate', 'Corporate Team'),
+    ]
+
+    team          = models.CharField(max_length=20, choices=TEAM_CHOICES, unique=True)
+    email_address = models.EmailField(help_text='Shared team inbox, e.g. enquiry@ferrite.in')
+    imap_host     = models.CharField(max_length=255, default='imap.gmail.com')
+    imap_port     = models.IntegerField(default=993)
+    imap_username = models.EmailField()
+    imap_password = models.CharField(max_length=255, help_text='Use an App Password, not the account password')
+    use_ssl       = models.BooleanField(default=True)
+    is_active     = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Team Email Config'
+        verbose_name_plural = 'Team Email Configs'
+        ordering = ['team']
+
+    def __str__(self):
+        return f'{self.get_team_display()} — {self.email_address}'

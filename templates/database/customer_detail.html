@@ -34,9 +34,25 @@
                         <dd>{{ customer.email|default:"—" }}</dd>
                         <dt class="text-muted small">Handling Team</dt>
                         <dd>
+                            {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+                            <form method="post" action="{% url 'customer_handover' customer.pk %}" class="d-flex flex-wrap gap-1 mt-1">
+                                {% csrf_token %}
+                                {% for value, label in team_choices %}
+                                <button type="submit" name="team" value="{{ value }}"
+                                    class="btn btn-sm {% if customer.handling_team == value %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                                    {{ label }}
+                                </button>
+                                {% endfor %}
+                                {% if customer.handling_team %}
+                                <button type="submit" name="team" value=""
+                                    class="btn btn-sm btn-outline-danger">Unassign</button>
+                                {% endif %}
+                            </form>
+                            {% else %}
                             {% if customer.handling_team %}
                             <span class="badge bg-primary">{{ customer.get_handling_team_display }}</span>
                             {% else %}—{% endif %}
+                            {% endif %}
                         </dd>
                     </dl>
                 </div>

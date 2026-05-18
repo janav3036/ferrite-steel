@@ -43,20 +43,21 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'hsn_code', 'size', 'length', 'type', 'sub_type',
-            'pieces', 'grade', 'location', 'quantity', 'rate', 'is_active',
+            'hsn_code', 'size', 'length', 'make', 'sub_type',
+            'pieces', 'grade', 'godown', 'site', 'quantity', 'rate', 'is_active',
         ]
         widgets = {
             'hsn_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 72141000'}),
             'size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12mm'}),
             'length': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12 mtr, 4 to 5 mtr'}),
-            'type': forms.Select(attrs={'class': 'form-select', 'id': 'id_type'}),
+            'make': forms.Select(attrs={'class': 'form-select', 'id': 'id_make'}),
             'sub_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_type'}),
             'pieces': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Leave blank if N/A'}),
             'grade': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Fe500D'}),
-            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Plot 557'}),
+            'godown': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Plot 557'}),
+            'site': forms.Select(attrs={'class': 'form-select'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-        labels = {'length': 'Length (m)'}
+        labels = {'length': 'Length (m)', 'godown': 'Godown'}

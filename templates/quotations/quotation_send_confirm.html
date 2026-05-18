@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Send {{ quotation }} — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Send {{ quotation }}</h2>
+    <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">← Cancel</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-header fw-semibold">Compose Email</div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">To</label>
+                <input type="email" name="to_email" value="{{ to_email }}"
+                       class="form-control" placeholder="customer@example.com">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Subject</label>
+                <input type="text" name="subject" value="{{ subject }}" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Message</label>
+                <textarea name="body" rows="10" class="form-control">{{ body }}</textarea>
+            </div>
+            {% if not quotation.lead.broker %}
+            <p class="text-muted small mb-4">
+                📎 <strong>{{ quotation.quotation_number }}.pdf</strong> will be attached automatically.
+            </p>
+            {% endif %}
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success px-4">Send</button>
+                <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

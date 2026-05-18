@@ -1,6 +1,9 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from quotations.models import Lead
@@ -8,36 +11,65 @@ from .forms import BrokerForm, CustomerForm, ProductForm
 from .models import Broker, Customer, Product
 
 
+def _build_product_groups(products):
+    groups = {}
+    for p in products.order_by('sub_type', 'size', 'make', 'length', 'grade', 'site'):
+        key = f"{p.sub_type}||{p.size}"
+        if key not in groups:
+            groups[key] = {
+                'type_display': p.get_sub_type_display() or p.get_make_display(),
+                'size': p.size,
+                'makes': {},
+            }
+        g = groups[key]
+        mk = p.make
+        if mk not in g['makes']:
+            g['makes'][mk] = {'display': p.get_make_display(), 'lengths': {}}
+        lk = p.length or ''
+        if lk not in g['makes'][mk]['lengths']:
+            g['makes'][mk]['lengths'][lk] = {'grades': {}}
+        gk = p.grade or ''
+        if gk not in g['makes'][mk]['lengths'][lk]['grades']:
+            g['makes'][mk]['lengths'][lk]['grades'][gk] = {'sites': {}}
+        sk = p.site or ''
+        g['makes'][mk]['lengths'][lk]['grades'][gk]['sites'][sk] = {
+            'id': p.pk,
+            'rate': str(p.rate),
+            'qty': str(p.quantity),
+            'hsn': p.hsn_code,
+            'godown': p.godown or '',
+            'site_display': p.get_site_display() if p.site else '',
+        }
+    return groups
+
+
 @login_required
 def product_list(request):
-    type_filter = request.GET.get('type', '')
-    sub_type_filter = request.GET.get('sub_type', '')
     q = request.GET.get('q', '').strip()
 
     products = Product.objects.filter(is_active=True)
-
-    if type_filter in ('main', 'rolling', 'plate'):
-        products = products.filter(type=type_filter)
-
-    valid_sub_types = [k for k, _ in Product.SUB_TYPE_CHOICES]
-    if sub_type_filter in valid_sub_types:
-        products = products.filter(sub_type=sub_type_filter)
 
     if q:
         products = products.filter(
             Q(size__icontains=q) |
             Q(hsn_code__icontains=q) |
             Q(grade__icontains=q) |
-            Q(location__icontains=q)
+            Q(godown__icontains=q)
         )
 
+    groups = _build_product_groups(products)
+
     return render(request, 'database/product_list.html', {
-        'products': products,
-        'type_filter': type_filter,
-        'sub_type_filter': sub_type_filter,
+        'groups_json': json.dumps(groups),
+        'group_count': len(groups),
         'q': q,
-        'sub_type_choices': Product.SUB_TYPE_CHOICES,
     })
+
+
+@login_required
+def product_catalog_json(request):
+    groups = _build_product_groups(Product.objects.filter(is_active=True))
+    return JsonResponse(groups)
 
 
 @login_required
@@ -55,8 +87,8 @@ def product_add(request):
 
 @login_required
 def customer_list(request):
-    scope = request.GET.get('scope', '')
-    if request.user.role == 'admin' and scope == 'all':
+    scope = request.GET.get('scope', 'team')
+    if scope == 'all':
         customers = Customer.objects.all()
     elif request.user.role == 'admin':
         customers = Customer.objects.all()
@@ -82,6 +114,7 @@ def customer_detail(request, pk):
     return render(request, 'database/customer_detail.html', {
         'customer': customer,
         'leads': leads,
+        'team_choices': Customer.TEAM_CHOICES,
     })
 
 
@@ -113,11 +146,39 @@ def customer_edit(request, pk):
 
 
 @login_required
+def customer_handover(request, pk):
+    if request.user.role not in ('lead', 'admin'):
+        messages.error(request, 'Only team leads and admins can reassign customers.')
+        return redirect('customer_detail', pk=pk)
+    if request.method != 'POST':
+        return redirect('customer_detail', pk=pk)
+    customer = get_object_or_404(Customer, pk=pk)
+    team = request.POST.get('team', '')
+    valid_teams = [t for t, _ in Customer.TEAM_CHOICES]
+    if team in valid_teams:
+        customer.handling_team = team
+        customer.save(update_fields=['handling_team'])
+        messages.success(request, f'{customer.name} handed over to {customer.get_handling_team_display()}.')
+    elif team == '':
+        customer.handling_team = ''
+        customer.save(update_fields=['handling_team'])
+        messages.success(request, f'{customer.name} unassigned from all teams.')
+    return redirect('customer_detail', pk=pk)
+
+
+@login_required
 def broker_list(request):
     if request.user.team != 'market' and request.user.role != 'admin':
         return redirect('dashboard')
-    brokers = Broker.objects.all()
-    return render(request, 'database/broker_list.html', {'brokers': brokers})
+    scope = request.GET.get('scope', 'active')
+    if scope == 'all':
+        brokers = Broker.objects.all()
+    else:
+        brokers = Broker.objects.filter(is_active=True)
+    return render(request, 'database/broker_list.html', {
+        'brokers': brokers,
+        'scope': scope,
+    })
 
 
 @login_required
@@ -158,3 +219,15 @@ def product_delete(request, pk):
     product.delete()
     messages.success(request, f'"{product.size}" deleted.')
     return redirect('product_list')
+
+
+@login_required
+def product_hsn_lookup(request):
+    """Return the HSN code for the first product matching the query (size or sub_type)."""
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse({'hsn_code': ''})
+    product = Product.objects.filter(is_active=True).filter(
+        Q(size__icontains=q) | Q(sub_type__icontains=q)
+    ).exclude(hsn_code='').first()
+    return JsonResponse({'hsn_code': product.hsn_code if product else ''})

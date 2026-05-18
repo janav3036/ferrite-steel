@@ -4,8 +4,8 @@ from .models import Broker, Customer, Product
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('hsn_code', 'type', 'sub_type', 'size', 'length', 'grade', 'quantity', 'rate', 'is_active')
-    list_filter = ('type', 'sub_type', 'is_active')
+    list_display = ('hsn_code', 'make', 'sub_type', 'size', 'length', 'grade', 'godown', 'site', 'quantity', 'rate', 'is_active')
+    list_filter = ('make', 'sub_type', 'site', 'is_active')
     search_fields = ('hsn_code', 'size', 'grade')
 
 

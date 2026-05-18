@@ -42,7 +42,7 @@ def lookup_pricing(query: str) -> dict:
     data = [
         {
             'hsn_code': p.hsn_code,
-            'type': p.get_type_display(),
+            'make': p.get_make_display(),
             'sub_type': p.get_sub_type_display(),
             'size': p.size,
             'length': p.length or None,

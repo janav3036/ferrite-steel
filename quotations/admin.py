@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Lead, MarketOrder, Quotation, QuotationLineItem
+from .models import Lead, MarketOrder, ProductKeyword, Quotation, QuotationLineItem, TeamEmailConfig
 
 
 class QuotationLineItemInline(admin.TabularInline):
@@ -26,3 +26,18 @@ class QuotationAdmin(admin.ModelAdmin):
     list_display = ('quotation_number', 'lead', 'status', 'total_amount', 'created_by', 'created_at')
     list_filter = ('status',)
     inlines = [QuotationLineItemInline]
+
+
+@admin.register(ProductKeyword)
+class ProductKeywordAdmin(admin.ModelAdmin):
+    list_display  = ('keyword', 'maps_to', 'notes', 'is_active')
+    list_filter   = ('is_active',)
+    search_fields = ('keyword', 'maps_to')
+    list_editable = ('is_active',)
+
+
+@admin.register(TeamEmailConfig)
+class TeamEmailConfigAdmin(admin.ModelAdmin):
+    list_display  = ('get_team_display', 'email_address', 'imap_host', 'is_active')
+    list_filter   = ('is_active', 'team')
+    list_editable = ('is_active',)

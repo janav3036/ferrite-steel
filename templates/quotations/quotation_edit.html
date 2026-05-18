@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Edit {{ quotation.quotation_number }} — Ferite Steel{% endblock %}
+{% block title %}Edit {{ quotation.quotation_number }} — Ferrite Steel{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -60,27 +60,34 @@
                     <thead class="table-dark">
                         <tr>
                             <th style="width:30px">#</th>
-                            <th>Description</th>
-                            <th>Make</th>
+                            <th style="width:100px">HSN Code</th>
+                            <th>Product</th>
+                            <th style="width:90px">Make</th>
                             <th style="width:90px">Length</th>
-                            <th style="width:70px">PCS</th>
                             <th style="width:90px">TON</th>
+                            <th style="width:70px">PCS</th>
                             <th style="width:110px">Rate (₹)</th>
                             <th style="width:110px">Amount (₹)</th>
-                            <th style="width:40px"></th>
+                            <th>Notes</th>
+                            <th style="width:60px"></th>
                         </tr>
                     </thead>
                     <tbody id="formset-body">
                         {% for item_form in formset %}
                         <tr class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
                             <td class="text-muted row-num">{{ forloop.counter }}</td>
-                            <td>{{ item_form.product_name }}</td>
+                            <td>{{ item_form.hsn_code }}</td>
+                            <td>
+                                {{ item_form.product_name }}
+                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary" title="Pick from catalog">⌕ pick</button>
+                            </td>
                             <td>{{ item_form.make }}</td>
                             <td>{{ item_form.length }}</td>
-                            <td>{{ item_form.pcs }}</td>
                             <td>{{ item_form.quantity }}</td>
+                            <td>{{ item_form.pcs }}</td>
                             <td>{{ item_form.unit_price }}</td>
                             <td>{{ item_form.total_price }}</td>
+                            <td>{{ item_form.notes }}</td>
                             <td class="text-center">
                                 {{ item_form.DELETE }}
                                 {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -91,6 +98,35 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Live cost summary -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Cost Summary</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <tr>
+                    <td class="text-end fw-semibold" style="width:70%">Total TON</td>
+                    <td class="text-end" id="summary-tons">0.000</td>
+                </tr>
+                <tr>
+                    <td class="text-end fw-semibold">Item Value (₹)</td>
+                    <td class="text-end" id="summary-item-value">0.00</td>
+                </tr>
+                <tr>
+                    <td class="text-end fw-semibold">Loading Extra @ ₹0.50/T (₹)</td>
+                    <td class="text-end" id="summary-loading">0.00</td>
+                </tr>
+                <tr>
+                    <td class="text-end fw-semibold">Transport Extra (₹)</td>
+                    <td class="text-end" id="summary-transport">0.00</td>
+                </tr>
+                <tr class="table-light fw-semibold">
+                    <td class="text-end">Taxable Value (₹)</td>
+                    <td class="text-end" id="summary-taxable">0.00</td>
+                </tr>
+            </table>
         </div>
     </div>
 
@@ -105,13 +141,18 @@
     <tbody>
         <tr id="empty-form-template" class="line-item-row">
             <td class="text-muted row-num"></td>
-            <td>{{ formset.empty_form.product_name }}</td>
+            <td>{{ formset.empty_form.hsn_code }}</td>
+            <td>
+                {{ formset.empty_form.product_name }}
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary" title="Pick from catalog">⌕ pick</button>
+            </td>
             <td>{{ formset.empty_form.make }}</td>
             <td>{{ formset.empty_form.length }}</td>
-            <td>{{ formset.empty_form.pcs }}</td>
             <td>{{ formset.empty_form.quantity }}</td>
+            <td>{{ formset.empty_form.pcs }}</td>
             <td>{{ formset.empty_form.unit_price }}</td>
             <td>{{ formset.empty_form.total_price }}</td>
+            <td>{{ formset.empty_form.notes }}</td>
             <td class="text-center">
                 {{ formset.empty_form.DELETE }}
                 {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
@@ -121,14 +162,68 @@
     </tbody>
 </table>
 
+<!-- Product Picker Modal -->
+<div class="modal fade" id="productPickerModal" tabindex="-1" aria-labelledby="productPickerLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productPickerLabel">Pick Product from Catalog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="picker-search" class="form-control form-control-sm mb-3"
+                       placeholder="Search by size or sub-type…">
+                <div id="picker-loading" class="text-center text-muted py-4">Loading catalog…</div>
+                <div class="table-responsive" id="picker-table-wrap" style="display:none">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:80px">HSN</th>
+                                <th style="width:80px">Type</th>
+                                <th>Size</th>
+                                <th style="width:100px">Make</th>
+                                <th style="width:120px">Length</th>
+                                <th style="width:90px">Grade</th>
+                                <th style="width:90px">Site</th>
+                                <th style="width:110px" class="text-end">Rate (₹/T)</th>
+                                <th style="width:80px" class="text-end">Qty (T)</th>
+                                <th style="width:70px"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="picker-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
+const transportInput  = document.getElementById('id_transport_extra');
 
 function recalcRow(row) {
-    const rate = parseFloat(row.querySelector('[name$="-unit_price"]').value) || 0;
-    const qty = parseFloat(row.querySelector('[name$="-quantity"]').value) || 0;
-    const total = (rate * qty).toFixed(2);
-    row.querySelector('[name$="-total_price"]').value = total;
+    const rate = parseFloat(row.querySelector('.rate-field').value) || 0;
+    const qty  = parseFloat(row.querySelector('.qty-field').value)  || 0;
+    row.querySelector('.amt-field').value = (rate * qty).toFixed(2);
+}
+
+function updateSummary() {
+    let totalTons = 0;
+    let itemValue = 0;
+    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+        totalTons += parseFloat(row.querySelector('.qty-field').value)  || 0;
+        itemValue += parseFloat(row.querySelector('.amt-field').value) || 0;
+    });
+    const loading   = totalTons * 0.5;
+    const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
+    const taxable   = itemValue + loading + transport;
+
+    document.getElementById('summary-tons').textContent       = totalTons.toFixed(3);
+    document.getElementById('summary-item-value').textContent = itemValue.toFixed(2);
+    document.getElementById('summary-loading').textContent    = loading.toFixed(2);
+    document.getElementById('summary-transport').textContent  = transport.toFixed(2);
+    document.getElementById('summary-taxable').textContent    = taxable.toFixed(2);
 }
 
 function updateRowNumbers() {
@@ -138,25 +233,24 @@ function updateRowNumbers() {
     });
 }
 
-// Auto-calculate amount on input
 document.getElementById('formset-body').addEventListener('input', function(e) {
-    if (e.target.name && (e.target.name.endsWith('-unit_price') || e.target.name.endsWith('-quantity'))) {
-        recalcRow(e.target.closest('tr'));
-    }
+    const row = e.target.closest('tr');
+    if (row) recalcRow(row);
+    updateSummary();
 });
 
-// Add row
+if (transportInput) {
+    transportInput.addEventListener('input', updateSummary);
+}
+
 document.getElementById('add-row').addEventListener('click', function() {
     const formNum = parseInt(totalFormsInput.value);
-    const template = document.getElementById('empty-form-template').innerHTML;
-    const newRow = template.replace(/__prefix__/g, formNum);
-    const tbody = document.getElementById('formset-body');
-    tbody.insertAdjacentHTML('beforeend', newRow);
+    const newRow = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
+    document.getElementById('formset-body').insertAdjacentHTML('beforeend', newRow);
     totalFormsInput.value = formNum + 1;
     updateRowNumbers();
 });
 
-// Remove row
 document.getElementById('formset-body').addEventListener('click', function(e) {
     if (!e.target.matches('.remove-row')) return;
     const row = e.target.closest('tr');
@@ -169,8 +263,231 @@ document.getElementById('formset-body').addEventListener('click', function(e) {
         totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
     }
     updateRowNumbers();
+    updateSummary();
+});
+
+// Auto-fill HSN on product name focusout
+document.getElementById('formset-body').addEventListener('focusout', async function(e) {
+    if (!e.target.matches('[name$="-product_name"]')) return;
+    const row = e.target.closest('tr');
+    if (!row) return;
+    const hsnField = row.querySelector('[name$="-hsn_code"]');
+    if (!hsnField || hsnField.value) return;
+    const q = e.target.value.trim();
+    if (!q) return;
+    try {
+        const resp = await fetch(`{% url 'product_hsn_lookup' %}?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        if (data.hsn_code) hsnField.value = data.hsn_code;
+    } catch {}
 });
 
 updateRowNumbers();
+updateSummary();
+
+// ── Product Picker ────────────────────────────────────────────────────────────
+
+let catalogData = null;
+let pickerTargetRow = null;
+
+const pickerModal    = document.getElementById('productPickerModal');
+const pickerBody     = document.getElementById('picker-body');
+const pickerSearch   = document.getElementById('picker-search');
+const pickerLoading  = document.getElementById('picker-loading');
+const pickerWrap     = document.getElementById('picker-table-wrap');
+
+// Delegate pick-btn click from both formset-body and the add-row area
+document.addEventListener('click', function(e) {
+    if (!e.target.matches('.pick-btn')) return;
+    pickerTargetRow = e.target.closest('tr');
+    new bootstrap.Modal(pickerModal).show();
+});
+
+pickerModal.addEventListener('show.bs.modal', async function() {
+    if (!catalogData) {
+        pickerLoading.style.display = '';
+        pickerWrap.style.display = 'none';
+        try {
+            const resp = await fetch('{% url "product_catalog_json" %}');
+            catalogData = await resp.json();
+        } catch {
+            pickerLoading.textContent = 'Failed to load catalog.';
+            return;
+        }
+        pickerLoading.style.display = 'none';
+        pickerWrap.style.display = '';
+    }
+    renderPickerRows(pickerSearch.value);
+});
+
+pickerSearch.addEventListener('input', function() {
+    if (catalogData) renderPickerRows(this.value);
+});
+
+function renderPickerRows(query) {
+    pickerBody.innerHTML = '';
+    const q = query.trim().toLowerCase();
+    Object.entries(catalogData).forEach(([key, g]) => {
+        if (q && !g.type_display.toLowerCase().includes(q) && !g.size.toLowerCase().includes(q)) return;
+        const tr = document.createElement('tr');
+        tr.className = 'picker-group-row';
+        tr.dataset.key = key;
+        tr.innerHTML = `
+            <td class="picker-hsn-cell text-muted small">—</td>
+            <td class="fw-semibold">${g.type_display}</td>
+            <td>${g.size}</td>
+            <td><select class="make-select form-select form-select-sm"></select></td>
+            <td><select class="length-select form-select form-select-sm"></select></td>
+            <td class="grade-cell">
+                <select class="grade-select form-select form-select-sm" style="display:none"></select>
+                <span class="grade-text text-muted small">—</span>
+            </td>
+            <td class="site-cell">
+                <select class="site-select form-select form-select-sm" style="display:none"></select>
+                <span class="site-text text-muted small">—</span>
+            </td>
+            <td class="rate-cell text-end fw-semibold">—</td>
+            <td class="qty-cell text-end text-muted small">—</td>
+            <td><button type="button" class="btn btn-sm btn-primary picker-add-btn">Add</button></td>
+        `;
+        pickerBody.appendChild(tr);
+        initPickerRow(tr, g);
+    });
+    if (!pickerBody.hasChildNodes()) {
+        pickerBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No products match.</td></tr>';
+    }
+}
+
+function initPickerRow(tr, g) {
+    const makeSelect = tr.querySelector('.make-select');
+    Object.entries(g.makes).forEach(([mk, mdata]) => {
+        const opt = document.createElement('option');
+        opt.value = mk; opt.textContent = mdata.display;
+        makeSelect.appendChild(opt);
+    });
+    makeSelect.addEventListener('change',  () => pickerRefreshLength(tr, g));
+    tr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(tr, g));
+    tr.querySelector('.grade-select').addEventListener('change',  () => pickerRefreshSite(tr, g));
+    tr.querySelector('.site-select').addEventListener('change',   () => pickerRefreshVariant(tr, g));
+    pickerRefreshLength(tr, g);
+}
+
+function pickerRefreshLength(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lengthSelect = tr.querySelector('.length-select');
+    lengthSelect.innerHTML = '';
+    Object.keys(g.makes[mk]?.lengths || {}).forEach(lk => {
+        const opt = document.createElement('option');
+        opt.value = lk; opt.textContent = lk || '—';
+        lengthSelect.appendChild(opt);
+    });
+    pickerRefreshGrade(tr, g);
+}
+
+function pickerRefreshGrade(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const grades = g.makes[mk]?.lengths[lk]?.grades || {};
+    const gradeKeys = Object.keys(grades);
+    const gradeSelect = tr.querySelector('.grade-select');
+    const gradeText   = tr.querySelector('.grade-text');
+    gradeSelect.innerHTML = '';
+    if (gradeKeys.length > 1) {
+        gradeKeys.forEach(gk => {
+            const opt = document.createElement('option');
+            opt.value = gk; opt.textContent = gk || '—';
+            gradeSelect.appendChild(opt);
+        });
+        gradeSelect.style.display = ''; gradeText.style.display = 'none';
+    } else {
+        gradeSelect.style.display = 'none'; gradeText.style.display = '';
+        gradeText.textContent = gradeKeys[0] || '—';
+        if (gradeKeys.length === 1) {
+            const opt = document.createElement('option');
+            opt.value = gradeKeys[0]; gradeSelect.appendChild(opt);
+        }
+    }
+    pickerRefreshSite(tr, g);
+}
+
+function pickerRefreshSite(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const gk = tr.querySelector('.grade-select').value;
+    const sites = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites || {};
+    const siteKeys = Object.keys(sites);
+    const siteSelect = tr.querySelector('.site-select');
+    const siteText   = tr.querySelector('.site-text');
+    siteSelect.innerHTML = '';
+    if (siteKeys.length > 1) {
+        siteKeys.forEach(sk => {
+            const opt = document.createElement('option');
+            opt.value = sk; opt.textContent = sites[sk].site_display || sk || '—';
+            siteSelect.appendChild(opt);
+        });
+        siteSelect.style.display = ''; siteText.style.display = 'none';
+    } else {
+        siteSelect.style.display = 'none'; siteText.style.display = '';
+        siteText.textContent = siteKeys.length === 1 ? (sites[siteKeys[0]].site_display || siteKeys[0]) : '—';
+        if (siteKeys.length === 1) {
+            const opt = document.createElement('option');
+            opt.value = siteKeys[0]; siteSelect.appendChild(opt);
+        }
+    }
+    pickerRefreshVariant(tr, g);
+}
+
+function pickerRefreshVariant(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const gk = tr.querySelector('.grade-select').value;
+    const sk = tr.querySelector('.site-select').value;
+    const v  = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites[sk];
+    if (!v) return;
+    tr.querySelector('.picker-hsn-cell').textContent = v.hsn || '—';
+    tr.querySelector('.rate-cell').textContent = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
+    tr.querySelector('.qty-cell').textContent  = v.qty || '—';
+    tr.dataset.variantId   = v.id;
+    tr.dataset.variantRate = v.rate;
+    tr.dataset.variantHsn  = v.hsn;
+}
+
+// Add button in picker fills the target line item row
+pickerBody.addEventListener('click', function(e) {
+    if (!e.target.matches('.picker-add-btn')) return;
+    const pickerRow = e.target.closest('tr');
+    if (!pickerTargetRow) return;
+
+    const makeSelect   = pickerRow.querySelector('.make-select');
+    const lengthSelect = pickerRow.querySelector('.length-select');
+    const gradeSelect  = pickerRow.querySelector('.grade-select');
+    const gradeText    = pickerRow.querySelector('.grade-text');
+    const mk = makeSelect.options[makeSelect.selectedIndex]?.text || '';
+    const lk = lengthSelect.value;
+    const gk = gradeSelect.style.display === 'none' ? gradeText.textContent : gradeSelect.value;
+    const g  = catalogData[pickerRow.dataset.key];
+
+    const productName = `${g.type_display} ${g.size}`;
+    const hsnCode     = pickerRow.dataset.variantHsn || '';
+    const rate        = pickerRow.dataset.variantRate || '';
+
+    const nameField = pickerTargetRow.querySelector('[name$="-product_name"]');
+    const makeField = pickerTargetRow.querySelector('[name$="-make"]');
+    const lenField  = pickerTargetRow.querySelector('[name$="-length"]');
+    const hsnField  = pickerTargetRow.querySelector('[name$="-hsn_code"]');
+    const rateField = pickerTargetRow.querySelector('.rate-field');
+
+    if (nameField) nameField.value = productName;
+    if (makeField) makeField.value = mk;
+    if (lenField)  lenField.value  = lk;
+    if (hsnField)  hsnField.value  = hsnCode;
+    if (rateField) {
+        rateField.value = rate;
+        recalcRow(pickerTargetRow);
+        updateSummary();
+    }
+
+    bootstrap.Modal.getInstance(pickerModal).hide();
+});
 </script>
 {% endblock %}

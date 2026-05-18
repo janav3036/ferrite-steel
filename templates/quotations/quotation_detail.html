@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ quotation }} — Ferite Steel{% endblock %}
+{% block title %}{{ quotation }} — Ferrite Steel{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -11,16 +11,15 @@
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-warning">Revise</button>
         </form>
-        {% if quotation.lead.broker %}
-            <span class="badge bg-secondary fs-6">Internal Copy</span>
-        {% else %}
-        <form method="post" action="{% url 'quotation_send' quotation.pk %}" class="d-inline">
+        <a href="{% url 'quotation_send' quotation.pk %}"
+           class="btn btn-success {% if quotation.status == 'sent' %}disabled{% endif %}">
+            {% if quotation.status == 'sent' %}Sent{% else %}Send{% endif %}
+        </a>
+        <form method="post" action="{% url 'quotation_delete' quotation.pk %}" class="d-inline"
+              onsubmit="return confirm('Delete {{ quotation.quotation_number }}? This cannot be undone.')">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success" {% if quotation.status == 'sent' %}disabled{% endif %}>
-                {% if quotation.status == 'sent' %}Sent{% else %}Send{% endif %}
-            </button>
+            <button type="submit" class="btn btn-outline-danger">Delete</button>
         </form>
-        {% endif %}
         <a href="{% url 'quotation_list' %}" class="btn btn-outline-secondary">← Back</a>
     </div>
 </div>
@@ -104,11 +103,11 @@
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Description</th>
-                            <th>Make</th>
+                            <th>HSN Code</th>
+                            <th>Product</th>
                             <th>Length</th>
-                            <th>PCS</th>
                             <th>TON</th>
+                            <th>PCS</th>
                             <th>Rate (₹)</th>
                             <th>Amount (₹)</th>
                         </tr>
@@ -117,11 +116,11 @@
                         {% for item in items %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
+                            <td class="text-muted small">{{ item.hsn_code|default:"—" }}</td>
                             <td>{{ item.product_name }}</td>
-                            <td>{{ item.make|default:"—" }}</td>
                             <td>{{ item.length|default:"—" }}</td>
-                            <td>{{ item.pcs|default:"—" }}</td>
                             <td>{{ item.quantity }}</td>
+                            <td>{{ item.pcs|default:"—" }}</td>
                             <td>{{ item.unit_price }}</td>
                             <td>{{ item.total_price }}</td>
                         </tr>

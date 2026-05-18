@@ -4,7 +4,7 @@ from django.db import models
 
 
 class Product(models.Model):
-    TYPE_CHOICES = [
+    MAKE_CHOICES = [
         ('main', 'Main'),
         ('rolling', 'Rolling'),
         ('plate', 'Plate'),
@@ -26,14 +26,20 @@ class Product(models.Model):
         'plate': [],
     }
 
-    hsn_code = models.CharField(max_length=20, unique=True)
-    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    hsn_code = models.CharField(max_length=20, blank=True)
+    make = models.CharField(max_length=10, choices=MAKE_CHOICES)
     sub_type = models.CharField(max_length=20, choices=SUB_TYPE_CHOICES, blank=True)
     size = models.CharField(max_length=100)
     length = models.CharField(max_length=50, blank=True)
     pieces = models.IntegerField(null=True, blank=True)
+    SITE_CHOICES = [
+        ('site_1', 'Site 1'),
+        ('site_2', 'Site 2'),
+    ]
+
     grade = models.CharField(max_length=50, blank=True)
-    location = models.CharField(max_length=100, blank=True)
+    godown = models.CharField(max_length=100, blank=True)
+    site = models.CharField(max_length=10, choices=SITE_CHOICES, blank=True)
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
     rate = models.DecimalField(max_digits=12, decimal_places=2)
     is_active = models.BooleanField(default=True)
@@ -42,10 +48,10 @@ class Product(models.Model):
     class Meta:
         verbose_name = 'Product'
         verbose_name_plural = 'Products'
-        ordering = ['type', 'sub_type', 'size']
+        ordering = ['make', 'sub_type', 'size']
 
     def __str__(self):
-        parts = [self.hsn_code, self.get_sub_type_display() or self.get_type_display(), self.size]
+        parts = [self.hsn_code, self.get_sub_type_display() or self.get_make_display(), self.size]
         if self.length:
             parts.append(self.length)
         return ' — '.join(parts)

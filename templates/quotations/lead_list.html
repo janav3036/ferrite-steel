@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Leads — Ferite Steel{% endblock %}
+{% block title %}Leads — Ferrite Steel{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -35,6 +35,7 @@
                         {% if lead.status == 'new' %}bg-secondary
                         {% elif lead.status == 'processing' %}bg-warning text-dark
                         {% elif lead.status == 'quoted' %}bg-success
+                        {% elif lead.status == 'closed' %}bg-primary
                         {% else %}bg-danger{% endif %}">
                         {{ lead.get_status_display }}
                     </span>

@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 14 May 2026 (session 5)
+**Last updated:** 18 May 2026 (session 7)
 
 ---
 
@@ -122,8 +122,8 @@ decision must be defensible to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1: Complete. Phase 2 UI complete. LLM quotation draft generation wired and tested. Email ingestion and WhatsApp ingestion still pending.**
-**Current phase: Phase 2 — quotation UI/flow done; LLM wired; awaiting WhatsApp API approval and email ingestion build.**
+**Phase 1: Complete. Phase 2: quotation UI/flow done; LLM draft generation wired; classify_message built; email send (SMTP) built; poll_emails command built. WhatsApp ingestion still pending Meta approval.**
+**Current phase: Phase 2 — email ingestion pipeline complete (pending live credentials); WhatsApp ingestion deferred.**
 **First deliverable: Quotation Automator (Module 2).**
 
 ### What is built
@@ -142,34 +142,36 @@ decision must be defensible to a non-technical client.
 - Customer model: transport cost memory + `notes` field for AI context — upserted on every quotation save; pre-fills transport_extra on edit for returning customers; `handling_team` field
 - Customer list + detail views with team scope; customer edit view
 - Outcome (Win/Loss/Not Updated): shown on quotation detail as quick-select buttons; stored only on root quotation; shared across all versions
-- Broker-sourced quotations: Send button hidden, "Internal Copy" badge shown; PDF header reads "INTERNAL — RATES ONLY"
-- Send button: dummy (marks status='sent') — pending WhatsApp/email wiring
+- Broker-sourced quotations: Send button visible but sends text-only rate email (no PDF); PDF header reads "INTERNAL — RATES ONLY"
+- Send button: links to `quotation_send` compose/confirm view; sends via SMTP using `TeamEmailConfig`; PDF attached for non-broker leads; broker leads get text-only rate email
 - Approve flow: lead and admin roles only
 - LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; tested end-to-end (confirmed: LLM splits queries by size/type, 4 tool calls fired); `quotation_create` calls it with graceful fallback to blank editor
 - `ferite_steel/ai.py` — shared Together client (`together_client`) used by all service layers; initialized once at import time from `TOGETHER_API_KEY` env var
-- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list
+- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list (result dicts use `make` key, not `type`)
 - Broker model: list + create views at `/database/brokers/`; registered in database admin
 - MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
-- **Product catalog** (session 4): `Product` model with `type` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `location`, `quantity`, `rate`, `pieces`. Full CRUD: list with type tabs + text search (size/HSN/grade/location) + sub-type dropdown filter; add; edit (sub-type JS re-populates on type change); delete
+- **Product catalog** (session 4, updated session 7): `Product` model with `make` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `godown`, `site` (Site 1/Site 2), `quantity`, `rate`, `pieces`. Product list is a **grouped view**: rows grouped by sub_type + size; cascading dropdowns — Make → Length → Grade → Site — resolve to the specific variant; rate/qty/HSN/godown update live. No make tabs or sub-type filter; just a text search box. Product catalog JSON endpoint at `/database/products/catalog.json`. Add/edit forms include Godown + Site fields.
+- **Quotation line item picker** (session 7): each line item row in the quotation edit form has a "⌕ pick" button that opens a modal with the full grouped catalog (same cascade as product list). Selecting a variant auto-fills product_name, make, length, hsn_code, and unit_price on the line item.
 - `import_products.py` at project root — one-time script; imported 523 products from `ProductList_updated.xlsx`; auto-generated HSN codes `IMP-0001…`; rates all 0 (column was blank in Excel — fill via admin)
-- Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder registered
+- Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder, **ProductKeyword, TeamEmailConfig** registered
 - Static files served via `whitenoise`
 - WeasyPrint installed (`pip install weasyprint` + `brew install pango` on macOS)
+- **`ProductKeyword` model** (session 6): maps client trade terms (e.g. "sariya") to canonical product names; admin-editable; `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every `generate_quotation_draft` call
+- **`TeamEmailConfig` model** (session 6): IMAP credentials per team for email ingestion; unique per team; admin-only management; password field has help text to use an App Password
+- **`classify_message(text)`** (session 6): LLM classifier — returns True if text is a product inquiry; called before creating any Lead from inbound messages; uses a YES/NO single-word response from together.ai
+- **`poll_emails` management command** (session 6): full IMAP ingestion — connects to each active TeamEmailConfig inbox, fetches UNSEEN messages, pre-filters spam senders, calls `classify_message`, creates Leads for genuine inquiries, marks emails as Seen. `--dry-run` flag for testing without side effects.
+- **Email send flow** (session 6): `quotation_send` view now shows a compose/confirm form (`quotation_send_confirm.html`) pre-filled with subject and body. On submit: looks up active `TeamEmailConfig` for the lead's team, generates PDF via WeasyPrint (non-broker only), sends via SMTP (host derived by replacing "imap." with "smtp."). Broker quotations get a text-only rate email (no PDF). Falls back to "marked as sent" if no active config exists.
 
 ### What is NOT yet built (planned for next session)
-- `ProductKeyword` model — company-specific term mappings (e.g. "sariya" → "TMT Bars") injected into LLM system prompt
-- `TeamEmailConfig` model — IMAP credentials per team for email ingestion
-- `classify_message(text)` in `llm.py` — Step 1 LLM call; checks if a message is a product inquiry before creating a lead
-- `generate_quotation_draft` keyword injection — `ProductKeyword` model not yet built; system prompt currently has no client-term mappings
-- `poll_emails` management command — IMAP polling with header pre-filter + classifier; demo uses a dummy Gmail account
-- Email ingestion: dummy Gmail account for demo (to be deleted post-demo); WhatsApp ingestion deferred until Meta approval
+- Email ingestion live test — `poll_emails` is built; needs a dummy Gmail account added to `TeamEmailConfig` in admin with a valid App Password (Janav to provide credentials); to be deleted post-demo
+- WhatsApp ingestion — deferred until Meta Business API approval confirmed
 - Customer handover view (`customer_handover`) — lead/admin only; `handling_team` field exists, view not yet built
 - Product rates — all 0 after import (Excel rate column was blank); must be filled via admin
 - TMT products missing from catalog — were not present in imported Excel; must be added manually or via a second import
 
-### Pending before Phase 2 LLM logic can complete
-- WhatsApp Business API Meta approval
-- Email ingestion (`poll_emails` + `classify_message`) still to build
+### Pending before Phase 2 is fully live
+- WhatsApp Business API Meta approval (do not build until confirmed)
+- Dummy Gmail credentials added to `TeamEmailConfig` for email ingestion demo
 - Hosting decision confirmed (see Section 8)
 
 ---
@@ -267,18 +269,21 @@ in the nav badge on `base.html`. Role filter JS is in `add_user.html` and `edit_
 
 ### Product (database.models.Product)
 Master product catalog. 523 rows imported from client Excel (rates all 0 — fill via admin).
-- `hsn_code` — CharField unique (auto-generated `IMP-0001…` during import; update with real HSN codes when available)
-- `type` — CharField choices: `main`, `rolling`, `plate`
-- `sub_type` — CharField choices: `angle`, `channel`, `ub`, `uc`, `beam`, `flat`, `red_material`, `tmt`; blank=True. Valid sub-types per type enforced via JS in add/edit forms and `SUB_TYPE_MAP` class attribute
+- `hsn_code` — CharField `blank=True` (no longer unique; auto-generated `IMP-0001…` during import; update with real HSN codes when available)
+- `make` — CharField choices: `main`, `rolling`, `plate` (was `type` before session 7)
+- `sub_type` — CharField choices: `angle`, `channel`, `ub`, `uc`, `beam`, `flat`, `red_material`, `tmt`; blank=True. Valid sub-types per make enforced via JS in add/edit forms and `SUB_TYPE_MAP` class attribute
 - `size` — CharField
 - `length` — CharField blank (free text, e.g. "12 mtr", "8-11 mtr")
-- `grade`, `location` — CharFields blank
+- `grade` — CharField blank
+- `godown` — CharField blank (free text warehouse/plot location, e.g. "Plot 557"; was `location` before session 7)
+- `site` — CharField choices: `site_1` (Site 1), `site_2` (Site 2); blank=True
 - `pieces` — IntegerField null/blank
 - `quantity` — DecimalField (T)
 - `rate` — DecimalField (₹/T)
 - `is_active` — BooleanField (default True)
 - `last_updated` — auto_now DateTimeField
-Views: product_list (type tabs + search + sub-type filter), product_add, product_edit, product_delete. All at `/database/products/`.
+Views: product_list (grouped view + text search), product_add, product_edit, product_delete, product_catalog_json. All at `/database/products/`.
+`_build_product_groups(products)` helper in `database/views.py` — groups a queryset into nested dict: sub_type+size → make → length → grade → site → {id, rate, qty, hsn, godown, site_display}. Used by both product_list and product_catalog_json.
 
 ### Customer (database.models.Customer)
 Stores remembered transport costs per customer, matched by name + company (case-insensitive).
@@ -313,7 +318,8 @@ Views at `/database/brokers/`.
 - `status` — choices: `draft`, `approved`, `sent`
 - `outcome` — choices: `win`, `loss`, `not_updated`; stored only on root quotation
 - `llm_raw_response` — TextField (stores raw JSON from LLM draft generation)
-- `payment_terms`, `delivery_address` — CharFields
+- `payment_terms` — CharField choices: `Advance`, `Cash`; default `Advance`
+- `delivery_address` — CharField
 - `transport_extra`, `sgst_percent`, `cgst_percent` — DecimalFields
 - `total_amount`, `notes`, `valid_until`
 - `created_by`, `approved_by`, `created_at`, `approved_at`, `sent_at`
@@ -323,11 +329,12 @@ Broker-sourced quotations (where `lead.broker` is not null) are internal-only: S
 ### QuotationLineItem (quotations.models.QuotationLineItem)
 - `quotation` — FK to Quotation
 - `product_name`, `make` — CharFields
-- `length` — DecimalField nullable
+- `length` — CharField blank (free text, e.g. "12 mtr"; was DecimalField before session 7)
 - `pcs` — IntegerField nullable
 - `quantity` — DecimalField (tons)
 - `unit_price`, `total_price` — DecimalFields
 - `notes` — CharField
+`make` is included in `LineItemForm.fields` and rendered as a column in the quotation edit table. The "⌕ pick" button on each row opens the product picker modal.
 
 ### MarketOrder (quotations.models.MarketOrder)
 Tracks the Market team's broker order logistics flow, independent of the Quotation model.
@@ -345,23 +352,24 @@ Tracks the Market team's broker order logistics flow, independent of the Quotati
 - `created_by` — FK to AUTH_USER_MODEL
 - `created_at` — auto_now_add DateTimeField
 
-### ProductKeyword (quotations.models.ProductKeyword) — PLANNED
+### ProductKeyword (quotations.models.ProductKeyword)
 Maps company-specific client terms to canonical product names for LLM prompt injection.
 - `keyword` — CharField (what clients say, e.g. "sariya", "angle", "12mm")
-- `maps_to` — CharField (product name or code in PricingEntry, e.g. "TMT Bars 12mm")
+- `maps_to` — CharField (product name or code, e.g. "TMT Bars 12mm")
 - `notes` — CharField blank (e.g. "Hindi term for TMT bars")
 - `is_active` — BooleanField (default True)
-Admin-editable. Active keywords are fetched and injected into the LLM system prompt on every `generate_quotation_draft` call.
+Admin-editable (`list_editable` on `is_active`). Active keywords fetched by `_build_keyword_context()` and injected into the LLM system prompt on every `generate_quotation_draft` call.
 
-### TeamEmailConfig (quotations.models.TeamEmailConfig) — PLANNED
+### TeamEmailConfig (quotations.models.TeamEmailConfig)
 IMAP credentials for team shared email accounts, used by `poll_emails` management command.
 - `team` — CharField choices: TEAM_CHOICES (unique per team)
-- `email_address` — EmailField
-- `imap_host`, `imap_username`, `imap_password` — CharFields
+- `email_address` — EmailField (shared team inbox)
+- `imap_host` — CharField (default `imap.gmail.com`)
+- `imap_username`, `imap_password` — CharFields; use an App Password, not account password
 - `imap_port` — IntegerField (default 993)
 - `use_ssl` — BooleanField (default True)
 - `is_active` — BooleanField (default True)
-Admin-only management (no user-facing view). Store password as env var reference in production.
+Admin-only management (`list_editable` on `is_active`). SMTP host derived at send time by replacing "imap." with "smtp." in `imap_host`.
 
 ### AUTH_USER_MODEL
 `'aegis.CustomUser'` — set in settings.py
@@ -502,11 +510,9 @@ These are open technical questions. Do not proceed with affected modules until r
 - **Module 6 (Chatbot) tier:** Client has not confirmed tier. Do not finalize scope or fee.
 - **Voice Stand-in:** Not greenlit. Do not plan or scaffold anything.
 - **Corporate team roles:** Client said "not sure" — keeping lead + member for now. Confirm at next meeting.
-- **LLM wiring — `classify_message`:** Still a stub. Needed before email/WhatsApp ingestion goes live.
-- **ProductKeyword injection:** `generate_quotation_draft` works but has no client-term mappings yet. `ProductKeyword` model not yet built.
 - **Product rates:** All 523 imported products have rate=0. Client must provide rates.
 - **TMT products missing:** Not present in imported catalog — must be added manually or via re-import.
-- **Email dummy account:** Dummy Gmail to be configured in `TeamEmailConfig` for demo. Credentials will be provided by Janav — do not hardcode.
+- **Email dummy account:** Dummy Gmail credentials to be added to `TeamEmailConfig` in admin for demo. Janav to provide App Password — do not hardcode. Delete the account post-demo.
 
 ---
 
@@ -674,27 +680,25 @@ ferite_steel/                      ← project root
 │   ├── forms.py                   ← ProductForm, CustomerForm, BrokerForm
 │   ├── admin.py                   ← Product, Customer, Broker registered
 │   ├── urls.py                    ← /database/ prefix
-│   └── migrations/                ← 0001–0007
+│   └── migrations/                ← 0001–0011
 │
 ├── quotations/                    ← Module 2
-│   ├── models.py                  ← Lead, Quotation, QuotationLineItem, MarketOrder
-│   │                                 + ProductKeyword, TeamEmailConfig (planned)
+│   ├── models.py                  ← Lead, Quotation, QuotationLineItem, MarketOrder,
+│   │                                 ProductKeyword, TeamEmailConfig
 │   ├── views.py                   ← all quotation, lead, and market order views
 │   │                                 + customer_handover (planned)
 │   ├── forms.py                   ← ManualLeadForm, QuotationEditForm, LineItemFormSet,
 │   │                                 MarketOrderForm, MarketOrderRateForm,
 │   │                                 MarketOrderAssignForm, MarketOrderDOForm
-│   │                                 + CustomerHandoverForm (planned)
-│   ├── admin.py                   ← MarketOrder, Lead, Quotation registered
-│   │                                 + ProductKeyword, TeamEmailConfig (planned)
+│   ├── admin.py                   ← MarketOrder, Lead, Quotation, ProductKeyword, TeamEmailConfig registered
 │   ├── urls.py
 │   ├── management/
 │   │   └── commands/
-│   │       └── poll_emails.py     ← IMAP ingestion: header filter → classify → create Lead (planned)
+│   │       └── poll_emails.py     ← IMAP ingestion: spam pre-filter → classify_message → create Lead; --dry-run flag
 │   └── services/
-│       ├── llm.py                 ← generate_quotation_draft(lead, entity_notes) — LIVE; tool-use loop with lookup_pricing
-│       │                             classify_message(text) — stub (planned)
-│       │                             _build_keyword_context() — fetches ProductKeyword (planned)
+│       ├── llm.py                 ← generate_quotation_draft(lead, entity_notes) — LIVE; tool-use loop with lookup_pricing; keyword injection
+│       │                             classify_message(text) — LIVE; YES/NO LLM classifier for inbound messages
+│       │                             _build_keyword_context() — fetches active ProductKeywords; injects into system prompt
 │       └── tools/
 │           └── pricing.py         ← lookup_pricing tool — queries database.Product; returns found: bool + results
 │
@@ -707,9 +711,9 @@ ferite_steel/                      ← project root
 │   ├── edit_user_role.html        ← includes JS team→role filter
 │   ├── registration/              ← login, password reset
 │   ├── database/
-│   │   ├── product_list.html      ← type tabs + text search + sub-type filter + result count
-│   │   ├── product_add.html       ← JS sub-type filter by type; Plate hides sub-type field
-│   │   ├── product_edit.html      ← same JS; pre-selects current sub_type
+│   │   ├── product_list.html      ← grouped view; cascading dropdowns (Make→Length→Grade→Site); text search only
+│   │   ├── product_add.html       ← JS sub-type filter by make; Plate hides sub-type field; Godown + Site fields
+│   │   ├── product_edit.html      ← same JS; pre-selects current sub_type; Godown + Site fields
 │   │   ├── customer_list.html     ← team-scoped
 │   │   ├── customer_detail.html   ← lead history
 │   │   ├── customer_add.html
@@ -722,12 +726,13 @@ ferite_steel/                      ← project root
 │       ├── lead_create.html
 │       ├── quotation_list.html    ← Outcome column (Win/Loss/—)
 │       ├── quotation_detail.html  ← Revise, Send/Internal Copy, Edit, PDF, Outcome, Versions
-│       ├── quotation_edit.html    ← inline formset + JS auto-calc
+│       ├── quotation_edit.html    ← inline formset + JS auto-calc; Make column; "⌕ pick" button per row; product picker modal
 │       ├── quotation_pdf.html     ← WeasyPrint A4; "INTERNAL — RATES ONLY" header for broker quotations
 │       ├── quotation_select_lead.html
 │       ├── market_order_list.html
 │       ├── market_order_create.html
-│       └── market_order_detail.html  ← 4-step flow: rate → confirm → assign DO → DO number
+│       ├── market_order_detail.html  ← 4-step flow: rate → confirm → assign DO → DO number
+│       └── quotation_send_confirm.html  ← email compose form; pre-filled subject/body; PDF note hidden for broker leads
 │
 ├── .claude/
 │   ├── settings.json
@@ -794,9 +799,10 @@ Use `python manage.py` not `python3 manage.py`.
 | URL                                           | View / Name       |
 |-----------------------------------------------|-------------------|
 | `/database/products/`                         | product_list      |
-| `/database/products/add/`                     | product_add       |
-| `/database/products/<pk>/edit/`               | product_edit      |
-| `/database/products/<pk>/delete/`             | product_delete    |
+| `/database/products/add/`                     | product_add            |
+| `/database/products/catalog.json`             | product_catalog_json   |
+| `/database/products/<pk>/edit/`               | product_edit           |
+| `/database/products/<pk>/delete/`             | product_delete         |
 | `/database/customers/`                        | customer_list     |
 | `/database/customers/add/`                    | customer_add      |
 | `/database/customers/<pk>/`                   | customer_detail   |
@@ -833,7 +839,7 @@ Future apps to create per module: `credit_risk`, `training`, `leads`.
 | WhatsApp Business API | Pending Meta approval           | Client must initiate — do NOT assume live     |
 | ConvoGenie            | Client has account — reviewing  | Integration scope TBD (see Section 9)        |
 | SAP                   | Deprioritised                   | Daily Excel replaces direct integration      |
-| Email (IMAP/SMTP)     | Planned — dummy Gmail for demo  | Dummy account (to be deleted post-demo); poll_emails command planned |
+| Email (IMAP/SMTP)     | Built — awaiting live credentials | `poll_emails` command + SMTP send built; dummy Gmail credentials needed in `TeamEmailConfig` admin; delete post-demo |
 | Hetzner VPS           | Not provisioned                 | Pending hosting decision                     |
 | Twilio/Deepgram/ElevenLabs | Not started               | Only if Voice Stand-in greenlit              |
 

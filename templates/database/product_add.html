@@ -34,14 +34,14 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Type <span class="text-danger">*</span></label>
-                        {{ form.type }}
-                        {% if form.type.errors %}
-                        <div class="text-danger small">{{ form.type.errors.0 }}</div>
+                        <label class="form-label">Make <span class="text-danger">*</span></label>
+                        {{ form.make }}
+                        {% if form.make.errors %}
+                        <div class="text-danger small">{{ form.make.errors.0 }}</div>
                         {% endif %}
                     </div>
                     <div class="col-md-4" id="sub_type_wrapper">
-                        <label class="form-label">Sub-type</label>
+                        <label class="form-label">Type</label>
                         {{ form.sub_type }}
                         {% if form.sub_type.errors %}
                         <div class="text-danger small">{{ form.sub_type.errors.0 }}</div>
@@ -71,9 +71,13 @@
                         {{ form.pieces }}
                     </div>
 
-                    <div class="col-md-8">
-                        <label class="form-label">Location</label>
-                        {{ form.location }}
+                    <div class="col-md-4">
+                        <label class="form-label">Godown</label>
+                        {{ form.godown }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Site</label>
+                        {{ form.site }}
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
                         <div class="form-check mb-2">
@@ -99,12 +103,12 @@ const SUB_TYPE_MAP = {
     'plate':   [],
 };
 
-const typeSelect = document.getElementById('id_type');
+const makeSelect = document.getElementById('id_make');
 const subTypeSelect = document.getElementById('id_sub_type');
 const subTypeWrapper = document.getElementById('sub_type_wrapper');
 
 function updateSubTypes() {
-    const type = typeSelect.value;
+    const type = makeSelect.value;
     const options = SUB_TYPE_MAP[type] || [];
 
     subTypeSelect.innerHTML = '<option value="">—</option>';
@@ -118,7 +122,7 @@ function updateSubTypes() {
     subTypeWrapper.style.display = options.length === 0 ? 'none' : '';
 }
 
-typeSelect.addEventListener('change', updateSubTypes);
+makeSelect.addEventListener('change', updateSubTypes);
 updateSubTypes();
 </script>
 {% endblock %}

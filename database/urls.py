@@ -7,9 +7,12 @@ urlpatterns = [
     path('customers/add/', views.customer_add, name='customer_add'),
     path('customers/<int:pk>/', views.customer_detail, name='customer_detail'),
     path('customers/<int:pk>/edit/', views.customer_edit, name='customer_edit'),
+    path('customers/<int:pk>/handover/', views.customer_handover, name='customer_handover'),
 
     # Products
     path('products/', views.product_list, name='product_list'),
+    path('products/hsn-lookup/', views.product_hsn_lookup, name='product_hsn_lookup'),
+    path('products/catalog.json', views.product_catalog_json, name='product_catalog_json'),
     path('products/add/', views.product_add, name='product_add'),
     path('products/<int:pk>/edit/', views.product_edit, name='product_edit'),
     path('products/<int:pk>/delete/', views.product_delete, name='product_delete'),

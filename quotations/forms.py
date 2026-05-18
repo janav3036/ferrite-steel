@@ -38,7 +38,7 @@ class QuotationEditForm(forms.ModelForm):
         model = Quotation
         fields = ['payment_terms', 'delivery_address', 'transport_extra', 'sgst_percent', 'cgst_percent', 'notes', 'valid_until']
         widgets = {
-            'payment_terms': forms.TextInput(attrs={'class': 'form-control'}),
+            'payment_terms': forms.Select(attrs={'class': 'form-select'}),
             'delivery_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'transport_extra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'sgst_percent': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -51,15 +51,16 @@ class QuotationEditForm(forms.ModelForm):
 class LineItemForm(forms.ModelForm):
     class Meta:
         model = QuotationLineItem
-        fields = ['product_name', 'make', 'length', 'pcs', 'quantity', 'unit_price', 'total_price', 'notes']
+        fields = ['hsn_code', 'product_name', 'make', 'length', 'quantity', 'pcs', 'unit_price', 'total_price', 'notes']
         widgets = {
+            'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True, 'tabindex': '-1'}),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
             'make': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'length': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.01'}),
+            'length': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm qty-field', 'step': '0.001'}),
             'pcs': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.001'}),
-            'unit_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'step': '0.01'}),
-            'total_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm rate-field', 'step': '0.01'}),
+            'total_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm amt-field', 'readonly': True}),
             'notes': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
         }
 

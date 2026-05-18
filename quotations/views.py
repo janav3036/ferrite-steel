@@ -13,7 +13,7 @@ from .forms import (
     MarketOrderAssignForm, MarketOrderDOForm, QuotationEditForm, LineItemFormSet,
 )
 from database.models import Broker, Customer
-from .models import Lead, MarketOrder, Quotation, QuotationLineItem
+from .models import Lead, MarketOrder, Quotation, QuotationLineItem, TeamEmailConfig
 from .services.llm import generate_quotation_draft
 
 
@@ -87,11 +87,8 @@ def quotation_edit(request, pk):
             return redirect('quotation_detail', pk=pk)
     else:
         initial = {}
-        if quotation.transport_extra == 0 and lead.customer_name:
-            customer = Customer.objects.filter(
-                name__iexact=lead.customer_name,
-                company__iexact=lead.company,
-            ).first()
+        if quotation.transport_extra == 0 and not lead.broker:
+            customer = _find_customer(lead)
             if customer:
                 initial['transport_extra'] = customer.transport_extra
         form = QuotationEditForm(instance=quotation, initial=initial)
@@ -104,13 +101,24 @@ def quotation_edit(request, pk):
     })
 
 
+def _find_customer(lead):
+    """Return matching Customer by email first, then name+company. None if not found."""
+    if lead.customer_email:
+        customer = Customer.objects.filter(email__iexact=lead.customer_email).first()
+        if customer:
+            return customer
+    if lead.customer_name:
+        return Customer.objects.filter(
+            name__iexact=lead.customer_name,
+            company__iexact=lead.company,
+        ).first()
+    return None
+
+
 def _upsert_customer(lead, transport_extra):
-    if not lead.customer_name:
+    if not lead.customer_name and not lead.customer_email:
         return
-    customer = Customer.objects.filter(
-        name__iexact=lead.customer_name,
-        company__iexact=lead.company,
-    ).first()
+    customer = _find_customer(lead)
     if customer:
         customer.transport_extra = transport_extra
         customer.phone = lead.customer_phone or customer.phone
@@ -226,19 +234,139 @@ def quotation_outcome(request, pk):
     if outcome in ('win', 'loss', 'not_updated'):
         root.outcome = outcome
         root.save(update_fields=['outcome'])
+        lead = root.lead
+        if outcome in ('win', 'loss') and lead.status != 'closed':
+            lead.status = 'closed'
+            lead.save(update_fields=['status'])
     return redirect('quotation_detail', pk=pk)
+
+
+def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=None):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.base import MIMEBase
+    from email.mime.text import MIMEText
+    from email import encoders
+
+    smtp_host = config.imap_host.replace('imap.', 'smtp.')
+    msg = MIMEMultipart()
+    msg['From'] = config.email_address
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    if pdf_bytes and filename:
+        part = MIMEBase('application', 'pdf')
+        part.set_payload(pdf_bytes)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+        msg.attach(part)
+
+    if config.use_ssl:
+        server = smtplib.SMTP_SSL(smtp_host, 465)
+    else:
+        server = smtplib.SMTP(smtp_host, 587)
+        server.starttls()
+    server.login(config.imap_username, config.imap_password)
+    server.sendmail(config.email_address, [to_email], msg.as_string())
+    server.quit()
 
 
 @login_required
 def quotation_send(request, pk):
-    if request.method != 'POST':
-        return redirect('quotation_detail', pk=pk)
     quotation = get_object_or_404(Quotation, pk=pk)
-    quotation.status = 'sent'
-    quotation.sent_at = timezone.now()
-    quotation.save(update_fields=['status', 'sent_at'])
-    messages.success(request, f'{quotation} marked as sent.')
-    return redirect('quotation_detail', pk=pk)
+    lead = quotation.lead
+
+    if request.method == 'POST':
+        to_email = request.POST.get('to_email', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        body = request.POST.get('body', '').strip()
+
+        sent_to = None
+        if to_email:
+            team = lead.created_by.team if lead.created_by else None
+            config = (
+                TeamEmailConfig.objects.filter(is_active=True, team=team).first()
+                if team else None
+            ) or TeamEmailConfig.objects.filter(is_active=True).first()
+
+            if config:
+                try:
+                    pdf_bytes = None
+                    filename = None
+                    if not lead.broker:
+                        import weasyprint
+                        ctx = _quotation_context(quotation)
+                        html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
+                        pdf_bytes = weasyprint.HTML(
+                            string=html, base_url=request.build_absolute_uri('/')
+                        ).write_pdf()
+                        filename = f"{quotation.quotation_number}.pdf"
+                    _send_via_smtp(
+                        config,
+                        to_email=to_email,
+                        subject=subject,
+                        body=body,
+                        pdf_bytes=pdf_bytes,
+                        filename=filename,
+                    )
+                    sent_to = to_email
+                except Exception as exc:
+                    messages.error(request, f'Email failed: {exc}')
+                    return render(request, 'quotations/quotation_send_confirm.html', {
+                        'quotation': quotation,
+                        'to_email': to_email,
+                        'subject': subject,
+                        'body': body,
+                    })
+            else:
+                messages.warning(request, 'No active team email config — marked as sent without emailing.')
+
+        quotation.status = 'sent'
+        quotation.sent_at = timezone.now()
+        quotation.save(update_fields=['status', 'sent_at'])
+
+        if sent_to:
+            messages.success(request, f'{quotation} sent to {sent_to}.')
+        else:
+            messages.success(request, f'{quotation} marked as sent.')
+        return redirect('quotation_detail', pk=pk)
+
+    # GET — show confirmation form with pre-filled defaults
+    if lead.broker:
+        lines = quotation.line_items.all()
+        rates_lines = '\n'.join(
+            f"  {item.product_name}"
+            + (f" ({item.make})" if item.make else "")
+            + f": {item.quantity} T @ ₹{item.unit_price}/T"
+            for item in lines
+        )
+        default_subject = f"Rates — {quotation.quotation_number}"
+        default_body = (
+            f"Hi {lead.customer_name or lead.broker.name},\n\n"
+            f"Please find below our rates for your enquiry:\n\n"
+            f"{rates_lines}\n\n"
+            f"Payment Terms: {quotation.payment_terms}\n\n"
+            f"Regards,\nFerrite Steel"
+        )
+        to_email = lead.customer_email or lead.broker.email
+    else:
+        default_subject = f"Quotation {quotation.quotation_number} — Ferrite Steel"
+        default_body = (
+            f"Dear {lead.customer_name or 'Sir/Madam'},\n\n"
+            f"Please find attached our quotation {quotation.quotation_number} "
+            f"for your recent enquiry.\n\n"
+            f"Should you have any questions or require further clarification, "
+            f"please do not hesitate to reach out.\n\n"
+            f"Regards,\nFerrite Steel"
+        )
+        to_email = lead.customer_email
+    return render(request, 'quotations/quotation_send_confirm.html', {
+        'quotation': quotation,
+        'to_email': to_email,
+        'subject': default_subject,
+        'body': default_body,
+    })
 
 
 @login_required
@@ -259,35 +387,31 @@ def quotation_create(request, lead_pk):
             lead.status = 'processing'
             lead.save(update_fields=['status'])
 
-        # Attempt LLM pre-fill; fall back silently if not yet wired
-        try:
-            if lead.broker:
-                entity_notes = lead.broker.notes
-            else:
-                customer = Customer.objects.filter(
-                    name__iexact=lead.customer_name,
-                    company__iexact=lead.company,
-                ).first()
-                entity_notes = customer.notes if customer else ''
+        # Customer lookup before LLM call so entity_notes and transport are available
+        customer = _find_customer(lead) if not lead.broker else None
+        if lead.broker:
+            entity_notes = lead.broker.notes
+        else:
+            entity_notes = customer.notes if customer else ''
 
+        # Attempt LLM pre-fill; fall back silently on any failure
+        try:
             draft = generate_quotation_draft(lead, entity_notes)
             quotation.llm_raw_response = str(draft)
 
-            # Apply top-level fields from draft
             for field in ('payment_terms', 'delivery_address', 'transport_extra',
                           'sgst_percent', 'cgst_percent', 'notes', 'valid_until'):
                 if draft.get(field) not in (None, ''):
                     setattr(quotation, field, draft[field])
             quotation.save()
 
-            # Create line items from draft
             for item in draft.get('line_items', []):
                 qty = Decimal(str(item.get('quantity') or 0))
                 price = Decimal(str(item.get('unit_price') or 0))
                 QuotationLineItem.objects.create(
                     quotation=quotation,
+                    hsn_code=item.get('hsn_code', ''),
                     product_name=item.get('product_name', ''),
-                    make=item.get('make', ''),
                     length=item.get('length'),
                     pcs=item.get('pcs'),
                     quantity=qty,
@@ -295,12 +419,38 @@ def quotation_create(request, lead_pk):
                     total_price=qty * price,
                     notes=item.get('notes', ''),
                 )
-        except (NotImplementedError, Exception):
+        except Exception:
             pass
+
+        # Pre-fill transport and delivery address from returning customer
+        if not lead.broker:
+            address = (customer.location if customer else '') or lead.location
+            update_fields = []
+            if customer and quotation.transport_extra == Decimal('0') and customer.transport_extra:
+                quotation.transport_extra = customer.transport_extra
+                update_fields.append('transport_extra')
+            if not quotation.delivery_address and address:
+                quotation.delivery_address = address
+                update_fields.append('delivery_address')
+            if update_fields:
+                quotation.save(update_fields=update_fields)
+            if not customer:
+                _upsert_customer(lead, Decimal('0'))
 
         messages.success(request, f'{quotation} created as draft.')
         return redirect('quotation_edit', pk=quotation.pk)
     return redirect('quotation_select_lead')
+
+
+@login_required
+def quotation_delete(request, pk):
+    if request.method != 'POST':
+        return redirect('quotation_detail', pk=pk)
+    quotation = get_object_or_404(Quotation, pk=pk)
+    number = quotation.quotation_number
+    quotation.delete()
+    messages.success(request, f'{number} deleted.')
+    return redirect('quotation_list')
 
 
 @login_required

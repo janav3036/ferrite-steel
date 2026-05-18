@@ -17,94 +17,195 @@
     {% endfor %}
     {% endif %}
 
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <a class="nav-link {% if not type_filter %}active{% endif %}" href="{% url 'product_list' %}{% if q %}?q={{ q }}{% endif %}">All</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if type_filter == 'main' %}active{% endif %}" href="{% url 'product_list' %}?type=main{% if q %}&q={{ q }}{% endif %}">Main</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if type_filter == 'rolling' %}active{% endif %}" href="{% url 'product_list' %}?type=rolling{% if q %}&q={{ q }}{% endif %}">Rolling</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if type_filter == 'plate' %}active{% endif %}" href="{% url 'product_list' %}?type=plate{% if q %}&q={{ q }}{% endif %}">Plate</a>
-        </li>
-    </ul>
-
     <form method="get" class="row g-2 mb-3 align-items-end">
-        {% if type_filter %}<input type="hidden" name="type" value="{{ type_filter }}">{% endif %}
         <div class="col-md-5">
             <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
-                   placeholder="Search size, HSN code, grade, location…">
-        </div>
-        <div class="col-md-3">
-            <select name="sub_type" class="form-select form-select-sm">
-                <option value="">All sub-types</option>
-                {% for val, label in sub_type_choices %}
-                <option value="{{ val }}" {% if sub_type_filter == val %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
+                   placeholder="Search size, HSN code, grade, godown…">
         </div>
         <div class="col-auto">
             <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
         </div>
-        {% if q or sub_type_filter %}
+        {% if q %}
         <div class="col-auto">
-            <a href="{% url 'product_list' %}{% if type_filter %}?type={{ type_filter }}{% endif %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
         </div>
         {% endif %}
     </form>
 
-    <p class="text-muted small mb-2">{{ products|length }} result{{ products|length|pluralize }}</p>
+    <p class="text-muted small mb-2" id="result-count">{{ group_count }} group{{ group_count|pluralize }}</p>
 
-    {% if products %}
     <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>HSN Code</th>
-                    <th>Type</th>
-                    <th>Sub-type</th>
+                    <th style="width:90px">HSN</th>
+                    <th style="width:90px">Type</th>
                     <th>Size</th>
-                    <th>Length (m)</th>
-                    <th>Grade</th>
-                    <th>Location</th>
-                    <th>Pieces</th>
-                    <th>Qty (T)</th>
-                    <th>Rate (₹/T)</th>
-                    <th></th>
+                    <th style="width:100px">Make</th>
+                    <th style="width:120px">Length</th>
+                    <th style="width:100px">Grade</th>
+                    <th style="width:100px">Site</th>
+                    <th style="width:110px">Godown</th>
+                    <th style="width:110px" class="text-end">Rate (₹/T)</th>
+                    <th style="width:80px" class="text-end">Qty (T)</th>
+                    <th style="width:120px"></th>
                 </tr>
             </thead>
-            <tbody>
-                {% for p in products %}
-                <tr>
-                    <td class="text-muted small">{{ p.hsn_code }}</td>
-                    <td><span class="badge bg-secondary">{{ p.get_type_display }}</span></td>
-                    <td>{% if p.sub_type %}<span class="badge bg-light text-dark border">{{ p.get_sub_type_display }}</span>{% else %}—{% endif %}</td>
-                    <td>{{ p.size }}</td>
-                    <td>{{ p.length|default:"—" }}</td>
-                    <td>{{ p.grade|default:"—" }}</td>
-                    <td>{{ p.location|default:"—" }}</td>
-                    <td>{{ p.pieces|default:"—" }}</td>
-                    <td>{{ p.quantity }}</td>
-                    <td>₹{{ p.rate }}</td>
-                    <td class="text-nowrap">
-                        <a href="{% url 'product_edit' p.pk %}" class="btn btn-outline-secondary btn-sm me-1">Edit</a>
-                        <form method="post" action="{% url 'product_delete' p.pk %}"
-                              onsubmit="return confirm('Delete {{ p.size }}?')"
-                              class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
+            <tbody id="product-groups-body">
+                <tr><td colspan="11" class="text-center text-muted py-3">Loading…</td></tr>
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div class="alert alert-info">No products found. <a href="{% url 'product_add' %}">Add the first product.</a></div>
-    {% endif %}
 </div>
+
+<script>
+const PRODUCT_GROUPS = {{ groups_json|safe }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function renderGroups() {
+    const tbody = document.getElementById('product-groups-body');
+    tbody.innerHTML = '';
+    const keys = Object.keys(PRODUCT_GROUPS);
+    if (keys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No products found.</td></tr>';
+        return;
+    }
+    keys.forEach(key => {
+        const g = PRODUCT_GROUPS[key];
+        const tr = document.createElement('tr');
+        tr.className = 'product-group-row';
+        tr.dataset.key = key;
+        tr.innerHTML = `
+            <td class="hsn-cell text-muted small">—</td>
+            <td class="fw-semibold">${g.type_display}</td>
+            <td>${g.size}</td>
+            <td><select class="make-select form-select form-select-sm"></select></td>
+            <td><select class="length-select form-select form-select-sm"></select></td>
+            <td class="grade-cell">
+                <select class="grade-select form-select form-select-sm" style="display:none"></select>
+                <span class="grade-text text-muted small">—</span>
+            </td>
+            <td class="site-cell">
+                <select class="site-select form-select form-select-sm" style="display:none"></select>
+                <span class="site-text text-muted small">—</span>
+            </td>
+            <td class="godown-cell text-muted small">—</td>
+            <td class="rate-cell text-end fw-semibold">—</td>
+            <td class="qty-cell text-end text-muted small">—</td>
+            <td class="text-nowrap">
+                <a href="#" class="btn btn-outline-secondary btn-sm me-1 edit-btn">Edit</a>
+                <form method="post" action="#" class="d-inline delete-form"
+                      onsubmit="return confirm('Delete this product?')">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${CSRF_TOKEN}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        initRow(tr, g);
+    });
+}
+
+function initRow(tr, g) {
+    const makeSelect = tr.querySelector('.make-select');
+    Object.entries(g.makes).forEach(([mk, mdata]) => {
+        const opt = document.createElement('option');
+        opt.value = mk;
+        opt.textContent = mdata.display;
+        makeSelect.appendChild(opt);
+    });
+    makeSelect.addEventListener('change',  () => refreshLength(tr, g));
+    tr.querySelector('.length-select').addEventListener('change', () => refreshGrade(tr, g));
+    tr.querySelector('.grade-select').addEventListener('change',  () => refreshSite(tr, g));
+    tr.querySelector('.site-select').addEventListener('change',   () => refreshVariant(tr, g));
+    refreshLength(tr, g);
+}
+
+function refreshLength(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lengthSelect = tr.querySelector('.length-select');
+    lengthSelect.innerHTML = '';
+    Object.keys(g.makes[mk]?.lengths || {}).forEach(lk => {
+        const opt = document.createElement('option');
+        opt.value = lk;
+        opt.textContent = lk || '—';
+        lengthSelect.appendChild(opt);
+    });
+    refreshGrade(tr, g);
+}
+
+function refreshGrade(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const grades = g.makes[mk]?.lengths[lk]?.grades || {};
+    const gradeKeys = Object.keys(grades);
+    const gradeSelect = tr.querySelector('.grade-select');
+    const gradeText   = tr.querySelector('.grade-text');
+
+    gradeSelect.innerHTML = '';
+    if (gradeKeys.length > 1) {
+        gradeKeys.forEach(gk => {
+            const opt = document.createElement('option');
+            opt.value = gk; opt.textContent = gk || '—';
+            gradeSelect.appendChild(opt);
+        });
+        gradeSelect.style.display = ''; gradeText.style.display = 'none';
+    } else {
+        gradeSelect.style.display = 'none'; gradeText.style.display = '';
+        gradeText.textContent = gradeKeys[0] || '—';
+        if (gradeKeys.length === 1) {
+            const opt = document.createElement('option');
+            opt.value = gradeKeys[0]; gradeSelect.appendChild(opt);
+        }
+    }
+    refreshSite(tr, g);
+}
+
+function refreshSite(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const gk = tr.querySelector('.grade-select').value;
+    const sites = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites || {};
+    const siteKeys = Object.keys(sites);
+    const siteSelect = tr.querySelector('.site-select');
+    const siteText   = tr.querySelector('.site-text');
+
+    siteSelect.innerHTML = '';
+    if (siteKeys.length > 1) {
+        siteKeys.forEach(sk => {
+            const opt = document.createElement('option');
+            opt.value = sk;
+            opt.textContent = sites[sk].site_display || sk || '—';
+            siteSelect.appendChild(opt);
+        });
+        siteSelect.style.display = ''; siteText.style.display = 'none';
+    } else {
+        siteSelect.style.display = 'none'; siteText.style.display = '';
+        siteText.textContent = siteKeys.length === 1 ? (sites[siteKeys[0]].site_display || siteKeys[0]) : '—';
+        if (siteKeys.length === 1) {
+            const opt = document.createElement('option');
+            opt.value = siteKeys[0]; siteSelect.appendChild(opt);
+        }
+    }
+    refreshVariant(tr, g);
+}
+
+function refreshVariant(tr, g) {
+    const mk = tr.querySelector('.make-select').value;
+    const lk = tr.querySelector('.length-select').value;
+    const gk = tr.querySelector('.grade-select').value;
+    const sk = tr.querySelector('.site-select').value;
+    const v  = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites[sk];
+    if (!v) return;
+
+    tr.querySelector('.hsn-cell').textContent    = v.hsn || '—';
+    tr.querySelector('.godown-cell').textContent = v.godown || '—';
+    tr.querySelector('.rate-cell').textContent   = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
+    tr.querySelector('.qty-cell').textContent    = v.qty || '—';
+    tr.querySelector('.edit-btn').href           = `/database/products/${v.id}/edit/`;
+    tr.querySelector('.delete-form').action      = `/database/products/${v.id}/delete/`;
+}
+
+renderGroups();
+</script>
 {% endblock %}
