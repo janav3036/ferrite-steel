@@ -49,16 +49,21 @@ class QuotationEditForm(forms.ModelForm):
 
 
 class LineItemForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['product'].required = False
+
     class Meta:
         model = QuotationLineItem
-        fields = ['hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'notes']
+        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'notes']
         widgets = {
+            'product': forms.HiddenInput(),
             'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True, 'tabindex': '-1'}),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'make': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'length': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm qty-field', 'step': '0.001'}),
-            'uom': forms.Select(attrs={'class': 'form-select form-select-sm uom-field'}),
+            'make': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
+            'length': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm qty-field', 'step': '0.001', 'style': 'width:75px'}),
+            'uom': forms.Select(attrs={'class': 'form-select form-select-sm uom-field', 'style': 'width:58px;flex:0 0 auto'}),
             'pcs': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
             'unit_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm final-rate-field', 'readonly': True, 'tabindex': '-1', 'step': '0.01'}),
             'total_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm amt-field', 'readonly': True}),

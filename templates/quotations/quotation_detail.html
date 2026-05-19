@@ -58,6 +58,17 @@
                                 class="btn btn-sm {% if root.outcome == 'not_updated' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">—</button>
                         </form>
                     </dd>
+                    {% if root.outcome == 'win' and root.winning_quotation %}
+                    <dt class="col-sm-5">Won Via</dt>
+                    <dd class="col-sm-7">
+                        <a href="{% url 'quotation_detail' root.winning_quotation.pk %}" class="fw-semibold text-success">
+                            {{ root.winning_quotation.quotation_number }}
+                        </a>
+                        {% if root.stock_deducted %}
+                        <span class="badge bg-success ms-1" title="Stock deducted from inventory">Stock Deducted</span>
+                        {% endif %}
+                    </dd>
+                    {% endif %}
                     <dt class="col-sm-5">Lead</dt>
                     <dd class="col-sm-7"><a href="{% url 'lead_detail' quotation.lead.pk %}">Lead #{{ quotation.lead.pk }}</a></dd>
                     {% if quotation.lead.broker %}

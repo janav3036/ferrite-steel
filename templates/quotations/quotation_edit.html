@@ -50,32 +50,6 @@
         </div>
     </div>
 
-    <!-- Pricing Breakdown (internal) -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header fw-semibold">
-            Pricing Breakdown
-            <small class="text-muted fw-normal">(₹/T — internal only, not shown on quotation)</small>
-        </div>
-        <div class="card-body">
-            <div class="row g-2">
-                {% for addon in addon_display %}
-                <div class="col">
-                    <label class="form-label small mb-1">{{ addon.label }}</label>
-                    <input type="number" id="addon-{{ addon.key }}" name="addon_{{ addon.key }}"
-                           class="form-control form-control-sm addon-field" step="0.01" placeholder="0"
-                           value="{{ addon.value }}">
-                </div>
-                {% endfor %}
-            </div>
-            {% if customer_notes %}
-            <details class="mt-3">
-                <summary class="text-muted small" style="cursor:pointer">Customer notes (reference)</summary>
-                <pre class="small text-muted mt-1 p-2 bg-light rounded" style="white-space: pre-wrap;">{{ customer_notes }}</pre>
-            </details>
-            {% endif %}
-        </div>
-    </div>
-
     <!-- Line items -->
     <div class="card shadow-sm mb-4">
         <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
@@ -93,7 +67,7 @@
                             <th>Product</th>
                             <th style="width:80px">Make</th>
                             <th style="width:80px">Length</th>
-                            <th style="width:120px">Qty / UOM</th>
+                            <th style="width:150px">Qty / UOM</th>
                             <th style="width:60px">PCS</th>
                             <th style="width:100px">Purch. Rate</th>
                             <th style="width:100px">Sell Rate</th>
@@ -119,7 +93,10 @@
                                 </div>
                             </td>
                             <td>{{ item_form.pcs }}</td>
-                            <td><input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00"></td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00">
+                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary" style="font-size:0.75em;line-height:1">⊞ add-ons</button>
+                            </td>
                             <td>{{ item_form.unit_price }}</td>
                             <td>{{ item_form.total_price }}</td>
                             <td>{{ item_form.notes }}</td>
@@ -127,6 +104,19 @@
                                 {{ item_form.DELETE }}
                                 {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
                                 <button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button>
+                            </td>
+                        </tr>
+                        <tr class="addon-row" style="display:none">
+                            <td colspan="12" class="p-2 bg-light">
+                                <div class="row g-2">
+                                    <div class="col"><label class="form-label small mb-1">Parity</label><input type="number" data-addon="parity" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Cutting</label><input type="number" data-addon="cutting" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Loading</label><input type="number" data-addon="loading" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Transport</label><input type="number" data-addon="transport" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Margin</label><input type="number" data-addon="margin" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Interest</label><input type="number" data-addon="interest" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Commission</label><input type="number" data-addon="commission" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -173,8 +163,8 @@
 
 <!-- Empty form template for JS cloning -->
 <table style="display:none">
-    <tbody>
-        <tr id="empty-form-template" class="line-item-row">
+    <tbody id="empty-form-template">
+        <tr class="line-item-row">
             <td class="text-muted row-num"></td>
             <td>{{ formset.empty_form.hsn_code }}</td>
             <td>
@@ -183,8 +173,16 @@
             </td>
             <td>{{ formset.empty_form.make }}</td>
             <td>{{ formset.empty_form.length }}</td>
-            <td>{{ formset.empty_form.quantity }}</td>
+            <td>
+                <div class="input-group input-group-sm">
+                    {{ formset.empty_form.quantity }}{{ formset.empty_form.uom }}
+                </div>
+            </td>
             <td>{{ formset.empty_form.pcs }}</td>
+            <td>
+                <input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00">
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary" style="font-size:0.75em;line-height:1">⊞ add-ons</button>
+            </td>
             <td>{{ formset.empty_form.unit_price }}</td>
             <td>{{ formset.empty_form.total_price }}</td>
             <td>{{ formset.empty_form.notes }}</td>
@@ -192,6 +190,19 @@
                 {{ formset.empty_form.DELETE }}
                 {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
                 <button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button>
+            </td>
+        </tr>
+        <tr class="addon-row" style="display:none">
+            <td colspan="12" class="p-2 bg-light">
+                <div class="row g-2">
+                    <div class="col"><label class="form-label small mb-1">Parity</label><input type="number" data-addon="parity" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Cutting</label><input type="number" data-addon="cutting" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Loading</label><input type="number" data-addon="loading" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Transport</label><input type="number" data-addon="transport" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Margin</label><input type="number" data-addon="margin" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Interest</label><input type="number" data-addon="interest" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Commission</label><input type="number" data-addon="commission" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                </div>
             </td>
         </tr>
     </tbody>
@@ -213,8 +224,8 @@
                     <table class="table table-sm table-bordered align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width:80px">HSN</th>
-                                <th style="width:80px">Type</th>
+                                <th style="width:24px"></th>
+                                <th style="width:140px">Sub-type</th>
                                 <th>Size</th>
                                 <th style="width:100px">Make</th>
                                 <th style="width:120px">Length</th>
@@ -236,12 +247,31 @@
 <script>
 const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
 const transportInput  = document.getElementById('id_transport_extra');
+const addonDefaults   = {{ addon_defaults_json|safe }};
+const customerNotes   = "{{ customer_notes|escapejs }}";
 
-const ADDON_IDS = ['addon-parity','addon-cutting','addon-loading','addon-transport',
-                   'addon-margin','addon-interest','addon-commission'];
+function getAddonRow(mainRow) {
+    const next = mainRow.nextElementSibling;
+    return (next && next.classList.contains('addon-row')) ? next : null;
+}
 
-function getAddonTotal() {
-    return ADDON_IDS.reduce((sum, id) => sum + (parseFloat(document.getElementById(id)?.value) || 0), 0);
+function getRowAddonTotal(mainRow) {
+    const addonRow = getAddonRow(mainRow);
+    if (!addonRow) return 0;
+    let total = 0;
+    addonRow.querySelectorAll('.addon-field').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    return total;
+}
+
+function fillAddonDefaults(mainRow) {
+    const addonRow = getAddonRow(mainRow);
+    if (!addonRow) return;
+    addonRow.querySelectorAll('.addon-field').forEach(input => {
+        const key = input.dataset.addon;
+        if (addonDefaults[key] && !input.value) input.value = addonDefaults[key];
+    });
 }
 
 function recalcRow(row) {
@@ -251,7 +281,7 @@ function recalcRow(row) {
     const qty  = parseFloat(row.querySelector('.qty-field').value) || 0;
     const uom  = row.querySelector('.uom-field')?.value || 'ton';
     const tons = uom === 'kg' ? qty / 1000 : qty;
-    const finalRate = purchaseRate + getAddonTotal();
+    const finalRate = purchaseRate + getRowAddonTotal(row);
     const finalRateField = row.querySelector('.final-rate-field');
     if (finalRateField) finalRateField.value = finalRate.toFixed(2);
     row.querySelector('.amt-field').value = (finalRate * tons).toFixed(2);
@@ -286,47 +316,62 @@ function updateRowNumbers() {
 
 document.getElementById('formset-body').addEventListener('input', function(e) {
     const row = e.target.closest('tr');
-    if (row) recalcRow(row);
+    if (!row) return;
+    if (row.classList.contains('addon-row')) {
+        const mainRow = row.previousElementSibling;
+        if (mainRow && mainRow.classList.contains('line-item-row')) recalcRow(mainRow);
+    } else if (row.classList.contains('line-item-row')) {
+        recalcRow(row);
+    }
     updateSummary();
 });
 
 document.getElementById('formset-body').addEventListener('change', function(e) {
     if (!e.target.matches('.uom-field')) return;
     const row = e.target.closest('tr');
-    if (row) recalcRow(row);
+    if (row && row.classList.contains('line-item-row')) recalcRow(row);
     updateSummary();
-});
-
-// Recalculate all rows with a purchase rate whenever any addon changes
-ADDON_IDS.forEach(id => {
-    document.getElementById(id)?.addEventListener('input', function() {
-        document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
-            recalcRow(row);
-        });
-        updateSummary();
-    });
 });
 
 if (transportInput) {
     transportInput.addEventListener('input', updateSummary);
 }
 
+// Toggle per-row add-on panel
+document.getElementById('formset-body').addEventListener('click', function(e) {
+    if (!e.target.matches('.toggle-addon-btn')) return;
+    const mainRow = e.target.closest('tr.line-item-row');
+    const addonRow = getAddonRow(mainRow);
+    if (!addonRow) return;
+    addonRow.style.display = (addonRow.style.display === 'table-row') ? 'none' : 'table-row';
+});
+
 document.getElementById('add-row').addEventListener('click', function() {
     const formNum = parseInt(totalFormsInput.value);
-    const newRow = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
-    document.getElementById('formset-body').insertAdjacentHTML('beforeend', newRow);
+    const newHtml = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
+    document.getElementById('formset-body').insertAdjacentHTML('beforeend', newHtml);
     totalFormsInput.value = formNum + 1;
+    const allMainRows = document.querySelectorAll('#formset-body .line-item-row');
+    const newRow = allMainRows[allMainRows.length - 1];
+    fillAddonDefaults(newRow);
+    const newNotes = newRow.querySelector('[name$="-notes"]');
+    if (newNotes && customerNotes) newNotes.value = customerNotes;
+    const newPcs = newRow.querySelector('[name$="-pcs"]');
+    if (newPcs) { newPcs.setAttribute('readonly', true); newPcs.classList.add('bg-light'); }
     updateRowNumbers();
 });
 
 document.getElementById('formset-body').addEventListener('click', function(e) {
     if (!e.target.matches('.remove-row')) return;
     const row = e.target.closest('tr');
+    const addonRow = getAddonRow(row);
     const deleteCheckbox = row.querySelector('[name$="-DELETE"]');
     if (deleteCheckbox) {
         deleteCheckbox.checked = true;
         row.classList.add('d-none');
+        if (addonRow) addonRow.style.display = 'none';
     } else {
+        if (addonRow) addonRow.remove();
         row.remove();
         totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
     }
@@ -350,6 +395,17 @@ document.getElementById('formset-body').addEventListener('focusout', async funct
     } catch {}
 });
 
+// Initialise all existing rows
+document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
+    fillAddonDefaults(row);
+    const pcsField = row.querySelector('[name$="-pcs"]');
+    if (pcsField && !pcsField.value.trim()) {
+        pcsField.setAttribute('readonly', true);
+        pcsField.classList.add('bg-light');
+    }
+    const notesField = row.querySelector('[name$="-notes"]');
+    if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
+});
 updateRowNumbers();
 updateSummary();
 
@@ -397,13 +453,29 @@ function renderPickerRows(query) {
     const q = query.trim().toLowerCase();
     Object.entries(catalogData).forEach(([key, g]) => {
         if (q && !g.type_display.toLowerCase().includes(q) && !g.size.toLowerCase().includes(q)) return;
-        const tr = document.createElement('tr');
-        tr.className = 'picker-group-row';
-        tr.dataset.key = key;
-        tr.innerHTML = `
-            <td class="picker-hsn-cell text-muted small">—</td>
+
+        // Header row — always visible, clickable to expand
+        const headerTr = document.createElement('tr');
+        headerTr.className = 'picker-group-header';
+        headerTr.style.cursor = 'pointer';
+        headerTr.dataset.key = key;
+        headerTr.innerHTML = `
+            <td class="text-center text-muted small"><span class="expand-icon">▶</span></td>
             <td class="fw-semibold">${g.type_display}</td>
             <td>${g.size}</td>
+            <td colspan="7" class="text-muted small fst-italic">click to select variant</td>
+        `;
+        pickerBody.appendChild(headerTr);
+
+        // Detail row — hidden until header clicked
+        const detailTr = document.createElement('tr');
+        detailTr.className = 'picker-group-detail table-light';
+        detailTr.dataset.key = key;
+        detailTr.style.display = 'none';
+        detailTr.innerHTML = `
+            <td class="picker-hsn-cell text-muted small text-center">—</td>
+            <td></td>
+            <td></td>
             <td><select class="make-select form-select form-select-sm"></select></td>
             <td><select class="length-select form-select form-select-sm"></select></td>
             <td class="grade-cell">
@@ -418,26 +490,39 @@ function renderPickerRows(query) {
             <td class="qty-cell text-end text-muted small">—</td>
             <td><button type="button" class="btn btn-sm btn-primary picker-add-btn">Add</button></td>
         `;
-        pickerBody.appendChild(tr);
-        initPickerRow(tr, g);
+        pickerBody.appendChild(detailTr);
+        initPickerRow(detailTr, g);
+
+        headerTr.addEventListener('click', function() {
+            const isOpen = detailTr.style.display !== 'none';
+            // Collapse all
+            pickerBody.querySelectorAll('.picker-group-detail').forEach(r => r.style.display = 'none');
+            pickerBody.querySelectorAll('.expand-icon').forEach(i => i.textContent = '▶');
+            pickerBody.querySelectorAll('.picker-group-header').forEach(r => r.classList.remove('table-primary'));
+            if (!isOpen) {
+                detailTr.style.display = '';
+                headerTr.querySelector('.expand-icon').textContent = '▼';
+                headerTr.classList.add('table-primary');
+            }
+        });
     });
     if (!pickerBody.hasChildNodes()) {
-        pickerBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No products match.</td></tr>';
+        pickerBody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No products match.</td></tr>';
     }
 }
 
-function initPickerRow(tr, g) {
-    const makeSelect = tr.querySelector('.make-select');
+function initPickerRow(detailTr, g) {
+    const makeSelect = detailTr.querySelector('.make-select');
     Object.entries(g.makes).forEach(([mk, mdata]) => {
         const opt = document.createElement('option');
         opt.value = mk; opt.textContent = mdata.display;
         makeSelect.appendChild(opt);
     });
-    makeSelect.addEventListener('change',  () => pickerRefreshLength(tr, g));
-    tr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(tr, g));
-    tr.querySelector('.grade-select').addEventListener('change',  () => pickerRefreshSite(tr, g));
-    tr.querySelector('.site-select').addEventListener('change',   () => pickerRefreshVariant(tr, g));
-    pickerRefreshLength(tr, g);
+    makeSelect.addEventListener('change',  () => pickerRefreshLength(detailTr, g));
+    detailTr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(detailTr, g));
+    detailTr.querySelector('.grade-select').addEventListener('change',  () => pickerRefreshSite(detailTr, g));
+    detailTr.querySelector('.site-select').addEventListener('change',   () => pickerRefreshVariant(detailTr, g));
+    pickerRefreshLength(detailTr, g);
 }
 
 function pickerRefreshLength(tr, g) {
@@ -515,40 +600,57 @@ function pickerRefreshVariant(tr, g) {
     tr.querySelector('.picker-hsn-cell').textContent = v.hsn || '—';
     tr.querySelector('.rate-cell').textContent = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
     tr.querySelector('.qty-cell').textContent  = v.qty || '—';
-    tr.dataset.variantId   = v.id;
-    tr.dataset.variantRate = v.rate;
-    tr.dataset.variantHsn  = v.hsn;
+    tr.dataset.variantId     = v.id;
+    tr.dataset.variantRate   = v.rate;
+    tr.dataset.variantHsn    = v.hsn;
+    tr.dataset.variantPieces = (v.pieces != null) ? String(v.pieces) : '';
 }
 
 // Add button in picker fills the target line item row
 pickerBody.addEventListener('click', function(e) {
     if (!e.target.matches('.picker-add-btn')) return;
-    const pickerRow = e.target.closest('tr');
-    if (!pickerTargetRow) return;
+    const detailRow = e.target.closest('tr.picker-group-detail');
+    if (!pickerTargetRow || !detailRow) return;
 
-    const makeSelect   = pickerRow.querySelector('.make-select');
-    const lengthSelect = pickerRow.querySelector('.length-select');
-    const gradeSelect  = pickerRow.querySelector('.grade-select');
-    const gradeText    = pickerRow.querySelector('.grade-text');
+    const makeSelect   = detailRow.querySelector('.make-select');
+    const lengthSelect = detailRow.querySelector('.length-select');
+    const gradeSelect  = detailRow.querySelector('.grade-select');
+    const gradeText    = detailRow.querySelector('.grade-text');
     const mk = makeSelect.options[makeSelect.selectedIndex]?.text || '';
     const lk = lengthSelect.value;
-    const gk = gradeSelect.style.display === 'none' ? gradeText.textContent : gradeSelect.value;
-    const g  = catalogData[pickerRow.dataset.key];
+    const g  = catalogData[detailRow.dataset.key];
 
     const productName = `${g.type_display} ${g.size}`;
-    const hsnCode     = pickerRow.dataset.variantHsn || '';
-    const rate        = pickerRow.dataset.variantRate || '';
+    const hsnCode     = detailRow.dataset.variantHsn || '';
+    const rate        = detailRow.dataset.variantRate || '';
+    const pieces      = detailRow.dataset.variantPieces;
 
-    const nameField = pickerTargetRow.querySelector('[name$="-product_name"]');
-    const makeField = pickerTargetRow.querySelector('[name$="-make"]');
-    const lenField  = pickerTargetRow.querySelector('[name$="-length"]');
-    const hsnField  = pickerTargetRow.querySelector('[name$="-hsn_code"]');
+    const nameField         = pickerTargetRow.querySelector('[name$="-product_name"]');
+    const makeField         = pickerTargetRow.querySelector('[name$="-make"]');
+    const lenField          = pickerTargetRow.querySelector('[name$="-length"]');
+    const hsnField          = pickerTargetRow.querySelector('[name$="-hsn_code"]');
+    const pcsField          = pickerTargetRow.querySelector('[name$="-pcs"]');
+    const productField      = pickerTargetRow.querySelector('[name$="-product"]');
     const purchaseRateField = pickerTargetRow.querySelector('.purchase-rate-field');
 
-    if (nameField) nameField.value = productName;
-    if (makeField) makeField.value = mk;
-    if (lenField)  lenField.value  = lk;
-    if (hsnField)  hsnField.value  = hsnCode;
+    if (nameField)    nameField.value    = productName;
+    if (makeField)    makeField.value    = mk;
+    if (lenField)     lenField.value     = lk;
+    if (hsnField)     hsnField.value     = hsnCode;
+    if (productField) productField.value = detailRow.dataset.variantId || '';
+
+    if (pcsField) {
+        if (pieces !== '') {
+            pcsField.value = pieces;
+            pcsField.removeAttribute('readonly');
+            pcsField.classList.remove('bg-light');
+        } else {
+            pcsField.value = '';
+            pcsField.setAttribute('readonly', true);
+            pcsField.classList.add('bg-light');
+        }
+    }
+
     if (purchaseRateField) {
         purchaseRateField.value = rate;
         recalcRow(pickerTargetRow);

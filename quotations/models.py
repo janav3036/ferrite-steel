@@ -78,6 +78,12 @@ class Quotation(models.Model):
     quotation_number = models.CharField(max_length=50, unique=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     outcome = models.CharField(max_length=20, choices=OUTCOME_CHOICES, default='not_updated')
+    winning_quotation = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='won_as',
+    )
+    stock_deducted = models.BooleanField(default=False)
     llm_raw_response = models.TextField(blank=True)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
@@ -132,6 +138,11 @@ class QuotationLineItem(models.Model):
     ]
 
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='line_items')
+    product = models.ForeignKey(
+        'database.Product', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='line_items',
+    )
     hsn_code = models.CharField(max_length=20, blank=True)
     product_name = models.CharField(max_length=255)
     make = models.CharField(max_length=100, blank=True)
@@ -141,7 +152,7 @@ class QuotationLineItem(models.Model):
     uom = models.CharField(max_length=3, choices=UOM_CHOICES, default='ton')
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=14, decimal_places=2)
-    notes = models.CharField(max_length=500, blank=True)
+    notes = models.TextField(blank=True)
 
     class Meta:
         verbose_name = 'Line Item'

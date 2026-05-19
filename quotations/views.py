@@ -1,5 +1,9 @@
+import json
 import re
 from decimal import Decimal
+
+from django.db.models import F
+from django.db.models.functions import Greatest
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -87,12 +91,6 @@ def quotation_edit(request, pk):
             quotation.total_amount = total
             quotation.save(update_fields=['total_amount'])
             _upsert_customer(lead, quotation.transport_extra)
-            # Persist addon values to customer notes
-            addons = {k: request.POST.get(f'addon_{k}', '') for k in _ADDON_KEYS}
-            if any(v.strip() for v in addons.values()):
-                cust = _find_customer(lead)
-                if cust:
-                    _update_addon_notes(cust, addons)
             messages.success(request, 'Quotation saved.')
             return redirect('quotation_detail', pk=pk)
     else:
@@ -103,21 +101,14 @@ def quotation_edit(request, pk):
         form = QuotationEditForm(instance=quotation, initial=initial)
         formset = LineItemFormSet(instance=quotation)
 
-    addon_labels = [
-        ('parity', 'Parity'), ('cutting', 'Cutting'), ('loading', 'Loading'),
-        ('transport', 'Transport'), ('margin', 'Margin'),
-        ('interest', 'Interest'), ('commission', 'Commission'),
-    ]
-    addon_display = [
-        {'key': k, 'label': lbl, 'value': addon_notes.get(k, '')}
-        for k, lbl in addon_labels
-    ]
+    addon_keys = ['parity', 'cutting', 'loading', 'transport', 'margin', 'interest', 'commission']
+    addon_defaults_json = json.dumps({k: addon_notes.get(k, '') for k in addon_keys})
     return render(request, 'quotations/quotation_edit.html', {
         'quotation': quotation,
         'lead': lead,
         'form': form,
         'formset': formset,
-        'addon_display': addon_display,
+        'addon_defaults_json': addon_defaults_json,
         'customer_notes': customer.notes if customer else '',
     })
 
@@ -154,25 +145,6 @@ def _parse_addon_notes(notes: str) -> dict:
     return result
 
 
-def _update_addon_notes(customer, addons: dict):
-    """Replace or append the pricing add-ons section in the customer's notes field."""
-    lines = ['--- Pricing Add-ons (last used) ---']
-    labels = {
-        'parity': 'Parity', 'cutting': 'Cutting', 'loading': 'Loading',
-        'transport': 'Transport', 'margin': 'Margin',
-        'interest': 'Interest', 'commission': 'Commission',
-    }
-    for key, label in labels.items():
-        val = addons.get(key, '').strip()
-        if val:
-            lines.append(f'{label}: {val}')
-    lines.append('---')
-    new_section = '\n'.join(lines)
-    notes = _ADDON_SECTION_RE.sub('', customer.notes or '').strip()
-    customer.notes = f'{notes}\n\n{new_section}'.strip() if notes else new_section
-    customer.save(update_fields=['notes'])
-
-
 def _upsert_customer(lead, transport_extra):
     if not lead.customer_name and not lead.customer_email:
         return
@@ -205,7 +177,9 @@ def _quotation_context(quotation):
     cgst = taxable_value * quotation.cgst_percent / 100
     grand_total = taxable_value + sgst + cgst
 
-    root = quotation.parent_quotation or quotation
+    root = Quotation.objects.select_related('winning_quotation').get(
+        pk=(quotation.parent_quotation_id or quotation.pk)
+    )
     versions = Quotation.objects.filter(
         Q(pk=root.pk) | Q(parent_quotation=root)
     ).select_related('created_by').order_by('version')
@@ -292,12 +266,30 @@ def quotation_outcome(request, pk):
     outcome = request.POST.get('outcome')
     if outcome in ('win', 'loss', 'not_updated'):
         root.outcome = outcome
-        root.save(update_fields=['outcome'])
+        if outcome == 'win':
+            root.winning_quotation = quotation
+            if not root.stock_deducted:
+                _deduct_stock(quotation)
+                root.stock_deducted = True
+        else:
+            root.winning_quotation = None
+        root.save(update_fields=['outcome', 'winning_quotation', 'stock_deducted'])
         lead = root.lead
         if outcome in ('win', 'loss') and lead.status != 'closed':
             lead.status = 'closed'
             lead.save(update_fields=['status'])
     return redirect('quotation_detail', pk=pk)
+
+
+def _deduct_stock(quotation):
+    from database.models import Product
+    for item in quotation.line_items.all():
+        if not item.product_id:
+            continue
+        qty = item.quantity / Decimal('1000') if item.uom == 'kg' else item.quantity
+        Product.objects.filter(pk=item.product_id).update(
+            quantity=Greatest(F('quantity') - qty, Decimal('0'))
+        )
 
 
 def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=None):

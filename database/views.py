@@ -39,6 +39,7 @@ def _build_product_groups(products):
             'hsn': p.hsn_code,
             'godown': p.godown or '',
             'site_display': p.get_site_display() if p.site else '',
+            'pieces': p.pieces,
         }
     return groups
 

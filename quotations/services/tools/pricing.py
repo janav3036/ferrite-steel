@@ -48,7 +48,7 @@ def lookup_pricing(query: str) -> dict:
             'length': p.length or None,
             'pieces': p.pieces,
             'grade': p.grade,
-            'location': p.location,
+            'godown': p.godown,
             'quantity': str(p.quantity),
             'rate': str(p.rate),
         }

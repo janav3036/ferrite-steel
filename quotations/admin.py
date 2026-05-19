@@ -23,8 +23,9 @@ class LeadAdmin(admin.ModelAdmin):
 
 @admin.register(Quotation)
 class QuotationAdmin(admin.ModelAdmin):
-    list_display = ('quotation_number', 'lead', 'status', 'total_amount', 'created_by', 'created_at')
-    list_filter = ('status',)
+    list_display = ('quotation_number', 'lead', 'status', 'outcome', 'winning_quotation', 'stock_deducted', 'total_amount', 'created_by', 'created_at')
+    list_filter = ('status', 'outcome', 'stock_deducted')
+    readonly_fields = ('winning_quotation', 'stock_deducted')
     inlines = [QuotationLineItemInline]
 
 
