@@ -55,7 +55,7 @@ class LineItemForm(forms.ModelForm):
 
     class Meta:
         model = QuotationLineItem
-        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'notes']
+        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
         widgets = {
             'product': forms.HiddenInput(),
             'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True, 'tabindex': '-1'}),
@@ -67,6 +67,7 @@ class LineItemForm(forms.ModelForm):
             'pcs': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
             'unit_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm final-rate-field', 'readonly': True, 'tabindex': '-1', 'step': '0.01'}),
             'total_price': forms.NumberInput(attrs={'class': 'form-control form-control-sm amt-field', 'readonly': True}),
+            'discount_pct': forms.NumberInput(attrs={'class': 'form-control form-control-sm discount-pct-field', 'step': '0.01', 'placeholder': '0', 'style': 'width:70px'}),
             'notes': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
         }
 

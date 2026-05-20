@@ -75,7 +75,7 @@
                 <div class="mb-3 pb-3 border-bottom">
                     <p class="fw-semibold mb-1">Step 1 — Rate</p>
                     {% if order.rate %}
-                    <p class="mb-0">Rate: <strong>₹{{ order.rate }}</strong>
+                    <p class="mb-0">Rate: <strong>₹{{ order.rate|floatformat:2 }}</strong>
                         {% if order.rate_sent_at %}<span class="text-muted small ms-2">sent {{ order.rate_sent_at|date:"d M Y, H:i" }}</span>{% endif %}
                     </p>
                     {% elif order.status == 'new' and rate_form %}

@@ -152,6 +152,7 @@ class QuotationLineItem(models.Model):
     uom = models.CharField(max_length=3, choices=UOM_CHOICES, default='ton')
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=14, decimal_places=2)
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -160,6 +161,13 @@ class QuotationLineItem(models.Model):
 
     def __str__(self):
         return f'{self.product_name} * {self.quantity}'
+
+    @property
+    def final_price(self):
+        from decimal import Decimal
+        if self.discount_pct:
+            return self.total_price * (1 - self.discount_pct / Decimal('100'))
+        return self.total_price
 
 
 class MarketOrder(models.Model):

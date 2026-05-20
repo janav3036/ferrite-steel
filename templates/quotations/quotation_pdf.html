@@ -63,8 +63,10 @@
       <th style="width:55px">Length</th>
       <th style="width:55px">TON</th>
       <th style="width:40px">PCS</th>
-      <th style="width:70px">Rate (₹)</th>
-      <th style="width:80px">Amount (₹)</th>
+      <th style="width:60px">Rate (₹)</th>
+      <th style="width:70px">Amount (₹)</th>
+      <th style="width:40px">Disc %</th>
+      <th style="width:75px">Final (₹)</th>
     </tr>
   </thead>
   <tbody>
@@ -76,13 +78,15 @@
       <td class="num">{{ item.length|default:"—" }}</td>
       <td class="num">{{ item.quantity }}</td>
       <td class="num">{{ item.pcs|default:"—" }}</td>
-      <td class="num">{{ item.unit_price }}</td>
-      <td class="num">{{ item.total_price }}</td>
+      <td class="num">{{ item.unit_price|floatformat:2 }}</td>
+      <td class="num">{{ item.total_price|floatformat:2 }}</td>
+      <td class="num">{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
+      <td class="num">{{ item.final_price|floatformat:2 }}</td>
     </tr>
     {% endfor %}
     <!-- Padding rows -->
     {% with pad=items|length %}
-    {% if pad < 8 %}{% for i in "12345678"|make_list %}{% if forloop.counter > pad %}<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endif %}{% endfor %}{% endif %}
+    {% if pad < 8 %}{% for i in "12345678"|make_list %}{% if forloop.counter > pad %}<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endif %}{% endfor %}{% endif %}
     {% endwith %}
   </tbody>
 </table>
@@ -106,16 +110,16 @@
     <!-- Totals -->
     <td style="border:none; width:52%; vertical-align:top; padding-left:10px;">
       <table class="totals-table">
-        <tr><td>Total TON</td><td>{{ total_tons }}</td></tr>
-        <tr><td>Total Item Value (₹)</td><td>{{ item_value }}</td></tr>
-        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra }}</td></tr>
-        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra }}</td></tr>
-        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value }}</td></tr>
-        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst }}</td></tr>
-        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst }}</td></tr>
+        <tr><td>Total TON</td><td>{{ total_tons|floatformat:2 }}</td></tr>
+        <tr><td>Total Item Value (₹)</td><td>{{ item_value|floatformat:2 }}</td></tr>
+        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra|floatformat:2 }}</td></tr>
+        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra|floatformat:2 }}</td></tr>
+        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value|floatformat:2 }}</td></tr>
+        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst|floatformat:2 }}</td></tr>
+        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst|floatformat:2 }}</td></tr>
         <tr class="grand-total">
           <td style="text-align:right; padding-right:10px; border:1px solid #000;">Total Amount (₹)</td>
-          <td style="text-align:right; border:1px solid #000;">{{ grand_total }}</td>
+          <td style="text-align:right; border:1px solid #000;">{{ grand_total|floatformat:2 }}</td>
         </tr>
       </table>
     </td>

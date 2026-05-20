@@ -121,6 +121,8 @@
                             <th>PCS</th>
                             <th>Rate (₹)</th>
                             <th>Amount (₹)</th>
+                            <th>Disc %</th>
+                            <th>Final (₹)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,8 +134,10 @@
                             <td>{{ item.length|default:"—" }}</td>
                             <td>{{ item.quantity }}</td>
                             <td>{{ item.pcs|default:"—" }}</td>
-                            <td>{{ item.unit_price }}</td>
-                            <td>{{ item.total_price }}</td>
+                            <td>{{ item.unit_price|floatformat:2 }}</td>
+                            <td>{{ item.total_price|floatformat:2 }}</td>
+                            <td>{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
+                            <td>{{ item.final_price|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -151,14 +155,14 @@
             <div class="card-header fw-semibold">Totals</div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
-                    <tr><td class="text-end fw-semibold">Total TON</td><td class="text-end">{{ total_tons }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Total Item Value</td><td class="text-end">₹{{ item_value }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Loading Extra</td><td class="text-end">₹{{ loading_extra }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Transport Extra</td><td class="text-end">₹{{ transport_extra }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Total Taxable Value</td><td class="text-end">₹{{ taxable_value }}</td></tr>
-                    <tr><td class="text-end fw-semibold">SGST {{ quotation.sgst_percent }}%</td><td class="text-end">₹{{ sgst }}</td></tr>
-                    <tr><td class="text-end fw-semibold">CGST {{ quotation.cgst_percent }}%</td><td class="text-end">₹{{ cgst }}</td></tr>
-                    <tr class="table-dark fw-bold"><td class="text-end">Grand Total</td><td class="text-end">₹{{ grand_total }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Total TON</td><td class="text-end">{{ total_tons|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Total Item Value</td><td class="text-end">₹{{ item_value|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Loading Extra</td><td class="text-end">₹{{ loading_extra|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Transport Extra</td><td class="text-end">₹{{ transport_extra|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Total Taxable Value</td><td class="text-end">₹{{ taxable_value|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">SGST {{ quotation.sgst_percent }}%</td><td class="text-end">₹{{ sgst|floatformat:2 }}</td></tr>
+                    <tr><td class="text-end fw-semibold">CGST {{ quotation.cgst_percent }}%</td><td class="text-end">₹{{ cgst|floatformat:2 }}</td></tr>
+                    <tr class="table-dark fw-bold"><td class="text-end">Grand Total</td><td class="text-end">₹{{ grand_total|floatformat:2 }}</td></tr>
                 </table>
             </div>
         </div>

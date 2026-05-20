@@ -169,7 +169,7 @@ def _upsert_customer(lead, transport_extra):
 def _quotation_context(quotation):
     items = list(quotation.line_items.all())
     total_tons = sum(i.quantity for i in items)
-    item_value = sum(i.total_price for i in items)
+    item_value = sum(i.final_price for i in items)
     loading_extra = total_tons * Decimal('0.5')
     transport_extra = quotation.transport_extra
     taxable_value = item_value + loading_extra + transport_extra

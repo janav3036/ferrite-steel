@@ -51,7 +51,7 @@
                         {{ q.get_outcome_display }}
                     </span>
                 </td>
-                <td>{{ q.total_amount }}</td>
+                <td>{{ q.total_amount|floatformat:2 }}</td>
                 <td>{{ q.created_by.username|default:"—" }}</td>
                 <td>{{ q.created_at|date:"d M Y" }}</td>
                 <td><a href="{% url 'quotation_detail' q.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>

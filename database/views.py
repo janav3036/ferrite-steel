@@ -13,18 +13,18 @@ from .models import Broker, Customer, Product
 
 def _build_product_groups(products):
     groups = {}
-    for p in products.order_by('sub_type', 'size', 'make', 'length', 'grade', 'site'):
+    for p in products.select_related('base_product').order_by('sub_type', 'size', 'make', 'length', 'grade', 'site'):
         key = f"{p.sub_type}||{p.size}"
         if key not in groups:
             groups[key] = {
-                'type_display': p.get_sub_type_display() or p.get_make_display(),
+                'type_display': p.get_sub_type_display() or p.get_category_display(),
                 'size': p.size,
                 'makes': {},
             }
         g = groups[key]
-        mk = p.make
+        mk = p.make or '—'
         if mk not in g['makes']:
-            g['makes'][mk] = {'display': p.get_make_display(), 'lengths': {}}
+            g['makes'][mk] = {'display': p.get_make_display() or '—', 'lengths': {}}
         lk = p.length or ''
         if lk not in g['makes'][mk]['lengths']:
             g['makes'][mk]['lengths'][lk] = {'grades': {}}
@@ -34,7 +34,7 @@ def _build_product_groups(products):
         sk = p.site or ''
         g['makes'][mk]['lengths'][lk]['grades'][gk]['sites'][sk] = {
             'id': p.pk,
-            'rate': str(p.rate),
+            'rate': str(p.effective_rate),
             'qty': str(p.quantity),
             'hsn': p.hsn_code,
             'godown': p.godown or '',

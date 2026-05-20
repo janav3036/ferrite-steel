@@ -99,6 +99,8 @@
                             </td>
                             <td>{{ item_form.unit_price }}</td>
                             <td>{{ item_form.total_price }}</td>
+                            <td>{{ item_form.discount_pct }}</td>
+                            <td><input type="number" class="form-control form-control-sm final-price-display" readonly tabindex="-1" step="0.01" placeholder="0.00"></td>
                             <td>{{ item_form.notes }}</td>
                             <td class="text-center">
                                 {{ item_form.DELETE }}
@@ -185,6 +187,8 @@
             </td>
             <td>{{ formset.empty_form.unit_price }}</td>
             <td>{{ formset.empty_form.total_price }}</td>
+            <td>{{ formset.empty_form.discount_pct }}</td>
+            <td><input type="number" class="form-control form-control-sm final-price-display" readonly tabindex="-1" step="0.01" placeholder="0.00"></td>
             <td>{{ formset.empty_form.notes }}</td>
             <td class="text-center">
                 {{ formset.empty_form.DELETE }}
@@ -284,7 +288,12 @@ function recalcRow(row) {
     const finalRate = purchaseRate + getRowAddonTotal(row);
     const finalRateField = row.querySelector('.final-rate-field');
     if (finalRateField) finalRateField.value = finalRate.toFixed(2);
-    row.querySelector('.amt-field').value = (finalRate * tons).toFixed(2);
+    const amt = finalRate * tons;
+    row.querySelector('.amt-field').value = amt.toFixed(2);
+    const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
+    const finalPrice = amt * (1 - discPct / 100);
+    const finalPriceDisplay = row.querySelector('.final-price-display');
+    if (finalPriceDisplay) finalPriceDisplay.value = finalPrice.toFixed(2);
 }
 
 function updateSummary() {
@@ -294,7 +303,7 @@ function updateSummary() {
         const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
         const uom = row.querySelector('.uom-field')?.value || 'ton';
         totalTons += uom === 'kg' ? qty / 1000 : qty;
-        itemValue += parseFloat(row.querySelector('.amt-field').value) || 0;
+        itemValue += parseFloat(row.querySelector('.final-price-display')?.value) || parseFloat(row.querySelector('.amt-field').value) || 0;
     });
     const loading   = totalTons * 0.5;
     const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
@@ -405,6 +414,11 @@ document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
     }
     const notesField = row.querySelector('[name$="-notes"]');
     if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
+    // Pre-populate final-price-display from saved amt and discount
+    const amt = parseFloat(row.querySelector('.amt-field')?.value) || 0;
+    const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
+    const fpDisplay = row.querySelector('.final-price-display');
+    if (fpDisplay && amt) fpDisplay.value = (amt * (1 - discPct / 100)).toFixed(2);
 });
 updateRowNumbers();
 updateSummary();

@@ -37,12 +37,12 @@ def lookup_pricing(query: str) -> dict:
         is_active=True,
     ).filter(
         Q(size__icontains=query) | Q(hsn_code__icontains=query) | Q(sub_type__icontains=query)
-    ).distinct()
+    ).select_related('base_product').distinct()
 
     data = [
         {
             'hsn_code': p.hsn_code,
-            'make': p.get_make_display(),
+            'make': p.get_make_display() or p.get_category_display(),
             'sub_type': p.get_sub_type_display(),
             'size': p.size,
             'length': p.length or None,
@@ -50,7 +50,7 @@ def lookup_pricing(query: str) -> dict:
             'grade': p.grade,
             'godown': p.godown,
             'quantity': str(p.quantity),
-            'rate': str(p.rate),
+            'rate': str(p.effective_rate),
         }
         for p in results
     ]

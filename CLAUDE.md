@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 19 May 2026 (session 8)
+**Last updated:** 20 May 2026 (session 9)
 
 ---
 
@@ -147,13 +147,16 @@ decision must be defensible to a non-technical client.
 - Approve flow: lead and admin roles only
 - LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; system prompt instructs LLM to ignore rates in enquiry text and focus only on the newest part of reply chains; UOM context (ton/kg, 1T=1000KG) included; `quotation_create` calls it with graceful fallback to blank editor
 - `ferite_steel/ai.py` — shared Together client (`together_client`) used by all service layers; initialized once at import time from `TOGETHER_API_KEY` env var
-- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list (result dicts use `make` key, not `type`)
+- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list (result dicts include `make`, `godown`, `pieces` keys — bug fix session 9: was incorrectly referencing `p.location` instead of `p.godown`, causing silent AttributeError on every LLM draft generation)
 - Broker model: list + create views at `/database/brokers/`; registered in database admin
 - MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
 - **Product catalog** (session 4, updated session 7): `Product` model with `make` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `godown`, `site` (Site 1/Site 2), `quantity`, `rate`, `pieces`. Product list is a **grouped view**: rows grouped by sub_type + size; cascading dropdowns — Make → Length → Grade → Site — resolve to the specific variant; rate/qty/HSN/godown update live. No make tabs or sub-type filter; just a text search box. Product catalog JSON endpoint at `/database/products/catalog.json`. Add/edit forms include Godown + Site fields.
-- **Quotation line item picker** (session 7, updated session 8): each line item row in the quotation edit form has a "⌕ pick" button that opens a modal with the full grouped catalog. Selecting a variant auto-fills product_name, make, length, hsn_code, and sets the **purchase rate** input (not unit_price directly — see Pricing Breakdown below).
+- **Quotation line item picker** (session 7, updated sessions 8–9): each line item row has a "⌕ pick" button opening a modal with the full grouped catalog. Picker uses an **accordion layout** — clicking a group header expands its variants, collapses others. Selecting a variant auto-fills product_name, make, length, hsn_code, sets the `product` FK (hidden field), and sets the **purchase rate** input. `make` and `length` fields are `readonly` in the form (filled by picker only, not user-editable). `pcs` field is readonly+greyed when the selected product has no pieces defined.
 - **Quotation line item UOM** (session 8): `uom` field (ton/kg) on `QuotationLineItem`. Dropdown in edit table. Server-side: `total_price = (quantity / 1000) * unit_price` if `uom == 'kg'`, else `quantity * unit_price`. LLM draft respects UOM as stated by customer.
-- **Pricing breakdown** (session 8): quotation edit form shows a per-line Pricing Breakdown card with Purchase Rate (catalog value, not stored) + 7 add-on inputs (Parity, Cutting, Loading, Transport, Margin, Interest, Commission — not model fields). JS sums them into `unit_price` (readonly final sell rate, stored in DB). Customer never sees these add-ons — only the final sell rate appears on PDF/quotation. Last-used add-on values persisted to customer notes under a `--- Pricing Add-ons ---` section; pre-filled on next quotation for the same customer. Helpers in `quotations/views.py`: `_parse_addon_notes()`, `_update_addon_notes()`.
+- **Pricing breakdown** (session 9, redesigned from session 8): each line item row has a companion collapsible add-on row (toggled by "⊞ add-ons" button) with 7 per-row inputs: Parity, Cutting, Loading, Transport, Margin, Interest, Commission — client-side only, not model fields. JS sums them into `unit_price` (readonly final sell rate, stored in DB). Customer never sees add-ons — only the final sell rate appears on PDF. Add-on defaults pre-filled from `customer.notes` (`--- Pricing Add-ons ---` section) read-only at page load. Add-ons are **not written back** to customer notes on save (per-session only). `_parse_addon_notes()` helper in `quotations/views.py` reads defaults; `_update_addon_notes()` removed (dead code after session 9 redesign).
+- **Customer notes pre-fill in line items** (session 9): `customer.notes` content is injected into the `notes` field of each line item row as a pre-fill default. Editable per line item.
+- **Win outcome tracking** (session 9): when outcome = Win, the quotation detail shows which specific version won ("Won Via: QT-00001-v2" with a link). `winning_quotation` FK on the root Quotation records this. `stock_deducted` BooleanField guards against double-deduction — stock is only deducted once even if Win is clicked again.
+- **Stock deduction on Win** (session 9): `_deduct_stock(quotation)` called once when outcome first set to Win. For each line item with a `product` FK set: deducts `quantity` (converted to tons if uom=kg) from `Product.quantity` using `Greatest(F('quantity') - qty, Decimal('0'))` — atomic DB update, never goes negative. LLM-generated line items without a `product` FK are skipped (no stock deduction — salesperson must re-pick from catalog to link the FK).
 - `import_products.py` at project root — one-time script; imported 523 products from `ProductList_updated.xlsx`; auto-generated HSN codes `IMP-0001…`; rates all 0 (column was blank in Excel — fill via admin)
 - Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder, **ProductKeyword, TeamEmailConfig** registered
 - Static files served via `whitenoise`
@@ -189,7 +192,6 @@ decision must be defensible to a non-technical client.
 - **ORM:** Django ORM only — no raw SQL unless unavoidable
 - **Installed packages:** `psycopg2-binary` (PostgreSQL), `python-dotenv` (env vars),
   `whitenoise` (static files), `django-jazzmin` (admin theme),
-  `djangorestframework` (installed, not yet used in views),
   `together==2.14.0` (LLM API client — wired in `ferite_steel/ai.py`)
 
 ### Frontend
@@ -287,7 +289,7 @@ Master product catalog. 523 rows imported from client Excel (rates all 0 — fil
 - `is_active` — BooleanField (default True)
 - `last_updated` — auto_now DateTimeField
 Views: product_list (grouped view + text search), product_add, product_edit, product_delete, product_catalog_json. All at `/database/products/`.
-`_build_product_groups(products)` helper in `database/views.py` — groups a queryset into nested dict: sub_type+size → make → length → grade → site → {id, rate, qty, hsn, godown, site_display}. Used by both product_list and product_catalog_json.
+`_build_product_groups(products)` helper in `database/views.py` — groups a queryset into nested dict: sub_type+size → make → length → grade → site → {id, rate, qty, hsn, godown, site_display, pieces}. Used by both product_list and product_catalog_json. `pieces` is included so the quotation picker can set the PCS field readonly when a product has no pieces defined.
 
 ### Customer (database.models.Customer)
 Stores remembered transport costs and commercial details per customer, matched by name + company (case-insensitive).
@@ -298,7 +300,7 @@ Stores remembered transport costs and commercial details per customer, matched b
 - `payment_terms` — CharField choices: `advance`/`cash`, blank
 - `transport_extra` — DecimalField (default 0)
 - `loading_rate` — DecimalField (default 0.5 — ₹/ton)
-- `notes` — TextField blank (AI context + `--- Pricing Add-ons ---` section written by quotation_edit)
+- `notes` — TextField blank (AI context + `--- Pricing Add-ons ---` section; add-on defaults read from here at quotation edit page load; not written back on save since session 9)
 - `competitors` — TextField blank (one competitor per line; display only)
 - `rm` — FK to `settings.AUTH_USER_MODEL` (relationship manager; nullable, SET_NULL)
 - `handling_team` — CharField choices: TEAM_CHOICES, nullable/blank
@@ -327,6 +329,8 @@ Views at `/database/brokers/`.
 - `parent_quotation` — self-FK nullable (null = root version)
 - `status` — choices: `draft`, `approved`, `sent`
 - `outcome` — choices: `win`, `loss`, `not_updated`; stored only on root quotation
+- `winning_quotation` — self-FK (nullable, SET_NULL, related_name `won_as`); set when outcome = win; records which specific version won
+- `stock_deducted` — BooleanField (default False); set True after `_deduct_stock()` runs; guards idempotency (stock only deducted once per root quotation)
 - `llm_raw_response` — TextField (stores raw JSON from LLM draft generation)
 - `payment_terms` — CharField choices: `Advance`, `Cash`; default `Advance`
 - `delivery_address` — CharField
@@ -338,15 +342,16 @@ Broker-sourced quotations (where `lead.broker` is not null) are internal-only: S
 
 ### QuotationLineItem (quotations.models.QuotationLineItem)
 - `quotation` — FK to Quotation
-- `product_name`, `make` — CharFields
-- `length` — CharField blank (free text, e.g. "12 mtr")
-- `pcs` — IntegerField nullable
-- `uom` — CharField choices: `ton`/`kg`, default `ton` (added session 8)
+- `product` — FK to `database.Product` (nullable, SET_NULL, related_name `line_items`); set by the picker; NULL for LLM-generated items (LLM fills text fields only)
+- `product_name`, `make` — CharFields; `make` is readonly in form (filled by picker)
+- `length` — CharField blank; readonly in form (filled by picker)
+- `pcs` — IntegerField nullable; readonly+greyed in form when selected product has no pieces defined
+- `uom` — CharField choices: `ton`/`kg`, default `ton`
 - `quantity` — DecimalField decimal_places=3 (ton or kg as per uom)
-- `unit_price` — DecimalField (final sell rate; readonly in form; JS-calculated from purchase_rate + 7 add-ons)
+- `unit_price` — DecimalField (final sell rate; readonly in form; JS-calculated from purchase_rate + 7 per-row add-ons)
 - `total_price` — DecimalField (server-side: `(quantity/1000)*unit_price` if kg, else `quantity*unit_price`)
-- `notes` — CharField
-`make` and `uom` rendered as columns in quotation edit table. The "⌕ pick" button fills the purchase-rate input (client-side only); JS then recalcs `unit_price` from purchase_rate + add-ons.
+- `notes` — TextField blank (pre-filled from `customer.notes` content; editable per line item)
+`make`, `length`, and `uom` rendered as columns in quotation edit table. The "⌕ pick" button fills product FK + purchase-rate input (client-side only); JS then recalcs `unit_price` from purchase_rate + per-row add-ons.
 
 ### MarketOrder (quotations.models.MarketOrder)
 Tracks the Market team's broker order logistics flow, independent of the Quotation model.
@@ -666,6 +671,10 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 11. **lookup_pricing returns `found: bool`:** Tool always returns `{"found": true/false, "results": [...]}`. Not-found items are included in the quotation draft with `unit_price=0` and `notes="Price not found — fill manually"` — never silently dropped.
 12. **Team-scoped views:** All summary views (customer list, lead list, quotation list) default to showing the requesting user's team data. Admin and `?scope=all` query param shows all records. Leads/admins see the handover button on customer records.
 13. **Shared AI client:** `ferite_steel/ai.py` holds the single `together_client` instance. All service layers import from there — never instantiate `Together(...)` directly in a service or view. If a new app needs LLM access, import from `ferite_steel.ai`, don't create a new client.
+14. **Win tracks the specific version, not just the lead:** `winning_quotation` FK is set to the exact `Quotation` instance the user marks as won — not the root. This is intentional: a lead may have 3 revisions; the salesperson picks which one closed the deal.
+15. **Stock deduction is one-time and irreversible per deal:** `stock_deducted` guards against repeat deduction. Changing outcome away from Win and back again does NOT re-deduct. Stock is never restored on outcome change (Loss/Not Updated after Win). This is intentional — physical stock has already moved.
+16. **Per-row pricing add-ons are session-only:** The 7 add-on inputs (Parity, Cutting, Loading, Transport, Margin, Interest, Commission) live only in the browser. Defaults are read from `customer.notes` on page load; values are NOT written back on save. They are never stored in any model field. Only the resulting `unit_price` is persisted.
+17. **Product FK on QuotationLineItem is set only via the picker:** The LLM fills product_name as free text and never sets the `product` FK. Stock deduction skips any line item without a `product_id`. The salesperson must re-pick from catalog after LLM draft generation to link the FK and enable stock tracking.
 
 ---
 
@@ -737,8 +746,8 @@ ferite_steel/                      ← project root
 │       ├── lead_detail.html
 │       ├── lead_create.html
 │       ├── quotation_list.html    ← Outcome column (Win/Loss/—)
-│       ├── quotation_detail.html  ← Revise, Send/Internal Copy, Edit, PDF, Outcome, Versions
-│       ├── quotation_edit.html    ← inline formset + JS auto-calc; Make column; "⌕ pick" button per row; product picker modal
+│       ├── quotation_detail.html  ← Revise, Send/Internal Copy, Edit, PDF, Outcome, Versions; "Won Via" + "Stock Deducted" badge shown when outcome=win
+│       ├── quotation_edit.html    ← inline formset + JS auto-calc; per-row "⊞ add-ons" collapsible sub-row (7 add-on inputs); "⌕ pick" button per row; accordion product picker modal; customer notes pre-fill in line item notes
 │       ├── quotation_pdf.html     ← WeasyPrint A4; "INTERNAL — RATES ONLY" header for broker quotations
 │       ├── quotation_select_lead.html
 │       ├── market_order_list.html

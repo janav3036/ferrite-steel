@@ -61,24 +61,43 @@ class CustomerForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = Product.objects.filter(base_product__isnull=True, is_active=True)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        self.fields['base_product'].queryset = qs
+        self.fields['base_product'].empty_label = '— Standalone (no base product) —'
+
     class Meta:
         model = Product
         fields = [
-            'hsn_code', 'size', 'length', 'make', 'sub_type',
-            'pieces', 'grade', 'godown', 'site', 'quantity', 'rate', 'is_active',
+            'hsn_code', 'size', 'category', 'sub_type', 'make',
+            'length', 'grade', 'pieces', 'godown', 'site', 'quantity', 'rate',
+            'base_product', 'rate_offset', 'is_active',
         ]
         widgets = {
             'hsn_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 72141000'}),
             'size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12mm'}),
-            'length': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12 mtr, 4 to 5 mtr'}),
-            'make': forms.Select(attrs={'class': 'form-select', 'id': 'id_make'}),
+            'category': forms.Select(attrs={'class': 'form-select', 'id': 'id_category'}),
             'sub_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_type'}),
+            'make': forms.Select(attrs={'class': 'form-select'}),
+            'length': forms.Select(attrs={'class': 'form-select'}),
+            'grade': forms.Select(attrs={'class': 'form-select'}),
             'pieces': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Leave blank if N/A'}),
-            'grade': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Fe500D'}),
             'godown': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Plot 557'}),
             'site': forms.Select(attrs={'class': 'form-select'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'base_product': forms.Select(attrs={'class': 'form-select'}),
+            'rate_offset': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 3000'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-        labels = {'length': 'Length (m)', 'godown': 'Godown'}
+        labels = {
+            'category': 'Category',
+            'make': 'Make (Manufacturer)',
+            'godown': 'Godown',
+            'rate': 'Rate (₹/T) — direct rate; ignored if Base Product is set',
+            'base_product': 'Base Product',
+            'rate_offset': 'Rate Offset (₹/T)',
+        }

@@ -15,60 +15,63 @@
 
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">HSN Code <span class="text-danger">*</span></label>
+                        <label class="form-label">HSN Code</label>
                         {{ form.hsn_code }}
-                        {% if form.hsn_code.errors %}
-                        <div class="text-danger small">{{ form.hsn_code.errors.0 }}</div>
-                        {% endif %}
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Size <span class="text-danger">*</span></label>
                         {{ form.size }}
-                        {% if form.size.errors %}
-                        <div class="text-danger small">{{ form.size.errors.0 }}</div>
-                        {% endif %}
+                        {% if form.size.errors %}<div class="text-danger small">{{ form.size.errors.0 }}</div>{% endif %}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Length (m)</label>
+                        <label class="form-label">Category <span class="text-danger">*</span></label>
+                        {{ form.category }}
+                        {% if form.category.errors %}<div class="text-danger small">{{ form.category.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4" id="sub_type_wrapper">
+                        <label class="form-label">Type</label>
+                        {{ form.sub_type }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Make (Manufacturer)</label>
+                        {{ form.make }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Length</label>
                         {{ form.length }}
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Make <span class="text-danger">*</span></label>
-                        {{ form.make }}
-                        {% if form.make.errors %}
-                        <div class="text-danger small">{{ form.make.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4" id="sub_type_wrapper">
-                        <label class="form-label">Type</label>
-                        {{ form.sub_type }}
-                        {% if form.sub_type.errors %}
-                        <div class="text-danger small">{{ form.sub_type.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">Grade</label>
                         {{ form.grade }}
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Quantity (T) <span class="text-danger">*</span></label>
-                        {{ form.quantity }}
-                        {% if form.quantity.errors %}
-                        <div class="text-danger small">{{ form.quantity.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Rate (₹/T) <span class="text-danger">*</span></label>
-                        {{ form.rate }}
-                        {% if form.rate.errors %}
-                        <div class="text-danger small">{{ form.rate.errors.0 }}</div>
-                        {% endif %}
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Pieces</label>
                         {{ form.pieces }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Quantity (T) <span class="text-danger">*</span></label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}<div class="text-danger small">{{ form.quantity.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Rate (₹/T) <span class="text-danger">*</span></label>
+                        {{ form.rate }}
+                        {% if form.rate.errors %}<div class="text-danger small">{{ form.rate.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label">Base Product</label>
+                        <input type="text" id="base_product_search" class="form-control form-control-sm mb-1" placeholder="Search to filter…" autocomplete="off">
+                        {{ form.base_product }}
+                        <div class="form-text">If set, effective rate = base product rate + offset. Leave blank for a standalone product.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Rate Offset (₹/T)</label>
+                        {{ form.rate_offset }}
+                        <div class="form-text">Added to base product rate.</div>
                     </div>
 
                     <div class="col-md-4">
@@ -103,7 +106,7 @@ const SUB_TYPE_MAP = {
     'plate':   [],
 };
 
-const makeSelect = document.getElementById('id_make');
+const makeSelect = document.getElementById('id_category');
 const subTypeSelect = document.getElementById('id_sub_type');
 const subTypeWrapper = document.getElementById('sub_type_wrapper');
 const currentSubType = '{{ product.sub_type }}';
@@ -126,5 +129,26 @@ function updateSubTypes() {
 
 makeSelect.addEventListener('change', updateSubTypes);
 updateSubTypes();
+
+(function () {
+    const searchInput = document.getElementById('base_product_search');
+    const select = document.getElementById('id_base_product');
+    const allOptions = Array.from(select.options).map(o => ({ value: o.value, text: o.text }));
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        const current = select.value;
+        select.innerHTML = '';
+        allOptions.forEach(item => {
+            if (!q || item.text.toLowerCase().includes(q)) {
+                const opt = document.createElement('option');
+                opt.value = item.value;
+                opt.textContent = item.text;
+                if (item.value === current) opt.selected = true;
+                select.appendChild(opt);
+            }
+        });
+    });
+})();
 </script>
 {% endblock %}
