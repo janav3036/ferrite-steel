@@ -27,6 +27,10 @@
                     {{ form.valid_until }}
                 </div>
                 <div class="col-sm-4">
+                    <label class="form-label">Loading Extra (₹)</label>
+                    {{ form.loading_extra }}
+                </div>
+                <div class="col-sm-4">
                     <label class="form-label">Transport Extra (₹)</label>
                     {{ form.transport_extra }}
                 </div>
@@ -72,6 +76,8 @@
                             <th style="width:100px">Purch. Rate</th>
                             <th style="width:100px">Sell Rate</th>
                             <th style="width:110px">Amount (₹)</th>
+                            <th style="width:70px">Disc %</th>
+                            <th style="width:110px">Final (₹)</th>
                             <th>Notes</th>
                             <th style="width:60px"></th>
                         </tr>
@@ -142,7 +148,7 @@
                     <td class="text-end" id="summary-item-value">0.00</td>
                 </tr>
                 <tr>
-                    <td class="text-end fw-semibold">Loading Extra @ ₹0.50/T (₹)</td>
+                    <td class="text-end fw-semibold">Loading Extra (₹)</td>
                     <td class="text-end" id="summary-loading">0.00</td>
                 </tr>
                 <tr>
@@ -250,6 +256,7 @@
 
 <script>
 const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
+const loadingInput    = document.getElementById('id_loading_extra');
 const transportInput  = document.getElementById('id_transport_extra');
 const addonDefaults   = {{ addon_defaults_json|safe }};
 const customerNotes   = "{{ customer_notes|escapejs }}";
@@ -305,7 +312,7 @@ function updateSummary() {
         totalTons += uom === 'kg' ? qty / 1000 : qty;
         itemValue += parseFloat(row.querySelector('.final-price-display')?.value) || parseFloat(row.querySelector('.amt-field').value) || 0;
     });
-    const loading   = totalTons * 0.5;
+    const loading   = parseFloat(loadingInput ? loadingInput.value : 0) || 0;
     const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
     const taxable   = itemValue + loading + transport;
 
@@ -342,9 +349,8 @@ document.getElementById('formset-body').addEventListener('change', function(e) {
     updateSummary();
 });
 
-if (transportInput) {
-    transportInput.addEventListener('input', updateSummary);
-}
+if (loadingInput)   loadingInput.addEventListener('input', updateSummary);
+if (transportInput) transportInput.addEventListener('input', updateSummary);
 
 // Toggle per-row add-on panel
 document.getElementById('formset-body').addEventListener('click', function(e) {
@@ -388,22 +394,6 @@ document.getElementById('formset-body').addEventListener('click', function(e) {
     updateSummary();
 });
 
-// Auto-fill HSN on product name focusout
-document.getElementById('formset-body').addEventListener('focusout', async function(e) {
-    if (!e.target.matches('[name$="-product_name"]')) return;
-    const row = e.target.closest('tr');
-    if (!row) return;
-    const hsnField = row.querySelector('[name$="-hsn_code"]');
-    if (!hsnField || hsnField.value) return;
-    const q = e.target.value.trim();
-    if (!q) return;
-    try {
-        const resp = await fetch(`{% url 'product_hsn_lookup' %}?q=${encodeURIComponent(q)}`);
-        const data = await resp.json();
-        if (data.hsn_code) hsnField.value = data.hsn_code;
-    } catch {}
-});
-
 // Initialise all existing rows
 document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
     fillAddonDefaults(row);
@@ -419,6 +409,21 @@ document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
     const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
     const fpDisplay = row.querySelector('.final-price-display');
     if (fpDisplay && amt) fpDisplay.value = (amt * (1 - discPct / 100)).toFixed(2);
+});
+
+// Seed purchase_rate from saved unit_price for LLM-generated rows
+// (LLM fills unit_price directly; move it to purchase_rate so add-ons layer on top)
+document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
+    const purchRate = row.querySelector('.purchase-rate-field');
+    const finalRate = row.querySelector('.final-rate-field');
+    if (purchRate && finalRate && !purchRate.value) {
+        const saved = parseFloat(finalRate.value);
+        if (saved && saved !== 0) {
+            purchRate.value = saved.toFixed(2);
+            fillAddonDefaults(row);
+            recalcRow(row);
+        }
+    }
 });
 updateRowNumbers();
 updateSummary();
@@ -667,11 +672,113 @@ pickerBody.addEventListener('click', function(e) {
 
     if (purchaseRateField) {
         purchaseRateField.value = rate;
+        purchaseRateField.dataset.originalRate  = rate;
+        purchaseRateField.dataset.productId     = detailRow.dataset.variantId || '';
+        purchaseRateField.dataset.productName   = productName;
         recalcRow(pickerTargetRow);
         updateSummary();
     }
 
     bootstrap.Modal.getInstance(pickerModal).hide();
 });
+
+// ── Purchase rate change detection ────────────────────────────────────────────
+
+let pendingRateChanges = [];
+
+document.querySelector('form[method="post"]').addEventListener('submit', function (e) {
+    // If we already handled the modal and are re-submitting, let it through
+    if (this.querySelector('input[name="catalog_updates_applied"]')) return;
+
+    pendingRateChanges = [];
+    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+        const pr = row.querySelector('.purchase-rate-field');
+        if (!pr || pr.dataset.originalRate === undefined || pr.dataset.originalRate === '') return;
+        const orig = parseFloat(pr.dataset.originalRate) || 0;
+        const curr = parseFloat(pr.value) || 0;
+        if (Math.abs(curr - orig) > 0.001 && pr.dataset.productId) {
+            pendingRateChanges.push({
+                productId:   pr.dataset.productId,
+                productName: pr.dataset.productName || 'Product',
+                originalRate: orig,
+                newRate: curr,
+            });
+        }
+    });
+
+    if (pendingRateChanges.length > 0) {
+        e.preventDefault();
+        showRateChangeModal();
+    }
+});
+
+function showRateChangeModal() {
+    const listEl = document.getElementById('rate-change-list');
+    listEl.innerHTML = '<p class="mb-3 text-muted">Check the products whose catalog rate you want to update:</p>';
+    pendingRateChanges.forEach(c => {
+        listEl.insertAdjacentHTML('beforeend', `
+            <div class="mb-3 border rounded p-2">
+                <div class="fw-semibold">${c.productName}</div>
+                <div class="text-muted small mb-1">
+                    ₹${c.originalRate.toLocaleString('en-IN')} → ₹${c.newRate.toLocaleString('en-IN')}
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input rate-change-cb" type="checkbox"
+                           id="rc_${c.productId}"
+                           data-product-id="${c.productId}"
+                           data-new-rate="${c.newRate}" checked>
+                    <label class="form-check-label small" for="rc_${c.productId}">
+                        Update catalog rate to ₹${c.newRate.toLocaleString('en-IN')}
+                    </label>
+                </div>
+            </div>`);
+    });
+    new bootstrap.Modal(document.getElementById('rateChangeModal')).show();
+}
+
+document.getElementById('rate-skip-btn').addEventListener('click', function () {
+    bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
+    submitFormNow();
+});
+
+document.getElementById('rate-update-btn').addEventListener('click', function () {
+    const form = document.querySelector('form[method="post"]');
+    document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = `catalog_rate_update_${cb.dataset.productId}`;
+        inp.value = cb.dataset.newRate;
+        form.appendChild(inp);
+    });
+    bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
+    submitFormNow();
+});
+
+function submitFormNow() {
+    const form = document.querySelector('form[method="post"]');
+    const flag = document.createElement('input');
+    flag.type  = 'hidden';
+    flag.name  = 'catalog_updates_applied';
+    flag.value = '1';
+    form.appendChild(flag);
+    form.submit();
+}
 </script>
+
+<!-- Rate Change Confirm Modal -->
+<div class="modal fade" id="rateChangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Catalog Rates?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="rate-change-list"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="rate-skip-btn">No, keep as-is</button>
+                <button type="button" class="btn btn-dark" id="rate-update-btn">Yes, update catalog</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

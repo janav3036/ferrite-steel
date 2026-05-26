@@ -51,9 +51,12 @@
                         <form method="post" action="{% url 'quotation_outcome' quotation.pk %}" class="d-flex gap-1">
                             {% csrf_token %}
                             <button type="submit" name="outcome" value="win"
-                                class="btn btn-sm {% if root.outcome == 'win' %}btn-success{% else %}btn-outline-success{% endif %}">Win</button>
+                                class="btn btn-sm {% if root.outcome == 'win' %}btn-success{% else %}btn-outline-success{% endif %}{% if quotation.status != 'sent' %} disabled{% endif %}"
+                                {% if quotation.status != 'sent' %}title="Send the quotation first" disabled{% endif %}
+                                {% if quotation.status == 'sent' and root.outcome != 'win' %}onclick="return confirm('Mark as Won? Stock will be deducted immediately and cannot be undone.')"{% endif %}>Win</button>
                             <button type="submit" name="outcome" value="loss"
-                                class="btn btn-sm {% if root.outcome == 'loss' %}btn-danger{% else %}btn-outline-danger{% endif %}">Loss</button>
+                                class="btn btn-sm {% if root.outcome == 'loss' %}btn-danger{% else %}btn-outline-danger{% endif %}{% if quotation.status != 'sent' %} disabled{% endif %}"
+                                {% if quotation.status != 'sent' %}title="Send the quotation first" disabled{% endif %}>Loss</button>
                             <button type="submit" name="outcome" value="not_updated"
                                 class="btn btn-sm {% if root.outcome == 'not_updated' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">—</button>
                         </form>

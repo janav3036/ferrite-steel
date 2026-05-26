@@ -7,6 +7,7 @@ from django.db.models.functions import Greatest
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -17,15 +18,38 @@ from .forms import (
     ManualLeadForm, MarketOrderForm, MarketOrderRateForm,
     MarketOrderAssignForm, MarketOrderDOForm, QuotationEditForm, LineItemFormSet,
 )
-from database.models import Broker, Customer
+from database.models import Customer, Product
 from .models import Lead, MarketOrder, Quotation, QuotationLineItem, TeamEmailConfig
 from .services.llm import generate_quotation_draft
 
 
 @login_required
 def lead_list(request):
-    leads = Lead.objects.select_related('created_by').all()
-    return render(request, 'quotations/lead_list.html', {'leads': leads})
+    q = request.GET.get('q', '').strip()
+    status_f = request.GET.get('status', '')
+    source_f = request.GET.get('source', '')
+    qs = Lead.objects.select_related('created_by').all()
+    if q:
+        qs = qs.filter(Q(company__icontains=q) | Q(customer_name__icontains=q) | Q(customer_email__icontains=q))
+    if status_f:
+        qs = qs.filter(status=status_f)
+    if source_f:
+        qs = qs.filter(source=source_f)
+    params = request.GET.copy()
+    params.pop('page', None)
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
+    return render(request, 'quotations/lead_list.html', {
+        'page_obj': page_obj,
+        'elided_page_range': elided,
+        'q': q,
+        'status_f': status_f,
+        'source_f': source_f,
+        'query_string': params.urlencode(),
+        'lead_statuses': Lead.STATUS_CHOICES,
+        'lead_sources': Lead.SOURCE_CHOICES,
+    })
 
 
 @login_required
@@ -52,9 +76,33 @@ def lead_detail(request, pk):
 
 @login_required
 def quotation_list(request):
-    quotations = Quotation.objects.select_related('lead', 'created_by').all()
+    q = request.GET.get('q', '').strip()
+    status_f = request.GET.get('status', '')
+    outcome_f = request.GET.get('outcome', '')
+    qs = Quotation.objects.select_related('lead', 'created_by').all()
+    if q:
+        qs = qs.filter(Q(quotation_number__icontains=q) | Q(lead__company__icontains=q) | Q(lead__customer_name__icontains=q))
+    if status_f:
+        qs = qs.filter(status=status_f)
+    if outcome_f:
+        qs = qs.filter(outcome=outcome_f)
+    params = request.GET.copy()
+    params.pop('page', None)
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
     unquoted_leads = Lead.objects.filter(quotations__isnull=True)
-    return render(request, 'quotations/quotation_list.html', {'quotations': quotations, 'unquoted_leads': unquoted_leads})
+    return render(request, 'quotations/quotation_list.html', {
+        'page_obj': page_obj,
+        'elided_page_range': elided,
+        'unquoted_leads': unquoted_leads,
+        'q': q,
+        'status_f': status_f,
+        'outcome_f': outcome_f,
+        'query_string': params.urlencode(),
+        'quotation_statuses': Quotation.STATUS_CHOICES,
+        'quotation_outcomes': Quotation.OUTCOME_CHOICES,
+    })
 
 
 @login_required
@@ -91,6 +139,7 @@ def quotation_edit(request, pk):
             quotation.total_amount = total
             quotation.save(update_fields=['total_amount'])
             _upsert_customer(lead, quotation.transport_extra)
+            _apply_catalog_rate_updates(request)
             messages.success(request, 'Quotation saved.')
             return redirect('quotation_detail', pk=pk)
     else:
@@ -98,11 +147,12 @@ def quotation_edit(request, pk):
         if quotation.transport_extra == 0 and not lead.broker:
             if customer:
                 initial['transport_extra'] = customer.transport_extra
+        if not quotation.delivery_address and customer:
+            initial['delivery_address'] = customer.shipping_address or customer.billing_address
         form = QuotationEditForm(instance=quotation, initial=initial)
         formset = LineItemFormSet(instance=quotation)
 
-    addon_keys = ['parity', 'cutting', 'loading', 'transport', 'margin', 'interest', 'commission']
-    addon_defaults_json = json.dumps({k: addon_notes.get(k, '') for k in addon_keys})
+    addon_defaults_json = json.dumps({k: addon_notes.get(k, '') for k in _ADDON_KEYS})
     return render(request, 'quotations/quotation_edit.html', {
         'quotation': quotation,
         'lead': lead,
@@ -145,6 +195,25 @@ def _parse_addon_notes(notes: str) -> dict:
     return result
 
 
+def _apply_catalog_rate_updates(request):
+    """Update Product.rate (or rate_offset for derived products) from catalog_rate_update_* POST params."""
+    for key in request.POST:
+        if not key.startswith('catalog_rate_update_'):
+            continue
+        product_id = key[len('catalog_rate_update_'):]
+        try:
+            new_rate = Decimal(request.POST[key])
+            p = Product.objects.select_related('base_product').get(pk=int(product_id))
+            if p.base_product_id:
+                p.rate_offset = new_rate - p.base_product.rate
+                p.save(update_fields=['rate_offset'])
+            else:
+                p.rate = new_rate
+                p.save(update_fields=['rate'])
+        except (ValueError, Product.DoesNotExist):
+            pass
+
+
 def _upsert_customer(lead, transport_extra):
     if not lead.customer_name and not lead.customer_email:
         return
@@ -170,7 +239,7 @@ def _quotation_context(quotation):
     items = list(quotation.line_items.all())
     total_tons = sum(i.quantity for i in items)
     item_value = sum(i.final_price for i in items)
-    loading_extra = total_tons * Decimal('0.5')
+    loading_extra = quotation.loading_extra
     transport_extra = quotation.transport_extra
     taxable_value = item_value + loading_extra + transport_extra
     sgst = taxable_value * quotation.sgst_percent / 100
@@ -233,6 +302,7 @@ def quotation_revise(request, pk):
         version=next_version,
         payment_terms=original.payment_terms,
         delivery_address=original.delivery_address,
+        loading_extra=original.loading_extra,
         transport_extra=original.transport_extra,
         sgst_percent=original.sgst_percent,
         cgst_percent=original.cgst_percent,
@@ -264,6 +334,9 @@ def quotation_outcome(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
     root = quotation.parent_quotation or quotation
     outcome = request.POST.get('outcome')
+    if outcome in ('win', 'loss') and quotation.status != 'sent':
+        messages.error(request, 'A quotation must be sent before it can be marked Won or Lost.')
+        return redirect('quotation_detail', pk=pk)
     if outcome in ('win', 'loss', 'not_updated'):
         root.outcome = outcome
         if outcome == 'win':
@@ -282,7 +355,6 @@ def quotation_outcome(request, pk):
 
 
 def _deduct_stock(quotation):
-    from database.models import Product
     for item in quotation.line_items.all():
         if not item.product_id:
             continue
@@ -332,6 +404,8 @@ def quotation_send(request, pk):
         to_email = request.POST.get('to_email', '').strip()
         subject = request.POST.get('subject', '').strip()
         body = request.POST.get('body', '').strip()
+        # Append a reference marker so poll_emails can recognise replies and skip them
+        body_with_ref = body + f'\n\n[Quotation Reference: {quotation.quotation_number}]'
 
         sent_to = None
         if to_email:
@@ -357,7 +431,7 @@ def quotation_send(request, pk):
                         config,
                         to_email=to_email,
                         subject=subject,
-                        body=body,
+                        body=body_with_ref,
                         pdf_bytes=pdf_bytes,
                         filename=filename,
                     )

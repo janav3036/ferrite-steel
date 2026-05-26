@@ -1,112 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <title>{% block title %}Ferrite Steel{% endblock %}</title>
+    <!-- Prevent flash of expanded sidebar if user has it collapsed -->
+    <script>try{if(localStorage.getItem('sb')==='1')document.documentElement.classList.add('sb-collapsed');}catch(e){}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style>
+        /* ── Design tokens ── */
+        :root {
+            --sb-bg:        #0F172A;
+            --sb-w:         220px;
+            --sb-w-col:     52px;
+            --sb-link:      rgba(255,255,255,.58);
+            --sb-hover:     rgba(255,255,255,.88);
+            --sb-active-bg: rgba(147,197,253,.1);
+            --sb-active:    #93C5FD;
+            --page-bg:      #F1F5F9;
+            --card-bg:      #FFFFFF;
+            --border:       #E2E8F0;
+            --text:         #0F172A;
+            --muted:        #64748B;
+            --accent:       #2563EB;
+            --accent-h:     #1D4ED8;
+        }
+
+        /* ── Reset & base ── */
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            background: var(--page-bg);
+            color: var(--text);
+            margin: 0;
+        }
+
+        /* ── Sidebar ── */
+        .fs-sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: var(--sb-w);
+            background: var(--sb-bg);
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            transition: width .2s ease;
+        }
+        .fs-sidebar::-webkit-scrollbar { display: none; }
+
+        /* ── Brand ── */
+        .fs-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            text-decoration: none;
+            flex-shrink: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .fs-brand-mark {
+            width: 30px; height: 30px;
+            background: #3B82F6;
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .68rem; font-weight: 700;
+            color: white;
+            letter-spacing: .04em;
+            flex-shrink: 0;
+        }
+        .fs-brand-name {
+            font-size: .88rem; font-weight: 600;
+            color: rgba(255,255,255,.9);
+            letter-spacing: -.01em;
+            transition: opacity .15s, width .2s;
+        }
+
+        /* ── Nav ── */
+        .fs-nav { padding: 10px 8px; flex: 1; overflow: hidden; }
+
+        .fs-section-label {
+            display: block;
+            font-size: .62rem; font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: rgba(255,255,255,.28);
+            padding: 12px 8px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity .15s;
+        }
+
+        .fs-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            color: var(--sb-link);
+            text-decoration: none;
+            font-size: .84rem;
+            font-weight: 400;
+            margin-bottom: 1px;
+            transition: background .12s, color .12s, padding .2s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .fs-link:hover { background: rgba(255,255,255,.06); color: var(--sb-hover); }
+        .fs-link.active { background: var(--sb-active-bg); color: var(--sb-active); }
+        .fs-link .bi { font-size: .9rem; flex-shrink: 0; opacity: .85; }
+        .fs-link-text { transition: opacity .15s; }
+        .fs-link-dim { opacity: .32; pointer-events: none; cursor: default; }
+
+        /* ── Collapse toggle ── */
+        .fs-collapse-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; height: 28px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 6px;
+            color: rgba(255,255,255,.38);
+            cursor: pointer;
+            margin: 8px auto 4px;
+            font-size: .75rem;
+            transition: background .12s, color .12s;
+        }
+        .fs-collapse-btn:hover { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); }
+
+        /* ── Footer ── */
+        .fs-footer {
+            padding: 11px 10px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .fs-user-row {
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 6px;
+            text-decoration: none;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .fs-avatar {
+            width: 30px; height: 30px;
+            background: rgba(255,255,255,.1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .73rem; font-weight: 600;
+            color: rgba(255,255,255,.8);
+            flex-shrink: 0;
+            letter-spacing: -.02em;
+        }
+        .fs-user-name { font-size: .79rem; font-weight: 500; color: rgba(255,255,255,.82); line-height: 1.25; }
+        .fs-user-meta { font-size: .69rem; color: rgba(255,255,255,.36); margin-top: 1px; }
+
+        /* ── Main content ── */
+        .fs-main {
+            margin-left: var(--sb-w);
+            min-height: 100vh;
+            padding: 28px 32px;
+            transition: margin-left .2s ease;
+        }
+
+        /* ── Collapsed state ── */
+        html.sb-collapsed .fs-sidebar { width: var(--sb-w-col); }
+        html.sb-collapsed .fs-main    { margin-left: var(--sb-w-col); }
+
+        html.sb-collapsed .fs-brand   { padding: 18px 0 16px; justify-content: center; }
+        html.sb-collapsed .fs-brand-name { opacity: 0; width: 0; overflow: hidden; }
+
+        html.sb-collapsed .fs-nav     { padding: 10px 6px; }
+        html.sb-collapsed .fs-section-label { opacity: 0; height: 0; padding: 0; margin: 0; }
+
+        html.sb-collapsed .fs-link    { padding: 7px; justify-content: center; }
+        html.sb-collapsed .fs-link-text { opacity: 0; width: 0; overflow: hidden; }
+
+        html.sb-collapsed .fs-footer  { padding: 11px 6px; }
+        html.sb-collapsed .fs-user-row { justify-content: center; }
+        html.sb-collapsed .fs-user-name,
+        html.sb-collapsed .fs-user-meta { display: none; }
+
+        /* ── Cards ── */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(15,23,42,.05);
+            background: var(--card-bg);
+        }
+        .card-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 11px 16px;
+            font-size: .84rem;
+            font-weight: 600;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        .card-body { padding: 16px; }
+
+        /* ── Tables ── */
+        .table { font-size: .84rem; margin-bottom: 0; }
+        .table thead.table-dark th {
+            background: #1E293B;
+            color: #94A3B8;
+            font-weight: 500;
+            font-size: .71rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            border: none;
+            padding: 9px 12px;
+        }
+        .table td {
+            padding: 9px 12px;
+            vertical-align: middle;
+            border-color: var(--border);
+        }
+        .table-hover > tbody > tr:hover > td { background: #F8FAFC; }
+        .table thead.table-warning th {
+            background: #FEF3C7;
+            color: #92400E;
+            font-size: .71rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            font-weight: 600;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            font-size: .83rem;
+            font-weight: 500;
+            border-radius: 6px;
+            padding: 6px 14px;
+            letter-spacing: -.01em;
+        }
+        .btn-sm { font-size: .77rem; padding: 4px 10px; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); }
+        .btn-primary:hover { background: var(--accent-h); border-color: var(--accent-h); }
+        .btn-outline-primary { color: var(--accent); border-color: var(--accent); }
+        .btn-outline-primary:hover { background: var(--accent); border-color: var(--accent); color: white; }
+        .btn-dark, .btn-outline-dark:hover { background: var(--sb-bg); border-color: var(--sb-bg); }
+        .btn-outline-dark { border-color: #334155; color: #334155; }
+
+        /* ── Badges ── */
+        .badge {
+            font-size: .69rem;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 100px;
+            letter-spacing: .01em;
+        }
+
+        /* ── Forms ── */
+        .form-control, .form-select {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            font-size: .84rem;
+            border-color: var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        .form-control-sm, .form-select-sm { font-size: .79rem; }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+        .form-label {
+            font-size: .83rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #374151;
+        }
+        .invalid-feedback { font-size: .77rem; }
+
+        /* ── Typography ── */
+        h1, h2, h3, h4, h5 { font-weight: 600; letter-spacing: -.02em; }
+        h2 { font-size: 1.38rem; }
+        h4 { font-size: 1.08rem; }
+
+        /* ── Links ── */
+        a:not(.btn):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge) {
+            color: var(--accent);
+            font-weight: 500;
+            text-decoration: none;
+        }
+        a:not(.btn):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge):hover {
+            text-decoration: underline;
+        }
+
+        /* ── Nav pills (scope tabs) ── */
+        .nav-pills .nav-link {
+            font-size: .82rem; font-weight: 500;
+            color: var(--muted);
+            padding: 5px 14px;
+            border-radius: 6px;
+        }
+        .nav-pills .nav-link.active { background: var(--accent); color: white; }
+
+        /* ── Pagination ── */
+        .pagination .page-link {
+            font-size: .79rem;
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); }
+        .pagination .page-item.disabled .page-link { color: #CBD5E1; }
+
+        /* ── Alerts ── */
+        .alert { font-size: .84rem; border-radius: 7px; }
+
+        /* ── dl rows ── */
+        dl.row dt { font-weight: 500; color: var(--muted); font-size: .79rem; }
+        dl.row dd { font-size: .84rem; }
+
+        /* ── List groups ── */
+        .list-group-item { font-size: .84rem; }
+
+        /* ── Mobile bar ── */
+        .fs-mob-bar {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0;
+            height: 52px;
+            background: var(--sb-bg);
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            z-index: 199;
+        }
+        .fs-mob-toggle {
+            background: none; border: none;
+            color: rgba(255,255,255,.75);
+            font-size: 1.25rem; cursor: pointer; padding: 2px;
+        }
+
+        @media (max-width: 767.98px) {
+            .fs-sidebar { transform: translateX(-100%); transition: transform .22s ease, width .2s ease; }
+            .fs-sidebar.fs-open { transform: translateX(0); }
+            .fs-main { margin-left: 0 !important; padding: 16px; margin-top: 52px; }
+            .fs-mob-bar { display: flex; }
+            .fs-collapse-btn { display: none; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
 </head>
-
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-semibold" href="/dashboard/">Ferrite Steel</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainNav">
 
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard/">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'quotation_list' %}">Quotations</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Database</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'customer_list' %}">Customers</a></li>
-                            <li><a class="dropdown-item" href="{% url 'product_list' %}">Products</a></li>
-                            {% if request.user.team == 'market' or request.user.role == 'admin' %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'broker_list' %}">Brokers</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled">Training</a>
-                    </li>
-                    {% if request.user.role == 'lead' or request.user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link disabled">Credit Risk</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled">Lead Ranking</a>
-                    </li>
-                    {% endif %}
-                    {% if request.user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin/">Admin Panel</a>
-                    </li>
-                    {% endif %}
-                </ul>
+<div class="fs-mob-bar">
+    <button class="fs-mob-toggle" id="fs-mob-toggle" aria-label="Toggle navigation">
+        <i class="bi bi-list"></i>
+    </button>
+    <span style="color:rgba(255,255,255,.85);font-size:.88rem;font-weight:600;">Ferrite Steel</span>
+</div>
 
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            {{ request.user.username }}
-                            
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <h6 class="dropdown-header">
-                                    {{ request.user.get_full_name|default:request.user.username }}
-                                    <span class="badge bg-secondary ms-1">{{ request.user.get_role_display }}</span>
-                                    {% if request.user.team %}
-                                    <span class="badge bg-primary ms-1">{{ request.user.get_team_display }}</span>
-                                    {% endif %}
-                                </h6>
-                            </li>
-                            
-                            {% if request.user.role == 'admin' %}
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'user_directory' %}">User Directory</a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'add_user' %}">Add User</a>
-                            </li>
-                            {% endif %}
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <form method="post" action="/logout/">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item">Logout</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
+{% with url=request.resolver_match.url_name %}
+<aside class="fs-sidebar" id="fs-sidebar">
+    <a href="/dashboard/" class="fs-brand">
+        <div class="fs-brand-mark">FS</div>
+        <span class="fs-brand-name">Ferrite Steel</span>
+    </a>
 
-            </div>
-        </div>
+    <nav class="fs-nav">
+        <a href="/dashboard/" class="fs-link {% if url == 'dashboard' %}active{% endif %}"
+           title="Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span class="fs-link-text">Dashboard</span>
+        </a>
+
+        <span class="fs-section-label">Pipeline</span>
+        <a href="{% url 'lead_list' %}"
+           class="fs-link {% if 'lead' in url and 'select' not in url %}active{% endif %}"
+           title="Leads">
+            <i class="bi bi-funnel"></i>
+            <span class="fs-link-text">Leads</span>
+        </a>
+        <a href="{% url 'quotation_list' %}"
+           class="fs-link {% if 'quotation' in url %}active{% endif %}"
+           title="Quotations">
+            <i class="bi bi-file-earmark-text"></i>
+            <span class="fs-link-text">Quotations</span>
+        </a>
+        {% if request.user.team == 'market' or request.user.role == 'admin' %}
+        <a href="{% url 'market_order_list' %}"
+           class="fs-link {% if 'market_order' in url %}active{% endif %}"
+           title="Market Orders">
+            <i class="bi bi-arrow-left-right"></i>
+            <span class="fs-link-text">Market Orders</span>
+        </a>
+        {% endif %}
+
+        <span class="fs-section-label">Database</span>
+        <a href="{% url 'customer_list' %}"
+           class="fs-link {% if 'customer' in url %}active{% endif %}"
+           title="Customers">
+            <i class="bi bi-people"></i>
+            <span class="fs-link-text">Customers</span>
+        </a>
+        <a href="{% url 'product_list' %}"
+           class="fs-link {% if 'product' in url and 'hsn' not in url %}active{% endif %}"
+           title="Products">
+            <i class="bi bi-box-seam"></i>
+            <span class="fs-link-text">Products</span>
+        </a>
+        {% if request.user.team == 'market' or request.user.role == 'admin' %}
+        <a href="{% url 'broker_list' %}"
+           class="fs-link {% if 'broker' in url %}active{% endif %}"
+           title="Brokers">
+            <i class="bi bi-person-badge"></i>
+            <span class="fs-link-text">Brokers</span>
+        </a>
+        {% endif %}
+
+        <span class="fs-section-label">Tools</span>
+        <span class="fs-link fs-link-dim" title="Training"><i class="bi bi-book"></i><span class="fs-link-text"> Training</span></span>
+        {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+        <span class="fs-link fs-link-dim" title="Credit Risk"><i class="bi bi-shield-check"></i><span class="fs-link-text"> Credit Risk</span></span>
+        <span class="fs-link fs-link-dim" title="Lead Ranking"><i class="bi bi-bar-chart-line"></i><span class="fs-link-text"> Lead Ranking</span></span>
+        {% endif %}
+
+        {% if request.user.role == 'admin' %}
+        <span class="fs-section-label">Admin</span>
+        <a href="/admin/" class="fs-link" title="Admin Panel">
+            <i class="bi bi-gear"></i>
+            <span class="fs-link-text">Admin Panel</span>
+        </a>
+        <a href="{% url 'user_directory' %}"
+           class="fs-link {% if url == 'user_directory' %}active{% endif %}"
+           title="Users">
+            <i class="bi bi-person-lines-fill"></i>
+            <span class="fs-link-text">Users</span>
+        </a>
+        <a href="{% url 'add_user' %}"
+           class="fs-link {% if url == 'add_user' %}active{% endif %}"
+           title="Add User">
+            <i class="bi bi-person-plus"></i>
+            <span class="fs-link-text">Add User</span>
+        </a>
+        {% endif %}
+
+        <!-- Collapse toggle -->
+        <button class="fs-collapse-btn" id="fs-collapse-btn" title="Toggle sidebar">
+            <class="bi bi-chevrons-left" id="fs-collapse-icon"><></i>
+        </button>
     </nav>
 
-    <main class="container mt-4">
-        {% block content %}{% endblock %}
-    </main>
+    <div class="fs-footer">
+        <a href="{% url 'profile' %}" class="fs-user-row" title="{{ request.user.get_full_name|default:request.user.username }}">
+            <div class="fs-avatar">{{ request.user.username|slice:":2"|upper }}</div>
+            <div>
+                <div class="fs-user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="fs-user-meta">{{ request.user.get_role_display }}{% if request.user.team %} · {{ request.user.get_team_display }}{% endif %}</div>
+            </div>
+        </a>
+        <form method="post" action="/logout/" style="margin:0">
+            {% csrf_token %}
+            <button type="submit" class="fs-link w-100 border-0 bg-transparent text-start"
+                    style="cursor:pointer;" title="Sign out">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="fs-link-text">Sign out</span>
+            </button>
+        </form>
+    </div>
+</aside>
+{% endwith %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+<div id="fs-overlay" onclick="closeSidebar()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:198;"></div>
+
+<main class="fs-main">
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
+<script>
+    /* ── Mobile drawer ── */
+    function closeSidebar() {
+        document.getElementById('fs-sidebar').classList.remove('fs-open');
+        document.getElementById('fs-overlay').style.display = 'none';
+    }
+    document.getElementById('fs-mob-toggle').addEventListener('click', function () {
+        const sb = document.getElementById('fs-sidebar');
+        const ov = document.getElementById('fs-overlay');
+        if (sb.classList.contains('fs-open')) {
+            closeSidebar();
+        } else {
+            sb.classList.add('fs-open');
+            ov.style.display = '';
+        }
+    });
 
+    /* ── Collapse toggle (desktop) ── */
+    const collapseBtn  = document.getElementById('fs-collapse-btn');
+    const collapseIcon = document.getElementById('fs-collapse-icon');
+
+    function syncCollapseIcon() {
+        const collapsed = document.documentElement.classList.contains('sb-collapsed');
+        collapseIcon.className = collapsed ? 'bi bi-chevrons-right' : 'bi bi-chevrons-left';
+        collapseBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    }
+
+    syncCollapseIcon(); /* set correct icon on load */
+
+    collapseBtn.addEventListener('click', function () {
+        const collapsed = document.documentElement.classList.toggle('sb-collapsed');
+        try { localStorage.setItem('sb', collapsed ? '1' : '0'); } catch(e) {}
+        syncCollapseIcon();
+    });
+</script>
 </body>
-
 </html>

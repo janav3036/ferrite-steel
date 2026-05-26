@@ -11,7 +11,9 @@ from email.header import decode_header
 
 from django.core.management.base import BaseCommand
 
-from quotations.models import Lead, TeamEmailConfig
+from django.utils import timezone
+
+from quotations.models import Lead, Quotation, TeamEmailConfig
 from quotations.services.llm import classify_message
 
 # Senders we never want to create leads from
@@ -190,6 +192,35 @@ class Command(BaseCommand):
             # ── Pre-filter: skip automated senders ───────────────────────────
             if SPAM_PATTERNS.search(sender_email):
                 self.stdout.write(f'  [SKIP-SPAM]    {sender_email}')
+                if not dry_run:
+                    imap.store(msg_id, '+FLAGS', '\\Seen')
+                continue
+
+            # ── Handle replies to our own quotations ──────────────────────────
+            if '[Quotation Reference:' in raw_body:
+                qt_match = re.search(r'\[Quotation Reference: (QT-[\d]+-?v?[\d]*)\]', raw_body)
+                linked = False
+                if qt_match and not dry_run:
+                    qt_num = qt_match.group(1)
+                    try:
+                        qt = Quotation.objects.select_related('lead').get(quotation_number=qt_num)
+                        lead = qt.lead
+                        stripped = _strip_reply_chain(raw_body)
+                        stamp = timezone.now().strftime('%d %b %Y %H:%M')
+                        block = (
+                            f'\n\n--- Reply from {sender_name} <{sender_email}> on {stamp} ---\n'
+                            f'{stripped.strip()}'
+                        )
+                        lead.notes = (lead.notes or '') + block
+                        lead.save(update_fields=['notes'])
+                        linked = True
+                        self.stdout.write(self.style.SUCCESS(
+                            f'  [REPLY-LINKED] {sender_email} → {qt_num} (Lead #{lead.pk})'
+                        ))
+                    except Exception as exc:
+                        self.stdout.write(f'  [REPLY-ERR]    {exc}')
+                if not linked:
+                    self.stdout.write(f'  [SKIP-REPLY]   From: {sender_email} | Subject: {subject[:60]}')
                 if not dry_run:
                     imap.store(msg_id, '+FLAGS', '\\Seen')
                 continue

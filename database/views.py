@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -87,19 +88,58 @@ def product_add(request):
 
 
 @login_required
+def customer_search_json(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+    customers = Customer.objects.filter(
+        Q(name__icontains=q) | Q(company__icontains=q)
+    ).order_by('name')[:15]
+    results = [
+        {'id': c.pk, 'name': c.name, 'company': c.company,
+         'phone': c.phone, 'email': c.email, 'location': c.city or ''}
+        for c in customers
+    ]
+    return JsonResponse({'results': results})
+
+
 def customer_list(request):
     scope = request.GET.get('scope', 'team')
-    if scope == 'all':
-        customers = Customer.objects.all()
-    elif request.user.role == 'admin':
-        customers = Customer.objects.all()
+    q = request.GET.get('q', '').strip()
+    team_f = request.GET.get('team', '')
+    payment_f = request.GET.get('payment_terms', '')
+    biz_f = request.GET.get('type_of_business', '')
+    if scope == 'all' or request.user.role == 'admin':
+        qs = Customer.objects.all()
     elif request.user.team:
-        customers = Customer.objects.filter(handling_team=request.user.team)
+        qs = Customer.objects.filter(handling_team=request.user.team)
     else:
-        customers = Customer.objects.none()
+        qs = Customer.objects.none()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(company__icontains=q) | Q(customer_code__icontains=q))
+    if team_f:
+        qs = qs.filter(handling_team=team_f)
+    if payment_f:
+        qs = qs.filter(payment_terms=payment_f)
+    if biz_f:
+        qs = qs.filter(type_of_business=biz_f)
+    params = request.GET.copy()
+    params.pop('page', None)
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
     return render(request, 'database/customer_list.html', {
-        'customers': customers,
+        'page_obj': page_obj,
+        'elided_page_range': elided,
         'scope': scope,
+        'q': q,
+        'team_f': team_f,
+        'payment_f': payment_f,
+        'biz_f': biz_f,
+        'query_string': params.urlencode(),
+        'team_choices': Customer.TEAM_CHOICES,
+        'payment_choices': Customer.PAYMENT_TERMS_CHOICES,
+        'biz_choices': Customer.TYPE_OF_BUSINESS_CHOICES,
     })
 
 

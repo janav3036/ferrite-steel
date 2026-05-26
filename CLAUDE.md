@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 20 May 2026 (session 9)
+**Last updated:** 24 May 2026 (session 11)
 
 ---
 
@@ -55,24 +55,13 @@ source .venv/bin/activate        # macOS/Linux
 ```
 
 ```bash
-# Run development server
 python manage.py runserver
-
-# Migrations — always review makemigrations output before migrating
-python manage.py makemigrations
+python manage.py makemigrations  # always review output before migrating
 python manage.py migrate
-
-# Run all tests
 python manage.py test
-
-# Run tests for a single app
 python manage.py test aegis
 python manage.py test quotations
-
-# Create admin superuser
 python manage.py createsuperuser
-
-# Collect static files (needed before production deploy)
 python manage.py collectstatic
 ```
 
@@ -82,23 +71,16 @@ python manage.py collectstatic
 
 ## 1. Project Overview
 
-FERITE-STEEL is a Django-based CRM and business management system being built for
-an iron and steel distribution company. It replaces manual quoting, gut-feel credit
-decisions, unstructured lead management, and slow salesperson onboarding with an
-automated, AI-assisted web system.
+FERITE-STEEL is a Django-based CRM and business management system for an iron and steel
+distribution company. Replaces manual quoting, gut-feel credit decisions, unstructured
+lead management, and slow salesperson onboarding with an automated, AI-assisted web system.
 
-This is a paid client engagement managed solely by Janav, a second-year student
-developer. The client CEO is taking a chance on Janav based on a personal connection.
-Trust is being built incrementally through phased delivery. Every architectural
-decision must be defensible to a non-technical client.
+Paid client engagement managed solely by Janav (second-year student). Trust built
+incrementally through phased delivery. Every architectural decision must be defensible
+to a non-technical client.
 
-**Modules:**
-1. Base Setup (complete)
-2. Quotation Automator
-3. Training System + Case Solver
-4. Credit Risk AI
-5. Lead Ranking + Inventory Intelligence
-6. Internal AI Chatbot (confirmed add-on, fee TBD)
+**Modules:** 1. Base Setup (complete) · 2. Quotation Automator · 3. Training + Case Solver ·
+4. Credit Risk AI · 5. Lead Ranking + Inventory Intelligence · 6. Internal AI Chatbot (fee TBD) ·
 7. AI Voice Stand-in (proposed, NOT greenlit)
 
 ---
@@ -106,79 +88,59 @@ decision must be defensible to a non-technical client.
 ## 2. Developer Profile & Communication Rules
 
 - Janav is the **sole developer**. There is no team.
-- He is a second-year student with no prior real-world project experience.
-- He prefers **granular, step-by-step explanations** — never skip steps or assume
-  prior knowledge.
-- When giving terminal/shell commands, always **specify which directory to run them
-  in** and what the expected output is.
+- Second-year student, no prior real-world project experience.
+- Prefers **granular, step-by-step explanations** — never skip steps or assume prior knowledge.
+- When giving terminal commands, always **specify which directory** and expected output.
 - When multiple approaches exist, **explain tradeoffs before recommending**.
-- He prefers **direct, honest assessments** including unflattering ones — do not
-  soften evaluations of his code, architecture, or positioning.
-- **Working style preference:** Act as advisor/helper only. Guide Janav to figure
-  things out himself first. Do not give direct answers unless he has tried and asked
-  multiple times.
+- Prefers **direct, honest assessments** including unflattering ones — do not soften evaluations.
+- **Working style:** Act as advisor/helper only. Guide Janav to figure things out himself first.
+  Do not give direct answers unless he has tried and asked multiple times.
 
 ---
 
 ## 3. Current State
 
-**Phase 1: Complete. Phase 2: quotation UI/flow done; LLM draft generation wired; classify_message built; email send (SMTP) built; poll_emails command built. WhatsApp ingestion still pending Meta approval.**
+**Phase 1 complete. Phase 2: quotation UI/flow done; LLM draft generation wired; classify_message built; email send (SMTP) built; poll_emails command built. WhatsApp ingestion pending Meta approval.**
 **Current phase: Phase 2 — email ingestion pipeline complete (pending live credentials); WhatsApp ingestion deferred.**
-**First deliverable: Quotation Automator (Module 2).**
 
 ### What is built
-- Django project at `ferite_steel/` (macOS dev path: `/Users/janav/Programs/ferite_steel/`)
-- PostgreSQL 16 database `ferite_steel_db` connected
-- `CustomUser` model in `aegis` app with `team` field (`team_9`/`cs`/`market`/`corporate`) and role choices (`admin`/`lead`/`member`/`primary`/`rolling`/`loading_dock`)
-- Full auth flow: login, logout, register (pending admin approval), password reset
-- User management: add user, directory, edit role, approve, delete — all admin-gated; forms include team dropdown with **JavaScript role filter** (role options update dynamically based on selected team)
-- `base.html` built — all templates extend it; nav gated by `request.user.role`; Database dropdown in nav (Customers, Products, Brokers for market/admin)
-- Dashboard with lead/quotation stats, scoped by role (admin/lead see all; member sees own); + New Lead / + New Quotation / + Market Order buttons (Market Order button visible to market team + admin only)
-- `database` app: `Product`, `Customer`, `Broker` models (moved from quotations in session 4)
-- `quotations` app: `Lead`, `Quotation`, `QuotationLineItem`, `MarketOrder` models; references `database.Broker` and `database.Customer` via FK strings
-- Lead: company, industry, location, broker (optional FK) fields; list/create/detail/delete views; delete button on list and detail (with cascade warning modal on detail)
-- Quotation: full edit flow with inline formset (line items), JS auto-calculation (amount = rate × tons), WeasyPrint PDF
-- Quotation versioning: Revise creates v2/v3 etc. cloned from current; all versions share a root's outcome
-- **Customer model** (expanded session 8): `customer_code`, `billing_address`, `shipping_address`, `gst_number`, `payment_terms` (advance/cash), `competitors` (TextField, one per line), `rm` (FK to CustomUser, nullable) added; `location` removed. Auto-upserted whenever a quotation is saved. `handling_team` field retained.
-- Customer list + detail views with team scope; customer edit view; list columns: Code, Name, Company, Phone, GST No., Payment Terms, Handling Team
-- Outcome (Win/Loss/Not Updated): shown on quotation detail as quick-select buttons; stored only on root quotation; shared across all versions
-- Broker-sourced quotations: Send button visible but sends text-only rate email (no PDF); PDF header reads "INTERNAL — RATES ONLY"
-- Send button: links to `quotation_send` compose/confirm view; sends via SMTP using `TeamEmailConfig`; PDF attached for non-broker leads; broker leads get text-only rate email
-- Approve flow: lead and admin roles only
-- LLM service at `quotations/services/llm.py` — `generate_quotation_draft(lead, entity_notes)` fully implemented; builds system prompt, calls together.ai with tool-use loop, executes `lookup_pricing` tool calls, parses JSON response; system prompt instructs LLM to ignore rates in enquiry text and focus only on the newest part of reply chains; UOM context (ton/kg, 1T=1000KG) included; `quotation_create` calls it with graceful fallback to blank editor
-- `ferite_steel/ai.py` — shared Together client (`together_client`) used by all service layers; initialized once at import time from `TOGETHER_API_KEY` env var
-- `lookup_pricing` tool at `quotations/services/tools/pricing.py` — queries `database.Product` by size/hsn_code/sub_type; returns `found: bool` + results list (result dicts include `make`, `godown`, `pieces` keys — bug fix session 9: was incorrectly referencing `p.location` instead of `p.godown`, causing silent AttributeError on every LLM draft generation)
-- Broker model: list + create views at `/database/brokers/`; registered in database admin
-- MarketOrder model: full broker order flow — `new` → `rate_sent` → `broker_confirmed` → `do_pending` → `completed`; views + templates at `/quotations/market-orders/`
-- **Product catalog** (session 4, updated session 7): `Product` model with `make` (Main/Rolling/Plate), `sub_type` (Angle/Channel/UB/UC/Beam/Flat/Red Material/TMT), `size`, `length` (CharField), `grade`, `godown`, `site` (Site 1/Site 2), `quantity`, `rate`, `pieces`. Product list is a **grouped view**: rows grouped by sub_type + size; cascading dropdowns — Make → Length → Grade → Site — resolve to the specific variant; rate/qty/HSN/godown update live. No make tabs or sub-type filter; just a text search box. Product catalog JSON endpoint at `/database/products/catalog.json`. Add/edit forms include Godown + Site fields.
-- **Quotation line item picker** (session 7, updated sessions 8–9): each line item row has a "⌕ pick" button opening a modal with the full grouped catalog. Picker uses an **accordion layout** — clicking a group header expands its variants, collapses others. Selecting a variant auto-fills product_name, make, length, hsn_code, sets the `product` FK (hidden field), and sets the **purchase rate** input. `make` and `length` fields are `readonly` in the form (filled by picker only, not user-editable). `pcs` field is readonly+greyed when the selected product has no pieces defined.
-- **Quotation line item UOM** (session 8): `uom` field (ton/kg) on `QuotationLineItem`. Dropdown in edit table. Server-side: `total_price = (quantity / 1000) * unit_price` if `uom == 'kg'`, else `quantity * unit_price`. LLM draft respects UOM as stated by customer.
-- **Pricing breakdown** (session 9, redesigned from session 8): each line item row has a companion collapsible add-on row (toggled by "⊞ add-ons" button) with 7 per-row inputs: Parity, Cutting, Loading, Transport, Margin, Interest, Commission — client-side only, not model fields. JS sums them into `unit_price` (readonly final sell rate, stored in DB). Customer never sees add-ons — only the final sell rate appears on PDF. Add-on defaults pre-filled from `customer.notes` (`--- Pricing Add-ons ---` section) read-only at page load. Add-ons are **not written back** to customer notes on save (per-session only). `_parse_addon_notes()` helper in `quotations/views.py` reads defaults; `_update_addon_notes()` removed (dead code after session 9 redesign).
-- **Customer notes pre-fill in line items** (session 9): `customer.notes` content is injected into the `notes` field of each line item row as a pre-fill default. Editable per line item.
-- **Win outcome tracking** (session 9): when outcome = Win, the quotation detail shows which specific version won ("Won Via: QT-00001-v2" with a link). `winning_quotation` FK on the root Quotation records this. `stock_deducted` BooleanField guards against double-deduction — stock is only deducted once even if Win is clicked again.
-- **Stock deduction on Win** (session 9): `_deduct_stock(quotation)` called once when outcome first set to Win. For each line item with a `product` FK set: deducts `quantity` (converted to tons if uom=kg) from `Product.quantity` using `Greatest(F('quantity') - qty, Decimal('0'))` — atomic DB update, never goes negative. LLM-generated line items without a `product` FK are skipped (no stock deduction — salesperson must re-pick from catalog to link the FK).
-- `import_products.py` at project root — one-time script; imported 523 products from `ProductList_updated.xlsx`; auto-generated HSN codes `IMP-0001…`; rates all 0 (column was blank in Excel — fill via admin)
-- Django admin themed with `django-jazzmin`; Product, Customer, Broker, MarketOrder, **ProductKeyword, TeamEmailConfig** registered
-- Static files served via `whitenoise`
-- WeasyPrint installed (`pip install weasyprint` + `brew install pango` on macOS)
-- **`ProductKeyword` model** (session 6): maps client trade terms (e.g. "sariya") to canonical product names; admin-editable; `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every `generate_quotation_draft` call
-- **`TeamEmailConfig` model** (session 6): IMAP credentials per team for email ingestion; unique per team; admin-only management; password field has help text to use an App Password
-- **`classify_message(text)`** (session 6): LLM classifier — returns True if text is a product inquiry; called before creating any Lead from inbound messages; uses a YES/NO single-word response from together.ai
-- **`poll_emails` management command** (session 6, improved session 8): full IMAP ingestion — connects to each active TeamEmailConfig inbox, fetches UNSEEN messages, pre-filters spam senders, calls `classify_message`, creates Leads for genuine inquiries, marks emails as Seen. `--dry-run` flag for testing without side effects. `_strip_reply_chain()` handles Gmail reply chains (On ... wrote:), Outlook reply blocks (From: + Sent: with optional blank line between them), `-----Original Message-----`, and nested `--------- Forwarded message ---------` (cut only after real content seen — outer forward wrapper is preserved).
-- **Email send flow** (session 6): `quotation_send` view now shows a compose/confirm form (`quotation_send_confirm.html`) pre-filled with subject and body. On submit: looks up active `TeamEmailConfig` for the lead's team, generates PDF via WeasyPrint (non-broker only), sends via SMTP (host derived by replacing "imap." with "smtp."). Broker quotations get a text-only rate email (no PDF). Falls back to "marked as sent" if no active config exists.
-- **Quotation list** (session 8): "All Quotations" and "All Leads" nav links at top of quotation list page.
-- Quotation edit header shows customer name and company for context.
+
+**Auth & Users:** Full auth flow (login/logout/register/password reset). CustomUser with `team` + `role`. User management (add/edit/approve/delete) admin-gated. JS role filter in add/edit user forms. Nav gated by role; Database dropdown (Customers/Products/Brokers for market/admin). Dashboard stats scoped by role (admin/lead see all; member sees own). Market Order button visible to market + admin only.
+
+**Product catalog:** 523 rows imported from client Excel (rates all 0 — fill via admin). Grouped view — rows by sub_type+size; cascading dropdowns Make→Length→Grade→Site; text search only. Relational pricing: `base_product` self-FK + `rate_offset`; `effective_rate` = base rate + offset (or own rate). No chaining — derived products always point directly to a base. `_build_product_groups()` used by product list + catalog JSON at `/database/products/catalog.json`.
+
+**Customer & Broker:** Customer list team-scoped. 6,414 SAP records imported (`import_business_partners.py`); upsert key = `customer_code`. Customer auto-upserted on every quotation save. Broker CRUD at `/database/brokers/`.
+
+**Lead flow:** List/create/detail/delete with cascade warning modal. Fields: company, industry, location, broker FK (optional; set for market team leads).
+
+**Quotation flow:** Edit form with inline formset + JS auto-calc. WeasyPrint PDF. Versioning — Revise creates v2/v3 cloned from current. Outcome (Win/Loss/Not Updated) stored on root, shared across versions. Win records exact winning version via `winning_quotation` FK. Stock deduction on first Win only — one-time, irreversible (`stock_deducted` guard). Approve: lead + admin only. Broker-sourced quotations (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY"; text-only rate email.
+
+**Quotation line item picker:** "⌕ pick" button → accordion modal with full grouped catalog. Fills product FK, make, length, HSN, purchase rate. `make` + `length` readonly (picker only). `pcs` readonly+greyed when product has no pieces.
+
+**Pricing add-ons:** 7 per-row collapsible inputs (Parity/Cutting/Loading/Transport/Margin/Interest/Commission) under "⊞ add-ons". Session-only — defaults read from `customer.notes` (`--- Pricing Add-ons ---` section) at page load; NOT written back on save. Only `unit_price` persisted. UOM (ton/kg) per line item. `discount_pct` per line item; `final_price` = `total_price × (1 − pct/100)` — used for discount-aware taxes/grand total. `floatformat:2` applied globally.
+
+**Stock deduction on Win:** `_deduct_stock()` called once via `stock_deducted` guard. Deducts quantity (converted to tons if uom=kg) using `Greatest(F('quantity') - qty, 0)` — atomic, never negative. Skips line items without `product` FK (LLM-generated items).
+
+**LLM / AI:** `generate_quotation_draft(lead, entity_notes)` in `quotations/services/llm.py` — tool-use loop with `lookup_pricing`, ProductKeyword injection, UOM context, reply-chain focus in system prompt. Graceful fallback to blank editor. `classify_message(text)` — YES/NO classifier for inbound messages. Shared `together_client` in `ferite_steel/ai.py`.
+
+**Email pipeline:** `poll_emails` management command — IMAP per TeamEmailConfig, spam pre-filter, classify_message, Lead creation, marks Seen. `--dry-run` flag. `_strip_reply_chain()` handles Gmail/Outlook/forwarded formats. `quotation_send` — compose/confirm form, SMTP send, PDF attach (non-broker), text-only rate email for broker leads. SMTP host = `imap_host.replace("imap.", "smtp.")`.
+
+**Market team:** MarketOrder full flow (`new`→`rate_sent`→`broker_confirmed`→`do_pending`→`completed`). Separate from Quotation — tracks logistics, not pricing.
 
 ### What is NOT yet built (planned for next session)
-- Email ingestion live test — `poll_emails` is built; needs a dummy Gmail account added to `TeamEmailConfig` in admin with a valid App Password (Janav to provide credentials); to be deleted post-demo
-- WhatsApp ingestion — deferred until Meta Business API approval confirmed
-- Customer handover view (`customer_handover`) — lead/admin only; `handling_team` field exists, view not yet built
-- Product rates — all 0 after import (Excel rate column was blank); must be filled via admin
-- TMT products missing from catalog — were not present in imported Excel; must be added manually or via a second import
+- **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
+- **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000
+- **`transaction.atomic()`** on `quotation_outcome` — stock deduction + outcome save must be atomic
+- **Django permissions signal** — `post_save` on CustomUser to auto-assign role permissions (Architecture Decision 18)
+- **Customer handover view** (`customer_handover`) — `handling_team` field exists, view not built
+- Email ingestion live test — needs dummy Gmail App Password in `TeamEmailConfig` admin (Janav to provide; delete post-demo)
+- WhatsApp ingestion — deferred until Meta approval confirmed
+- Product rates — all 0 after import; must be filled via admin
+- TMT products missing — must be added manually or re-imported
 
 ### Pending before Phase 2 is fully live
-- WhatsApp Business API Meta approval (do not build until confirmed)
-- Dummy Gmail credentials added to `TeamEmailConfig` for email ingestion demo
+- WhatsApp Business API Meta approval
+- Dummy Gmail credentials in `TeamEmailConfig`
 - Hosting decision confirmed (see Section 8)
 
 ---
@@ -186,470 +148,234 @@ decision must be defensible to a non-technical client.
 ## 4. Tech Stack
 
 ### Backend
-- **Framework:** Django 6.0.3
-- **Python:** 3.12
-- **Database:** PostgreSQL 16, database name `ferite_steel_db`
+- **Framework:** Django 6.0.3 · **Python:** 3.12 · **Database:** PostgreSQL 16 (`ferite_steel_db`)
 - **ORM:** Django ORM only — no raw SQL unless unavoidable
-- **Installed packages:** `psycopg2-binary` (PostgreSQL), `python-dotenv` (env vars),
-  `whitenoise` (static files), `django-jazzmin` (admin theme),
-  `together==2.14.0` (LLM API client — wired in `ferite_steel/ai.py`)
+- **Packages:** `psycopg2-binary`, `python-dotenv`, `whitenoise`, `django-jazzmin`, `together==2.14.0`
 
 ### Frontend
-- **CSS Framework:** Bootstrap 5
-- **Templating:** Django templates (Jinja2 is NOT used)
-- **No frontend framework** (no React, Vue, etc.) — server-side rendered HTML only
+- **CSS:** Bootstrap 5 · **Templating:** Django templates (NOT Jinja2) · No JS framework
 
 ### Server (On-Premise)
-- **OS:** Windows Server 2016
-- **CPU:** Intel Xeon Bronze 3106 (8-core, 1.7 GHz, no GPU)
-- **RAM:** 32 GB
-- **Storage:** 4 TB HDD
+Windows Server 2016 — Intel Xeon Bronze 3106, 32 GB RAM, 4 TB HDD, **no GPU**
 
 ### Hosting (DECISION PENDING — see Section 8)
-- **Option A:** Expose Windows Server directly via IIS + static IP
-- **Option B (recommended):** Cloud VPS (Hetzner) + Gunicorn + Nginx. Django and
-  PostgreSQL both on VPS. Windows Server retained for SAP/internal only.
-- **Option C:** Cloudflare Tunnel in front of Windows Server
-- **Decision blocker:** Client must confirm comfort with data leaving on-premise
-  before Option B is finalised.
+Option A: Windows Server via IIS + static IP · Option B (recommended): Hetzner VPS + Gunicorn + Nginx · Option C: Cloudflare Tunnel
 
 ### AI / LLM
-- **Provider:** together.ai (Janav has account access as of May 2026)
-- **Why:** Server has no GPU; all AI workloads must be cloud API-based
-- **Architecture split:**
-  - Tool use / function calling → live-data modules (Quotation Automator,
-    Credit Risk AI, Lead Ranking, Inventory Intelligence, Chatbot live queries)
-  - RAG → static knowledge modules (Training + Case Solver, Chatbot knowledge base)
-- **No MCP server** — Django-native tool use used instead
-- **No local model hosting** of any kind
+- **Provider:** together.ai only. No local models, no Ollama.
+- Tool use → live-data modules (2, 4, 5, Chatbot queries). RAG → static modules (3, Chatbot KB).
+- No MCP server. No separate vector DB (pgvector in PostgreSQL only).
 
 ### Database Tools
-- **Primary:** DataGrip 2025.1.3
-- **Secondary:** pgAdmin 4 (retained)
+DataGrip 2025.1.3 (primary), pgAdmin 4 (secondary)
 
 ---
 
 ## 5. Team & Employee Structure
 
-### Overview
-Client company has **4 teams**. Full breakdown confirmed by client in session 2.
-Views and permissions differ based on both team and role.
+| Team slug | Display name | Roles |
+|-----------|--------------|-------|
+| `team_9` | Team 9 | `lead`, `member` (IndiaMART/JustDial/TradeIndia/BNL leads) |
+| `cs` | CS Team | `lead`, `member` (customer service, jointly handled) |
+| `market` | Market Team | `lead`, `primary`, `rolling`, `loading_dock` |
+| `corporate` | Corporate Team | `lead`, `member` (details TBD) |
 
-### Team breakdown
+Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based on selected team.
 
-| Team slug   | Display name   | Description                                                         | Roles                                  |
-|-------------|----------------|---------------------------------------------------------------------|----------------------------------------|
-| `team_9`    | Team 9         | Handles IndiaMART, JustDial, TradeIndia, BNL leads. One salesperson per platform. | `lead`, `member` |
-| `cs`        | CS Team        | Customer Service. Clients handled jointly by the team.              | `lead`, `member`                       |
-| `market`    | Market Team    | Broker-based orders. Two sub-teams: Primary and Rolling. Also has loading dock members. | `lead`, `primary`, `rolling`, `loading_dock` |
-| `corporate` | Corporate Team | Details TBD; keeping as lead + member for now.                      | `lead`, `member`                       |
-
-Admins have no team (`team = null`). The role dropdown in Add User / Edit Role forms
-filters options via JavaScript based on the selected team.
-
-### Market team workflow
-Market team does not send formal quotations externally. Workflow:
-1. Broker sends order → market member creates a Lead (with broker FK) and MarketOrder
-2. Quotation editor used internally to calculate rates (PDF is "INTERNAL — RATES ONLY")
-3. Rate sent back to broker → broker confirms → assigned to loading dock member → DO number issued
-
-### Current implementation
-`CustomUser` has:
-- `team` — CharField choices: `team_9`, `cs`, `market`, `corporate` (nullable — admins have no team)
-- `role` — CharField choices: `admin`, `lead`, `member`, `primary`, `rolling`, `loading_dock`
-
-Role-based guards in views and templates use `request.user.role`. Team field is displayed
-in the nav badge on `base.html`. Role filter JS is in `add_user.html` and `edit_user_role.html`.
+**Market team workflow:** Broker sends order → market member creates Lead + MarketOrder → quotation editor used internally (rate calc; PDF = "INTERNAL — RATES ONLY") → rate sent to broker → broker confirms → loading dock assigned → DO issued.
 
 ---
 
 ## 6. Models
 
-### CustomUser (aegis.models.CustomUser)
-**Current fields:**
-- `role` — CharField, choices: `admin`, `lead`, `member`, `primary`, `rolling`, `loading_dock`; default `member`
-- `team` — CharField, choices: `team_9`, `cs`, `market`, `corporate`; nullable/blank (admins have no team)
-- `phone` — CharField
-- `branch` — CharField
-- `employee_id` — IntegerField
+### CustomUser (aegis)
+`role`: admin/lead/member/primary/rolling/loading_dock (default: member). `team`: team_9/cs/market/corporate (nullable for admins). Also: `phone`, `branch`, `employee_id`.
 
-### Product (database.models.Product)
-Master product catalog. 523 rows imported from client Excel (rates all 0 — fill via admin).
-- `hsn_code` — CharField `blank=True` (no longer unique; auto-generated `IMP-0001…` during import; update with real HSN codes when available)
-- `make` — CharField choices: `main`, `rolling`, `plate` (was `type` before session 7)
-- `sub_type` — CharField choices: `angle`, `channel`, `ub`, `uc`, `beam`, `flat`, `red_material`, `tmt`; blank=True. Valid sub-types per make enforced via JS in add/edit forms and `SUB_TYPE_MAP` class attribute
-- `size` — CharField
-- `length` — CharField blank (free text, e.g. "12 mtr", "8-11 mtr")
-- `grade` — CharField blank
-- `godown` — CharField blank (free text warehouse/plot location, e.g. "Plot 557"; was `location` before session 7)
-- `site` — CharField choices: `site_1` (Site 1), `site_2` (Site 2); blank=True
-- `pieces` — IntegerField null/blank
-- `quantity` — DecimalField (T)
-- `rate` — DecimalField (₹/T)
-- `is_active` — BooleanField (default True)
-- `last_updated` — auto_now DateTimeField
-Views: product_list (grouped view + text search), product_add, product_edit, product_delete, product_catalog_json. All at `/database/products/`.
-`_build_product_groups(products)` helper in `database/views.py` — groups a queryset into nested dict: sub_type+size → make → length → grade → site → {id, rate, qty, hsn, godown, site_display, pieces}. Used by both product_list and product_catalog_json. `pieces` is included so the quotation picker can set the PCS field readonly when a product has no pieces defined.
+### Product (database)
+523 imported rows; rates all 0. Fields: `category` (main/rolling/plate), `make` (manufacturer, 14 choices, blank for existing rows), `sub_type` (angle/channel/ub/uc/beam/flat/red_material/tmt), `size`, `length` (24 choices), `grade` (27 choices), `godown`, `site` (site_1/site_2), `quantity` (T), `rate` (₹/T), `pieces`, `hsn_code`, `is_active`.
 
-### Customer (database.models.Customer)
-Stores remembered transport costs and commercial details per customer, matched by name + company (case-insensitive).
-- `customer_code` — CharField unique, null/blank (client assigns codes; pre-filled when client provides their DB)
-- `name`, `company`, `phone`, `email` — CharFields
-- `billing_address`, `shipping_address` — TextFields blank (replaced old `location` field)
-- `gst_number` — CharField blank
-- `payment_terms` — CharField choices: `advance`/`cash`, blank
-- `transport_extra` — DecimalField (default 0)
-- `loading_rate` — DecimalField (default 0.5 — ₹/ton)
-- `notes` — TextField blank (AI context + `--- Pricing Add-ons ---` section; add-on defaults read from here at quotation edit page load; not written back on save since session 9)
-- `competitors` — TextField blank (one competitor per line; display only)
-- `rm` — FK to `settings.AUTH_USER_MODEL` (relationship manager; nullable, SET_NULL)
-- `handling_team` — CharField choices: TEAM_CHOICES, nullable/blank
-- `updated_at` — auto_now DateTimeField
-Auto-upserted whenever a quotation is saved. Views at `/database/customers/`. List columns: Code, Name, Company, Phone, GST No., Payment Terms, Handling Team.
+**Relational pricing:** `base_product` self-FK (SET_NULL, nullable) + `rate_offset` (default 0). `effective_rate` property = `base_product.rate + rate_offset` if base set, else own `rate`. No chaining — derived products always point to a base directly, never to another derived product.
 
-### Broker (database.models.Broker)
-Stores broker information for the Market team. Separate from Customer (different flow direction, no transport cost memory).
-- `name`, `company`, `location`, `phone`, `email` — CharFields
-- `notes` — TextField blank (AI context: usual margins, preferred products, etc.)
-- `is_active` — BooleanField (default True)
-- `created_at` — auto_now_add DateTimeField
-Views at `/database/brokers/`.
+`_build_product_groups(queryset)` in `database/views.py` — nested dict: sub_type+size → category → length → grade → site → {id, rate, qty, hsn, godown, pieces}. Uses `select_related('base_product')` and `effective_rate`. Used by product list and catalog JSON.
 
-### Lead (quotations.models.Lead)
-- `customer_name`, `customer_phone`, `customer_email` — contact info
-- `company`, `industry`, `location` — added in Phase 2
-- `broker` — FK to Broker (nullable; set for market team leads)
-- `raw_text` — raw enquiry text
-- `notes`, `source`, `status`, `created_by`, `created_at`
+### Customer (database)
+6,414 SAP records + auto-upserted on quotation save. Upsert key: `customer_code`.
+Fields: `customer_code`, `name`, `company`, `phone`, `email`, `gst_number`, `pan_number`, `msme_number`, `city`, `pincode`, `billing_address`, `shipping_address`, `payment_terms` (advance/cash), `type_of_business` (C/I/G), `is_active`, `sap_created_at`, `transport_extra`, `loading_rate` (default 0.5 ₹/T), `notes` (AI context + `--- Pricing Add-ons ---` section — read at page load, NOT written back on save), `competitors`, `rm` FK, `handling_team`.
 
-### Quotation (quotations.models.Quotation)
-- `quotation_number` — auto-generated: `QT-00001` or `QT-00001-v2` for revisions
-- `lead` — FK to Lead
-- `version` — IntegerField (default 1)
-- `parent_quotation` — self-FK nullable (null = root version)
-- `status` — choices: `draft`, `approved`, `sent`
-- `outcome` — choices: `win`, `loss`, `not_updated`; stored only on root quotation
-- `winning_quotation` — self-FK (nullable, SET_NULL, related_name `won_as`); set when outcome = win; records which specific version won
-- `stock_deducted` — BooleanField (default False); set True after `_deduct_stock()` runs; guards idempotency (stock only deducted once per root quotation)
-- `llm_raw_response` — TextField (stores raw JSON from LLM draft generation)
-- `payment_terms` — CharField choices: `Advance`, `Cash`; default `Advance`
-- `delivery_address` — CharField
-- `transport_extra`, `sgst_percent`, `cgst_percent` — DecimalFields
-- `total_amount`, `notes`, `valid_until`
-- `created_by`, `approved_by`, `created_at`, `approved_at`, `sent_at`
+### Broker (database)
+`name`, `company`, `location`, `phone`, `email`, `notes`, `is_active`. Separate from Customer — different flow direction (broker sends orders, no transport cost memory).
 
-Broker-sourced quotations (where `lead.broker` is not null) are internal-only: Send button hidden, PDF header reads "INTERNAL — RATES ONLY".
+### Lead (quotations)
+`customer_name`, `customer_phone`, `customer_email`, `company`, `industry`, `location`, `broker` FK (nullable), `raw_text`, `notes`, `source`, `status`, `created_by`, `created_at`.
 
-### QuotationLineItem (quotations.models.QuotationLineItem)
-- `quotation` — FK to Quotation
-- `product` — FK to `database.Product` (nullable, SET_NULL, related_name `line_items`); set by the picker; NULL for LLM-generated items (LLM fills text fields only)
-- `product_name`, `make` — CharFields; `make` is readonly in form (filled by picker)
-- `length` — CharField blank; readonly in form (filled by picker)
-- `pcs` — IntegerField nullable; readonly+greyed in form when selected product has no pieces defined
-- `uom` — CharField choices: `ton`/`kg`, default `ton`
-- `quantity` — DecimalField decimal_places=3 (ton or kg as per uom)
-- `unit_price` — DecimalField (final sell rate; readonly in form; JS-calculated from purchase_rate + 7 per-row add-ons)
-- `total_price` — DecimalField (server-side: `(quantity/1000)*unit_price` if kg, else `quantity*unit_price`)
-- `notes` — TextField blank (pre-filled from `customer.notes` content; editable per line item)
-`make`, `length`, and `uom` rendered as columns in quotation edit table. The "⌕ pick" button fills product FK + purchase-rate input (client-side only); JS then recalcs `unit_price` from purchase_rate + per-row add-ons.
+### Quotation (quotations)
+`quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`.
 
-### MarketOrder (quotations.models.MarketOrder)
-Tracks the Market team's broker order logistics flow, independent of the Quotation model.
-- `broker` — FK to Broker (CASCADE)
-- `quotation` — FK to Quotation (nullable; linked when internal rate quotation is generated)
-- `sub_team` — CharField choices: `primary`, `rolling`
-- `product_details` — TextField
-- `quantity` — DecimalField (nullable)
-- `status` — choices: `new`, `rate_sent`, `broker_confirmed`, `do_pending`, `completed`, `cancelled`
-- `rate` — DecimalField (nullable; set when rate is sent to broker)
-- `rate_sent_at`, `broker_confirmed_at`, `do_requested_at`, `do_issued_at` — DateTimeFields nullable
-- `loading_dock_member` — FK to AUTH_USER_MODEL (nullable; assigned at broker_confirmed stage)
-- `do_number` — CharField blank
-- `notes` — TextField blank
-- `created_by` — FK to AUTH_USER_MODEL
-- `created_at` — auto_now_add DateTimeField
+Broker-sourced (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY".
 
-### ProductKeyword (quotations.models.ProductKeyword)
-Maps company-specific client terms to canonical product names for LLM prompt injection.
-- `keyword` — CharField (what clients say, e.g. "sariya", "angle", "12mm")
-- `maps_to` — CharField (product name or code, e.g. "TMT Bars 12mm")
-- `notes` — CharField blank (e.g. "Hindi term for TMT bars")
-- `is_active` — BooleanField (default True)
-Admin-editable (`list_editable` on `is_active`). Active keywords fetched by `_build_keyword_context()` and injected into the LLM system prompt on every `generate_quotation_draft` call.
+### QuotationLineItem (quotations)
+`quotation` FK, `product` FK (nullable/SET_NULL — NULL for LLM-generated items; must be picker-set for stock deduction to work), `product_name`, `make` (readonly — picker only), `length` (readonly — picker only), `pcs` (readonly+greyed when no pieces), `uom` (ton/kg), `quantity` (3dp), `unit_price` (readonly — JS-calculated from purchase_rate + add-ons), `total_price` (server-side), `discount_pct` (default 0), `notes`.
 
-### TeamEmailConfig (quotations.models.TeamEmailConfig)
-IMAP credentials for team shared email accounts, used by `poll_emails` management command.
-- `team` — CharField choices: TEAM_CHOICES (unique per team)
-- `email_address` — EmailField (shared team inbox)
-- `imap_host` — CharField (default `imap.gmail.com`)
-- `imap_username`, `imap_password` — CharFields; use an App Password, not account password
-- `imap_port` — IntegerField (default 993)
-- `use_ssl` — BooleanField (default True)
-- `is_active` — BooleanField (default True)
-Admin-only management (`list_editable` on `is_active`). SMTP host derived at send time by replacing "imap." with "smtp." in `imap_host`.
+`final_price` property = `total_price × (1 − discount_pct/100)` — used in `_quotation_context` so taxes and grand total are discount-aware.
 
-### AUTH_USER_MODEL
-`'aegis.CustomUser'` — set in settings.py
+### MarketOrder (quotations)
+`broker` FK (CASCADE), `quotation` FK (nullable), `sub_team` (primary/rolling), `product_details`, `quantity`, `status` (new/rate_sent/broker_confirmed/do_pending/completed/cancelled), `rate`, `loading_dock_member` FK, `do_number`, `notes`, `created_by`.
 
-### Migration discipline
-Never run `migrate` without first reviewing `makemigrations` output. Always inspect
-migration files before applying.
+### ProductKeyword (quotations)
+Maps client trade terms (e.g. "sariya") → canonical product names. `keyword`, `maps_to`, `notes`, `is_active`. `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every draft generation call.
+
+### TeamEmailConfig (quotations)
+IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`. SMTP host derived at send time: `imap_host.replace("imap.", "smtp.")`.
+
+`AUTH_USER_MODEL = 'aegis.CustomUser'`
+**Migration discipline:** Never run `migrate` without reviewing `makemigrations` output first.
 
 ---
 
 ## 7. Inventory & Stock Data
 
-### Source
-Client receives **three Excel files daily via WhatsApp**:
-1. `Main_Stock.xlsx` — comprehensive stock: Angle, Channel, Beam, NPB, WPB, TMT,
-   Red Material. Columns: SIZE, length, actual qty, received, sold, balance, rate.
-   Sheet name = date (e.g. `01-04`). Multiple product categories laid out **horizontally**
-   side by side on the same sheet.
-2. `New_Plate_Stock.xlsx` — plate stock organised by physical plot/location
-   (Plot No-557, 558, 560 etc.). Columns: Sizes, Pcs, Qty, In, Out, Open. Tracks
-   steel grade (E250, E350), piece count, heat numbers, vehicle numbers.
-3. `Stock_Rolling_New.xlsx` — rolling stock: Rolling Angle, Channel, Beam, Flat,
-   TMT rods, Square sections. Columns: SIZE, QTY, IN, OUT, OPEN.
+Client receives 3 Excel files daily via WhatsApp:
+1. `Main_Stock.xlsx` — Angle, Channel, Beam, NPB, WPB, TMT, Red Material. Sheet name = date (e.g. `01-04`). Categories laid out horizontally side by side.
+2. `New_Plate_Stock.xlsx` — Plate stock by plot/location (Plot 557, 558, 560). Tracks grade (E250/E350), pieces, heat numbers, vehicle numbers.
+3. `Stock_Rolling_New.xlsx` — Rolling Angle, Channel, Beam, Flat, TMT rods, Square.
 
-### Architecture decision
-**Excel is transport only. PostgreSQL is the destination.**
-- Excel arrives → Django parses it (openpyxl/pandas) → data upserted into PostgreSQL
-  → file discarded
-- All downstream modules (Lead Ranking, Inventory Intelligence) query the database,
-  not the file
-- Export feature to be built: users can download a fresh Excel generated from
-  PostgreSQL on demand
-
-### Pending questions (ask client)
-- Who or what generates/maintains the daily Excel? Manual entry or auto-generated?
-- Are all three files updated daily, or just some?
-- Is the column layout and category structure identical every day, or does it vary?
-- Does the file arrive as a fresh file each day, or as a new sheet added to the same file?
+**Architecture:** Excel is transport only. PostgreSQL is the destination. Excel arrives → Django parses (openpyxl/pandas) → data upserted into PostgreSQL → file discarded. All downstream modules query the database, not files.
 
 ---
 
 ## 8. Hosting Decision
 
-**Status: Unresolved. Must be confirmed before Phase 2 deployment planning.**
+**Status: CONFIRMED — Option B (Hetzner VPS + Gunicorn + Nginx). Confirmed 24 May 2026.**
 
-Three options discussed:
+Client confirmed comfort with business data hosted off-premise. VPS not yet provisioned — next step is to spin up Hetzner CX22 and run the deployment setup.
 
-| Option | Description | Cost | Risk |
-|--------|-------------|------|------|
-| A | Expose Windows Server via IIS + static IP | Static IP from ISP (₹0–1,000/mo) + domain (₹800–1,200/yr) | Office internet = single point of failure. Security risk. |
-| B (recommended) | Cloud VPS (Hetzner CX22: 2vCPU/4GB/40GB). Django + PostgreSQL on VPS. Windows Server for SAP only. Gunicorn + Nginx. | ~₹375–565/mo + domain | Best security, app independent of office internet |
-| C | Cloudflare Tunnel in front of Windows Server. No port forwarding needed. | Domain only (₹800–1,200/yr) | Office internet = single point of failure |
+**Deployment stack:**
+- Server: Hetzner CX22 VPS, Ubuntu 24.04
+- WSGI: Gunicorn
+- Reverse proxy: Nginx
+- SSL: Let's Encrypt via Certbot
+- Database: PostgreSQL on the same VPS
+- Static files: WhiteNoise (already wired in `settings.py`)
+- PDF: WeasyPrint — works natively on Linux via `apt install libpango-1.0-0 libcairo2`
+- Scheduled tasks: `poll_emails` management command via cron
 
-**Decision blockers:**
-- Client must confirm comfort with data living on a cloud server (not on-premise)
-- Client must confirm whether their office has a static IP (affects Options A and C)
-
-**Note:** If Option B is chosen, deployment changes from IIS + Waitress (Windows) to
-Gunicorn + Nginx (Linux). The Non-Negotiables section must be updated accordingly.
+**Pre-deployment checklist (not yet done):**
+- Set `ALLOWED_HOSTS` to domain/IP in settings
+- Set all env vars on VPS (SECRET_KEY, DB_*, TOGETHER_API_KEY)
+- Run `collectstatic` and `migrate` on first deploy
+- Configure systemd service for Gunicorn
+- Set up cron for `poll_emails`
+- Obtain domain and point DNS to VPS IP
 
 ---
 
 ## 9. ConvoGenie
 
-**What it is:** convogenie.ai — a no-code AI chatbot/agent platform for businesses.
-Incorporated April 2024, Bangalore (Convogenie Technologies Pvt Ltd). Handles generic
-sales/support automation: lead engagement, FAQs, basic routing, sentiment analysis.
+convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business data access). Client has already paid for it and asked whether FERITE-STEEL can integrate with it.
 
-**Status:** Client has already paid for it. In a client meeting, Janav was compared
-to ConvoGenie without knowing what it was. Client has asked whether FERITE-STEEL can
-integrate with it. Janav told him he'd look into it.
+**Current state:** Janav has account access. Client met ConvoGenie on 11 May 2026. Integration scope + API feasibility still TBD pending meeting outcome.
 
-**Current state:**
-- Janav has access to the ConvoGenie account and has reviewed it
-- Client had a meeting with ConvoGenie on 11 May 2026 — Janav gave him questions to ask
-- If ConvoGenie uses technical language in the meeting, client will connect Janav
-  directly to speak with their team
-- Integration scope and API feasibility still TBD pending meeting outcome
+**Key distinction:** ConvoGenie = generic no-code chatbot. Module 6 = purpose-built with live pricing, credit risk, inventory queries — entirely different capability.
 
-**Key distinction:**
-- ConvoGenie = generic no-code chatbot (FAQs, basic support, no business data access)
-- FERITE-STEEL Module 6 = purpose-built chatbot with live SAP data, credit risk,
-  pricing logic, inventory queries — entirely different capability
-
-**Why Module 6 fee is not yet quoted:**
-The chatbot tier and whether/how ConvoGenie integrates must be understood before
-pricing Module 6. Do not quote a chatbot fee until this is resolved.
+**Do not quote Module 6 fee until ConvoGenie integration scope is resolved.**
 
 ---
 
 ## 10. Client Questions (To Ask at Next Meeting)
 
-These are outstanding questions that only the client can answer. Do not assume
-resolved until explicitly confirmed.
-
-### Product rates
-1. All 523 imported product rates are 0 — the RATE column in the Excel was blank. Ask client to either provide a rate file or fill them in via admin.
-
-### Stock & Inventory
-2. Who or what generates/maintains the daily Excel stock files — manual entry or
-   auto-generated from somewhere?
-3. Are all three Excel files (Main Stock, Plate Stock, Rolling Stock) updated daily,
-   or just some of them?
-4. Is the column layout and category structure in each file identical every day, or
-   does it occasionally change?
-5. Does the file arrive as a fresh file each day, or as a new sheet added to the
-   same ongoing workbook?
-
-### Corporate Team
-6. What are the specific roles within the Corporate team? (Currently placeholder: lead + member.)
-
-### Hosting
-7. Is the client comfortable with business data living on a cloud server (not
-   on-premise)? Required to confirm Option B.
-8. Does the client's office have a static IP from their ISP? (Affects Options A and C.)
-
-### ConvoGenie
-9. What did ConvoGenie say in the meeting about API access and integration options?
-10. What plan is the client on — does it include API access?
-11. What does the client actually want the two systems to do together?
-
-### WhatsApp Business API
-12. Has Meta verification been initiated? This is the single biggest external
-    schedule risk for Phase 2.
+1. All 523 product rates are 0 — provide a rate file or fill via admin.
+2. Who/what generates the daily Excel stock files — manual entry or auto-generated?
+3. Are all 3 files (Main Stock, Plate, Rolling) updated daily, or just some?
+4. Is the column layout identical every day, or does it occasionally vary?
+5. Does the file arrive fresh each day, or as a new sheet in the same workbook?
+6. What are the specific roles within the Corporate team?
+7. ~~Is client comfortable with business data on a cloud server?~~ RESOLVED — Option B confirmed.
+8. ~~Does client's office have a static IP?~~ No longer relevant — using Hetzner VPS.
+9. What did ConvoGenie say about API access and integration options?
+10. What plan is client on — does it include API access?
+11. What does client actually want the two systems to do together?
+12. Has Meta verification been initiated for WhatsApp Business API?
 
 ---
 
 ## 11. Unresolved Technical Items
 
-These are open technical questions. Do not proceed with affected modules until resolved.
+Do not proceed with affected modules until resolved.
 
-- **Hosting:** Option A/B/C not yet confirmed (see Section 8)
-- **ConvoGenie integration:** API feasibility and integration scope unknown
-- **Stock Excel format consistency:** Must be confirmed before building ingestion pipeline
-- **SAP:** Now lower priority — daily Excel replaces direct SAP integration for
-  Modules 4/5. But SAP pre-check still needed to confirm nothing else depends on it.
-- **WhatsApp API approval:** Do not build WhatsApp ingestion until Meta approval confirmed.
-- **Module 6 (Chatbot) tier:** Client has not confirmed tier. Do not finalize scope or fee.
-- **Voice Stand-in:** Not greenlit. Do not plan or scaffold anything.
-- **Corporate team roles:** Client said "not sure" — keeping lead + member for now. Confirm at next meeting.
-- **Product rates:** All 523 imported products have rate=0. Client must provide rates.
-- **TMT products missing:** Not present in imported catalog — must be added manually or via re-import.
-- **Email dummy account:** Dummy Gmail credentials to be added to `TeamEmailConfig` in admin for demo. Janav to provide App Password — do not hardcode. Delete the account post-demo.
+- **Hosting:** RESOLVED — Option B (Hetzner VPS). VPS not yet provisioned (see Section 8).
+- **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
+- **WhatsApp API approval:** Do not build ingestion until Meta confirms
+- **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
+- **Voice Stand-in:** Not greenlit. Do not plan or scaffold anything
+- **Corporate team roles:** TBD — placeholder is lead + member
+- **Stock Excel format consistency:** Must be confirmed before building Module 5 ingestion pipeline
+- **SAP:** Deprioritised — daily Excel replaces direct integration. Confirm no other dependencies
+- **`bulk_create`/`bulk_update`** for Module 5 stock import: plan from the start; no individual `.save()` calls
+- **Model-level validators:** GST (15-char) and PAN (10-char) fields need `RegexValidator`
+- **Django logging config:** Must write errors to file before production — currently silent on 500
+- **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
 
 ---
 
 ## 12. Fee Structure
 
-**What has been quoted to client: ₹95,000 for 5 core modules.**
+**Quoted: ₹95,000 for 5 core modules.** All API/infrastructure costs borne by client.
 
-| Module                          | Fee            |
-|---------------------------------|----------------|
-| Base Setup                      | ₹5,000         |
-| Quotation Automator             | ₹25,000        |
-| Training + Case Solver          | ₹20,000        |
-| Credit Risk AI                  | ₹20,000        |
-| Lead Ranking + Inventory Intel  | ₹25,000        |
-| **Core Total (quoted)**         | **₹95,000**    |
-| Internal AI Chatbot             | TBD (pending ConvoGenie assessment) |
-| AI Voice Stand-in               | Quoted separately by tier if greenlit |
-
-All API/infrastructure costs (together.ai, WhatsApp Business API, Hetzner VPS,
-domain, etc.) are borne by the client, not Janav.
+| Module | Fee |
+|--------|-----|
+| Base Setup | ₹5,000 |
+| Quotation Automator | ₹25,000 |
+| Training + Case Solver | ₹20,000 |
+| Credit Risk AI | ₹20,000 |
+| Lead Ranking + Inventory Intel | ₹25,000 |
+| **Core Total** | **₹95,000** |
+| Internal AI Chatbot | TBD (pending ConvoGenie assessment) |
+| AI Voice Stand-in | TBD by tier if greenlit |
 
 ---
 
 ## 13. Module Specifications
 
 ### Module 1 — Base Setup (₹5,000) — COMPLETE
-Django project scaffold, PostgreSQL connection, CustomUser, full auth flow, `base.html`.
-**Remaining:** role-based navigation in `base.html` (nav not yet gated by role).
+Django scaffold, PostgreSQL, CustomUser, full auth flow, base.html.
 
----
+### Module 2 — Quotation Automator (₹25,000) — Phase 2 (current)
+Parse leads from WhatsApp/email, match pricing, generate LLM draft quotation for salesperson review. Architecture: tool use + function calling. Key dependency: WhatsApp Meta approval (1–3 weeks). Effort: 90–110 hrs.
 
-### Module 2 — Quotation Automator (₹25,000) — Phase 2
-**Purpose:** Parse incoming leads from WhatsApp, email, phone transcripts.
-Match against master pricing sheet. Generate draft quotation using LLM.
-
-**Inputs:**
-- WhatsApp messages (WhatsApp Business API — Meta approval pending)
-- Emails (IMAP polling)
-- Phone call transcripts (deferred)
-
-**Core logic:**
-1. Ingest raw lead text
-2. Call together.ai with tool use / function calling
-3. LLM tools: look up master pricing sheet, apply discount rules, check stock
-4. LLM returns structured quotation draft
-5. Sales rep reviews and approves before sending
-
-**Key dependency:** WhatsApp Business API Meta verification (1–3 weeks).
-**Architecture:** Tool use / function calling. **Estimated effort:** 90–110 hrs.
-
----
-
-### Module 3 — Training System + Case Solver (₹20,000) — Phase 3
-**Purpose:** Sales staff Q&A on products, processes, past cases via static docs.
-**Architecture:** RAG. Vector store: pgvector. Embeddings + generation: together.ai.
-**Estimated effort:** 70–85 hrs.
-
----
+### Module 3 — Training + Case Solver (₹20,000) — Phase 3
+Staff Q&A on products/processes via static docs. Architecture: RAG, pgvector, together.ai. Effort: 70–85 hrs.
 
 ### Module 4 — Credit Risk AI (₹20,000) — Phase 4
-**Purpose:** Assess customer default risk before extending credit.
-**Inputs:** Financial docs (PDF), GST returns, internal transaction history.
-**Architecture:** Tool use / function calling.
-**Estimated effort:** 60–75 hrs.
-
----
+Assess customer default risk before extending credit. Inputs: PDFs, GST returns, internal transaction history. Architecture: tool use. Effort: 60–75 hrs.
 
 ### Module 5 — Lead Ranking + Inventory Intelligence (₹25,000) — Phase 5
-**Purpose:** Rank leads by conversion likelihood. Surface inventory insights.
+Rank leads by conversion likelihood. Surface inventory insights. Data source: daily Excel → PostgreSQL (see Section 7). Architecture: tool use. Effort: 65–100 hrs.
 
-**Data source (updated):** Daily Excel files ingested into PostgreSQL — NOT direct
-SAP integration. Three files: Main Stock, Plate Stock, Rolling Stock.
-See Section 7 for full data structure.
+### Module 6 — Internal AI Chatbot (TBD) — Phase 7
+Staff Q&A across all modules in natural language. Architecture: hybrid RAG + tool use.
+Tiers: 1 (simple Q&A, 2.5–3.5wk) / 2 (conversational + session memory, 5–7wk) / 3 (Claude Enterprise + MCP, configure only).
+Blocker: ConvoGenie scope must be resolved first. Do not finalize tier, fee, or scope until then.
 
-**Architecture:** Tool use / function calling. Django queries PostgreSQL (stock tables).
-**Estimated effort:** 65–100 hrs (reduced uncertainty now that SAP is replaced by Excel).
-
----
-
-### Module 6 — Internal AI Chatbot (fee TBD) — Phase 7
-**Purpose:** Staff Q&A across all modules in natural language.
-**Architecture:** Hybrid RAG + tool use.
-**Tiers:**
-- Tier 1 (2.5–3.5wk): RAG + tool use, simple Q&A
-- Tier 2 (5–7wk): Multi-step conversational, session memory
-- Tier 3: Claude Enterprise + MCP — configure, don't build
-
-**Blocker:** ConvoGenie integration scope must be resolved first (see Section 9).
-Do not finalize tier, fee, or scope until then.
-
----
-
-### Module 7 — AI Voice Stand-in (proposed, NOT greenlit)
-**Purpose:** AI answers calls when salesperson is busy, logs lead.
-**Tiers:**
-- Tier 1 (₹15K–20K): Voicemail-to-text + auto-reply
-- Tier 2 (₹40K–60K): Real-time AI with generic voice
-- Tier 3 (₹80K–1,20,000+): Cloned salesperson voice
-
-**Legal risks (Tier 3):** Written consent for voice cloning, caller disclosure,
-DPDPA 2023 compliance, IPC S.416 impersonation risk.
-
-**Do NOT start any Voice Stand-in work until client greenlights a specific tier.**
+### Module 7 — AI Voice Stand-in (NOT greenlit)
+Tiers: 1 (₹15K–20K, voicemail-to-text) / 2 (₹40K–60K, real-time AI) / 3 (₹80K–1.2L, cloned voice).
+Tier 3 legal risks: written consent for voice cloning, DPDPA 2023 compliance, IPC S.416 impersonation.
+**DO NOT START any Voice Stand-in work until client greenlights a specific tier.**
 
 ---
 
 ## 14. Phased Delivery & Schedule
 
-| Phase | Weeks      | Module                          | Hours Est. | Key Risks                       |
-|-------|------------|---------------------------------|------------|---------------------------------|
-| 1     | 1–2        | Base Setup                      | 40–50      | Complete                        |
-| 2     | 3–7        | Quotation Automator             | 90–110     | WhatsApp API approval delay     |
-| 3     | 8–11       | Training + Case Solver          | 70–85      | First RAG build                 |
-| 4     | 12–15      | Credit Risk AI                  | 60–75      | PDF parsing reliability         |
-| 5     | 16–18      | Lead Ranking + Inventory        | 65–100     | Excel format consistency        |
-| 6     | +6–8wk     | Voice Stand-in (if greenlit)    | TBD        | Legal, Twilio/Meta approvals    |
-| 7     | +2.5–3.5wk | Internal AI Chatbot             | 55–70      | ConvoGenie scope, tier TBD      |
+| Phase | Module | Hours Est. | Key Risks |
+|-------|--------|------------|-----------|
+| 1 | Base Setup | 40–50 | Complete |
+| 2 | Quotation Automator | 90–110 | WhatsApp API approval delay |
+| 3 | Training + Case Solver | 70–85 | First RAG build |
+| 4 | Credit Risk AI | 60–75 | PDF parsing reliability |
+| 5 | Lead Ranking + Inventory | 65–100 | Excel format consistency |
+| 6 | Voice Stand-in (if greenlit) | TBD | Legal, Twilio/Meta approvals |
+| 7 | Internal AI Chatbot | 55–70 | ConvoGenie scope, tier TBD |
 
-**Contractual deadline:** ~September.
-**College exam weeks** will reduce output — factor into schedule.
+**Contractual deadline:** ~September. Factor in college exam weeks.
 
 ---
 
@@ -663,18 +389,18 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 4. **No MCP server.** Django-native tool use.
 5. **No separate vector database.** pgvector in PostgreSQL only.
 6. **Bootstrap 5 + Django templates.** No JavaScript framework.
-7. **Deployment:** Pending hosting decision (see Section 8). If Option B: Gunicorn + Nginx
-   on Linux VPS. If Option A/C: IIS + Waitress on Windows Server.
+7. **Deployment:** Hetzner CX22 VPS, Ubuntu 24.04. Gunicorn + Nginx. Let's Encrypt SSL. PostgreSQL on same VPS. (Confirmed 24 May 2026 — see Section 8.)
 8. **Stock data:** Excel is transport only. PostgreSQL is destination. No live SAP calls.
-9. **Two-step LLM ingestion flow:** Every inbound message (email or WhatsApp) goes through `classify_message(text)` first. If not an inquiry, discard silently — do not create a lead. Only then call `generate_quotation_draft`. Email also pre-filtered by headers before hitting the LLM.
+9. **Two-step LLM ingestion flow:** Every inbound message goes through `classify_message(text)` first. If not an inquiry, discard silently — do not create a lead. Only then call `generate_quotation_draft`. Email also pre-filtered by headers before hitting the LLM.
 10. **ProductKeyword model:** Company-specific client terms stored in PostgreSQL, admin-editable. Fetched at call time and injected into the LLM system prompt — not hardcoded in code.
-11. **lookup_pricing returns `found: bool`:** Tool always returns `{"found": true/false, "results": [...]}`. Not-found items are included in the quotation draft with `unit_price=0` and `notes="Price not found — fill manually"` — never silently dropped.
-12. **Team-scoped views:** All summary views (customer list, lead list, quotation list) default to showing the requesting user's team data. Admin and `?scope=all` query param shows all records. Leads/admins see the handover button on customer records.
-13. **Shared AI client:** `ferite_steel/ai.py` holds the single `together_client` instance. All service layers import from there — never instantiate `Together(...)` directly in a service or view. If a new app needs LLM access, import from `ferite_steel.ai`, don't create a new client.
-14. **Win tracks the specific version, not just the lead:** `winning_quotation` FK is set to the exact `Quotation` instance the user marks as won — not the root. This is intentional: a lead may have 3 revisions; the salesperson picks which one closed the deal.
-15. **Stock deduction is one-time and irreversible per deal:** `stock_deducted` guards against repeat deduction. Changing outcome away from Win and back again does NOT re-deduct. Stock is never restored on outcome change (Loss/Not Updated after Win). This is intentional — physical stock has already moved.
-16. **Per-row pricing add-ons are session-only:** The 7 add-on inputs (Parity, Cutting, Loading, Transport, Margin, Interest, Commission) live only in the browser. Defaults are read from `customer.notes` on page load; values are NOT written back on save. They are never stored in any model field. Only the resulting `unit_price` is persisted.
-17. **Product FK on QuotationLineItem is set only via the picker:** The LLM fills product_name as free text and never sets the `product` FK. Stock deduction skips any line item without a `product_id`. The salesperson must re-pick from catalog after LLM draft generation to link the FK and enable stock tracking.
+11. **lookup_pricing returns `found: bool`:** Tool always returns `{"found": true/false, "results": [...]}`. Not-found items included in draft with `unit_price=0` and `notes="Price not found — fill manually"` — never silently dropped.
+12. **Team-scoped views:** All summary views default to the requesting user's team data. Admin and `?scope=all` shows all records. Leads/admins see handover button on customer records.
+13. **Shared AI client:** `ferite_steel/ai.py` holds the single `together_client`. All service layers import from there — never instantiate `Together(...)` directly in a service or view. If a new app needs LLM access, import from `ferite_steel.ai`.
+14. **Win tracks the specific version, not just the lead:** `winning_quotation` FK is set to the exact `Quotation` instance the user marks as won — not the root. A lead may have 3 revisions; the salesperson picks which one closed the deal.
+15. **Stock deduction is one-time and irreversible per deal:** `stock_deducted` guards against repeat deduction. Changing outcome away from Win and back does NOT re-deduct. Stock is never restored on outcome change (Loss/Not Updated after Win). Physical stock has already moved.
+16. **Per-row pricing add-ons are session-only:** The 7 add-on inputs live only in the browser. Defaults read from `customer.notes` on page load; NOT written back on save. Never stored in any model field. Only `unit_price` persisted.
+17. **Product FK on QuotationLineItem is set only via the picker:** LLM fills product_name as free text and never sets `product` FK. Stock deduction skips any line item without `product_id`. Salesperson must re-pick after LLM draft to link FK and enable stock tracking.
+18. **Django custom permissions + role signal for access control:** Feature gates use Django's built-in permission system (`user.has_perm('app.codename')`), not hardcoded role string checks. Custom permissions declared in each model's `Meta.permissions`. `post_save` signal on `CustomUser` auto-assigns the baseline permission set whenever role is set/changed. Admin can grant extra permissions without a code change. Team-scoping (queryset filtering) remains code — permissions don't apply there. New models: define permissions in `Meta` from the start. Existing role checks: replace gradually as views are touched, not as a dedicated refactor.
 
 ---
 
@@ -682,228 +408,94 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 
 ```
 ferite_steel/                      ← project root
-│
 ├── ferite_steel/                  ← Django project config
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── ai.py                      ← shared Together client (together_client); imported by all LLM service layers
-│
-├── aegis/                         ← auth & user management
-│   ├── models.py                  ← CustomUser (team + role fields)
-│   ├── views.py                   ← dashboard, add_user, directory, edit_role, register, approve, delete
-│   ├── forms.py                   ← AddUserForm, EditRoleForm (both include team field)
-│   └── urls.py
-│
-├── database/                      ← shared entity models (session 4)
-│   ├── models.py                  ← Product, Customer, Broker
-│   ├── views.py                   ← product_list/add/edit/delete, customer_list/detail/add/edit, broker_list/create
-│   ├── forms.py                   ← ProductForm, CustomerForm, BrokerForm
-│   ├── admin.py                   ← Product, Customer, Broker registered
-│   ├── urls.py                    ← /database/ prefix
-│   └── migrations/                ← 0001–0011
-│
+│   ├── settings.py, urls.py, wsgi.py
+│   └── ai.py                      ← shared together_client; import here, never instantiate elsewhere
+├── aegis/                         ← auth & user management (CustomUser)
+│   ├── models.py, views.py, forms.py, urls.py
+├── database/                      ← Product, Customer, Broker + CRUD views
+│   ├── models.py, views.py, forms.py, admin.py, urls.py
+│   └── migrations/                ← 0001–0016
 ├── quotations/                    ← Module 2
-│   ├── models.py                  ← Lead, Quotation, QuotationLineItem, MarketOrder,
-│   │                                 ProductKeyword, TeamEmailConfig
-│   ├── views.py                   ← all quotation, lead, and market order views
-│   │                                 + customer_handover (planned)
-│   ├── forms.py                   ← ManualLeadForm, QuotationEditForm, LineItemFormSet,
-│   │                                 MarketOrderForm, MarketOrderRateForm,
-│   │                                 MarketOrderAssignForm, MarketOrderDOForm
-│   ├── admin.py                   ← MarketOrder, Lead, Quotation, ProductKeyword, TeamEmailConfig registered
-│   ├── urls.py
-│   ├── management/
-│   │   └── commands/
-│   │       └── poll_emails.py     ← IMAP ingestion: spam pre-filter → classify_message → create Lead; --dry-run flag
+│   ├── models.py                  ← Lead, Quotation, QuotationLineItem, MarketOrder, ProductKeyword, TeamEmailConfig
+│   ├── views.py                   ← _parse_addon_notes(), _deduct_stock(), _quotation_context(), all views
+│   ├── forms.py, admin.py, urls.py
+│   ├── management/commands/poll_emails.py   ← IMAP ingestion; --dry-run flag
 │   └── services/
-│       ├── llm.py                 ← generate_quotation_draft(lead, entity_notes) — LIVE; tool-use loop with lookup_pricing; keyword injection
-│       │                             classify_message(text) — LIVE; YES/NO LLM classifier for inbound messages
-│       │                             _build_keyword_context() — fetches active ProductKeywords; injects into system prompt
-│       └── tools/
-│           └── pricing.py         ← lookup_pricing tool — queries database.Product; returns found: bool + results
-│
-├── import_products.py             ← one-time script; imports ProductList_updated.xlsx → database.Product
-│
-├── templates/                     ← global templates (all extend base.html)
-│   ├── base.html                  ← nav gated by role; Database dropdown (Customers/Products/Brokers)
-│   ├── dashboard.html             ← + New Lead / + New Quotation / + Market Order buttons
-│   ├── add_user.html              ← includes JS team→role filter
-│   ├── edit_user_role.html        ← includes JS team→role filter
+│       ├── llm.py                 ← generate_quotation_draft(), classify_message(), _build_keyword_context()
+│       └── tools/pricing.py       ← lookup_pricing tool; returns found: bool + results list
+├── import_products.py             ← one-time; ProductList_updated.xlsx → database.Product (523 rows)
+├── import_business_partners.py    ← one-time; Business Partner ALL.xlsx → database.Customer (6,414 rows)
+├── docs/urls.md                   ← full URL reference for all apps
+├── templates/                     ← all extend base.html
+│   ├── base.html, dashboard.html, add_user.html, edit_user_role.html
 │   ├── registration/              ← login, password reset
-│   ├── database/
-│   │   ├── product_list.html      ← grouped view; cascading dropdowns (Make→Length→Grade→Site); text search only
-│   │   ├── product_add.html       ← JS sub-type filter by make; Plate hides sub-type field; Godown + Site fields
-│   │   ├── product_edit.html      ← same JS; pre-selects current sub_type; Godown + Site fields
-│   │   ├── customer_list.html     ← team-scoped
-│   │   ├── customer_detail.html   ← lead history
-│   │   ├── customer_add.html
-│   │   ├── customer_edit.html
-│   │   ├── broker_list.html
-│   │   └── broker_create.html
-│   └── quotations/
-│       ├── lead_list.html
-│       ├── lead_detail.html
-│       ├── lead_create.html
-│       ├── quotation_list.html    ← Outcome column (Win/Loss/—)
-│       ├── quotation_detail.html  ← Revise, Send/Internal Copy, Edit, PDF, Outcome, Versions; "Won Via" + "Stock Deducted" badge shown when outcome=win
-│       ├── quotation_edit.html    ← inline formset + JS auto-calc; per-row "⊞ add-ons" collapsible sub-row (7 add-on inputs); "⌕ pick" button per row; accordion product picker modal; customer notes pre-fill in line item notes
-│       ├── quotation_pdf.html     ← WeasyPrint A4; "INTERNAL — RATES ONLY" header for broker quotations
-│       ├── quotation_select_lead.html
-│       ├── market_order_list.html
-│       ├── market_order_create.html
-│       ├── market_order_detail.html  ← 4-step flow: rate → confirm → assign DO → DO number
-│       └── quotation_send_confirm.html  ← email compose form; pre-filled subject/body; PDF note hidden for broker leads
-│
-├── .claude/
-│   ├── settings.json
-│   └── commands/
-│       └── md-write.md            ← /md-write command definition
-│
-├── CLAUDE.md                      ← this file
-├── manage.py
-└── requirements.txt
+│   ├── database/                  ← product_list/add/edit, customer_list/detail/add/edit, broker_list/create
+│   └── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
+│                                     market_order_list/create/detail, quotation_send_confirm
+├── .claude/settings.json, commands/md-write.md
+├── CLAUDE.md, manage.py, requirements.txt
 ```
 
-**Shell context:** Working directory is the project root unless stated.
-Use `python manage.py` not `python3 manage.py`.
+Shell context: working directory is the project root. Use `python manage.py` not `python3 manage.py`.
 
 ---
 
-## 17. URLs Defined
+## 17. App Structure
 
-**aegis** (prefix: `/`):
+| App | Purpose |
+|-----|---------|
+| `aegis` | Auth & user management — CustomUser |
+| `database` | Product, Customer, Broker — CRUD views |
+| `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service |
+| `ares`, `athena`, `hephaestus`, `hermes`, `themis` | Not yet created |
 
-| URL                                        | View / Name            |
-|--------------------------------------------|------------------------|
-| `/login/`                                  | LoginView              |
-| `/logout/`                                 | LogoutView             |
-| `/dashboard/`                              | dashboard              |
-| `/register/`                               | register               |
-| `/add-user/`                               | add_user (admin only)  |
-| `/directory/`                              | user_directory (admin) |
-| `/directory/<id>/edit-role/`               | edit_user_role (admin) |
-| `/approve-user/<id>/`                      | approve_user (admin)   |
-| `/delete-user/<id>/`                       | delete_user (admin)    |
-| `/password-reset/`                         | PasswordResetView      |
-| `/password-reset/done/`                    | PasswordResetDoneView  |
-| `/password-reset/confirm/<uid>/<token>/`   | PasswordResetConfirmView |
-| `/password-reset/complete/`                | PasswordResetCompleteView |
-
-**quotations** (prefix: `/quotations/`):
-
-| URL                                           | View / Name                  |
-|-----------------------------------------------|------------------------------|
-| `/quotations/`                                | quotation_list               |
-| `/quotations/select-lead/`                    | quotation_select_lead        |
-| `/quotations/create/<lead_pk>/`               | quotation_create             |
-| `/quotations/<pk>/`                           | quotation_detail             |
-| `/quotations/<pk>/edit/`                      | quotation_edit               |
-| `/quotations/<pk>/pdf/`                       | quotation_pdf                |
-| `/quotations/<pk>/approve/`                   | quotation_approve            |
-| `/quotations/<pk>/outcome/`                   | quotation_outcome            |
-| `/quotations/<pk>/revise/`                    | quotation_revise             |
-| `/quotations/<pk>/send/`                      | quotation_send               |
-| `/quotations/leads/`                          | lead_list                    |
-| `/quotations/leads/create/`                   | lead_create                  |
-| `/quotations/leads/<pk>/`                     | lead_detail                  |
-| `/quotations/market-orders/`                  | market_order_list            |
-| `/quotations/market-orders/create/`           | market_order_create          |
-| `/quotations/market-orders/<pk>/`             | market_order_detail          |
-| `/quotations/market-orders/<pk>/set-rate/`    | market_order_set_rate        |
-| `/quotations/market-orders/<pk>/confirm/`     | market_order_confirm         |
-| `/quotations/market-orders/<pk>/assign-do/`   | market_order_assign_do       |
-| `/quotations/market-orders/<pk>/set-do/`      | market_order_set_do          |
-
-**database** (prefix: `/database/`):
-
-| URL                                           | View / Name       |
-|-----------------------------------------------|-------------------|
-| `/database/products/`                         | product_list      |
-| `/database/products/add/`                     | product_add            |
-| `/database/products/catalog.json`             | product_catalog_json   |
-| `/database/products/<pk>/edit/`               | product_edit           |
-| `/database/products/<pk>/delete/`             | product_delete         |
-| `/database/customers/`                        | customer_list     |
-| `/database/customers/add/`                    | customer_add      |
-| `/database/customers/<pk>/`                   | customer_detail   |
-| `/database/customers/<pk>/edit/`              | customer_edit     |
-| `/database/brokers/`                          | broker_list       |
-| `/database/brokers/add/`                      | broker_create     |
-
-**admin**: `/admin/` — jazzmin-themed Django admin.
+Future apps per module: `credit_risk`, `training`, `leads`.
 
 ---
 
-## 18. App Structure
+## 18. External Services Status
 
-| App          | Purpose                                                                        |
-|--------------|--------------------------------------------------------------------------------|
-| `aegis`      | Auth & user management — CustomUser                                            |
-| `database`   | Shared entity models — Product, Customer, Broker; CRUD views                  |
-| `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service       |
-| `ares`       | Not yet created                                           |
-| `athena`     | Not yet created                                           |
-| `hephaestus` | Not yet created                                           |
-| `hermes`     | Not yet created                                           |
-| `themis`     | Not yet created                                           |
-
-Future apps to create per module: `credit_risk`, `training`, `leads`.
+| Service | Status | Notes |
+|---------|--------|-------|
+| together.ai | Active | `together==2.14.0`; `generate_quotation_draft` tested end-to-end |
+| WhatsApp Business API | Pending Meta approval | Client must initiate — do NOT assume live |
+| ConvoGenie | Client has account — reviewing | Integration scope TBD (see Section 9) |
+| SAP | Deprioritised | Daily Excel replaces direct integration |
+| Email (IMAP/SMTP) | Built — awaiting live credentials | Needs dummy Gmail App Password in `TeamEmailConfig` admin; delete post-demo |
+| Hetzner VPS | Not provisioned | Pending hosting decision |
+| Twilio/Deepgram/ElevenLabs | Not started | Only if Voice Stand-in greenlit |
 
 ---
 
-## 19. External Services Status
+## 19. Settings & Configuration
 
-| Service               | Status                          | Notes                                        |
-|-----------------------|---------------------------------|----------------------------------------------|
-| together.ai           | Active — API key set, SDK wired | `together==2.14.0` installed; `generate_quotation_draft` tested end-to-end |
-| WhatsApp Business API | Pending Meta approval           | Client must initiate — do NOT assume live     |
-| ConvoGenie            | Client has account — reviewing  | Integration scope TBD (see Section 9)        |
-| SAP                   | Deprioritised                   | Daily Excel replaces direct integration      |
-| Email (IMAP/SMTP)     | Built — awaiting live credentials | `poll_emails` command + SMTP send built; dummy Gmail credentials needed in `TeamEmailConfig` admin; delete post-demo |
-| Hetzner VPS           | Not provisioned                 | Pending hosting decision                     |
-| Twilio/Deepgram/ElevenLabs | Not started               | Only if Voice Stand-in greenlit              |
-
----
-
-## 20. Settings & Configuration
-
-- `LOGIN_REDIRECT_URL = '/dashboard/'`
-- `LOGIN_URL = '/login/'`
-- `LOGOUT_REDIRECT_URL = '/login/'`
-- Templates: `<project_root>/templates/` — configured via `BASE_DIR / 'templates/'`
-- Static files: served by `whitenoise` in both dev and production (`STATICFILES_STORAGE = CompressedManifestStaticFilesStorage`)
+- `LOGIN_REDIRECT_URL = '/dashboard/'` · `LOGIN_URL = '/login/'` · `LOGOUT_REDIRECT_URL = '/login/'`
+- Templates: `BASE_DIR / 'templates/'`
+- Static files: whitenoise `CompressedManifestStaticFilesStorage`
 - `DEBUG = False` in production — never deploy with DEBUG = True
 - Secret key from environment variable only — never hardcoded
 
-### Environment variables (.env — never commit)
+Environment variables (`.env` — never commit):
 ```
-SECRET_KEY=
-DEBUG=
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-DB_HOST=
-DB_PORT=
-TOGETHER_API_KEY=
+SECRET_KEY=  DEBUG=  DB_NAME=  DB_USER=  DB_PASSWORD=  DB_HOST=  DB_PORT=  TOGETHER_API_KEY=
 ```
 
 ---
 
-## 21. Coding Conventions
+## 20. Coding Conventions
 
 - One Django app per major module
-- Models: always use `class Meta` with `verbose_name` and `verbose_name_plural`
+- Models: always `class Meta` with `verbose_name` and `verbose_name_plural`
 - Views: CBVs for CRUD, FBVs for custom logic
-- All LLM calls through a single service layer (`services/llm.py`) — never call
-  together.ai directly from views
+- All LLM calls through `services/llm.py` — never call together.ai directly from views
 - Tool definitions for function calling go in `services/tools/`
 - Environment variables via `python-dotenv` + `os.environ` (NOT python-decouple)
-- Requirements pinned (`pip freeze > requirements.txt` after each install)
+- Requirements pinned: `pip freeze > requirements.txt` after each install
 
 ---
 
-## 22. Non-Negotiables
+## 21. Non-Negotiables
 
 - Never suggest running a local LLM or downloading model weights
 - Never suggest Pinecone, Qdrant, Weaviate, Chroma — pgvector only

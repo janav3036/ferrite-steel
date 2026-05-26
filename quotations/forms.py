@@ -36,10 +36,11 @@ class ManualLeadForm(forms.ModelForm):
 class QuotationEditForm(forms.ModelForm):
     class Meta:
         model = Quotation
-        fields = ['payment_terms', 'delivery_address', 'transport_extra', 'sgst_percent', 'cgst_percent', 'notes', 'valid_until']
+        fields = ['payment_terms', 'delivery_address', 'loading_extra', 'transport_extra', 'sgst_percent', 'cgst_percent', 'notes', 'valid_until']
         widgets = {
             'payment_terms': forms.Select(attrs={'class': 'form-select'}),
             'delivery_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'loading_extra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'transport_extra': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'sgst_percent': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'cgst_percent': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -58,7 +59,7 @@ class LineItemForm(forms.ModelForm):
         fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
         widgets = {
             'product': forms.HiddenInput(),
-            'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True, 'tabindex': '-1'}),
+            'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': 'readonly', 'tabindex': '-1'}),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
             'make': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
             'length': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),

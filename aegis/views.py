@@ -1,11 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.views import PasswordResetView
+from django.core.mail import get_connection, EmailMultiAlternatives
+from django.template import loader
 from django.contrib import messages
-from django.shortcuts import get_object_or_404
 from quotations.models import Lead, Quotation
 from datetime import timedelta
 from django.utils import timezone
-from .forms import AddUserForm, EditRoleForm, RegistrationForm
+from .forms import AddUserForm, EditRoleForm, RegistrationForm, ProfileForm
 from .models import CustomUser
 
 
@@ -119,3 +122,52 @@ def delete_user(request, user_id):
     target_user.delete()
     messages.success(request, f"User '{username}' has been deleted.")
     return redirect('user_directory')
+
+
+@login_required
+def profile(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated.')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, 'profile.html', {'form': form})
+
+
+class TeamPasswordResetForm(PasswordResetForm):
+    def send_mail(self, subject_template_name, email_template_name, context,
+                  from_email, to_email, html_email_template_name=None):
+        from quotations.models import TeamEmailConfig
+        config = TeamEmailConfig.objects.filter(is_active=True).first()
+        connection = None
+        if config:
+            smtp_host = config.imap_host.replace('imap.', 'smtp.')
+            connection = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host=smtp_host,
+                port=587,
+                username=config.imap_username,
+                password=config.imap_password,
+                use_tls=True,
+            )
+            from_email = config.email_address
+
+        subject = loader.render_to_string(subject_template_name, context)
+        subject = ''.join(subject.splitlines())
+        body = loader.render_to_string(email_template_name, context)
+        email = EmailMultiAlternatives(subject, body, from_email, [to_email], connection=connection)
+        if html_email_template_name:
+            html = loader.render_to_string(html_email_template_name, context)
+            email.attach_alternative(html, 'text/html')
+        email.send()
+
+
+class CustomPasswordResetView(PasswordResetView):
+    form_class = TeamPasswordResetForm
+    template_name = 'registration/password_reset_form.html'
+    email_template_name = 'registration/password_reset_email.html'
+    subject_template_name = 'registration/password_reset_subject.txt'
+    success_url = '/password-reset/done/'

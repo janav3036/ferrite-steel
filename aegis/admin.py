@@ -8,5 +8,8 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('role', 'branch', 'is_active')
     search_fields = ('username', 'first_name', 'last_name', 'employee_id')
     fieldsets = UserAdmin.fieldsets + (
-        ('Staff Info', {'fields': ('role', 'phone', 'employee_id', 'branch')}),
+        ('Staff Info', {'fields': ('role', 'team', 'phone', 'employee_id', 'branch')}),
     )
+
+    class Media:
+        js = ('admin/js/user_role_filter.js',)

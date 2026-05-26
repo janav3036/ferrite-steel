@@ -12,21 +12,75 @@
             {% endfor %}
         {% endif %}
 
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Find Customer</div>
+            <div class="card-body">
+                <div class="position-relative">
+                    <input type="text" id="customer-search" class="form-control"
+                           placeholder="Search by name or company…" autocomplete="off">
+                    <div id="customer-results" class="list-group position-absolute w-100 shadow"
+                         style="display:none;z-index:1050;top:calc(100% + 2px);left:0"></div>
+                </div>
+                <div class="mt-2 text-muted small">
+                    Select an existing customer to auto-fill the fields below.
+                    Customer not here?
+                    <a href="{% url 'customer_add' %}" target="_blank">Add New Customer ↗</a>
+                </div>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Lead Details</div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    {% for field in form %}
+
                     <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
+                        <label for="{{ form.customer_name.id_for_label }}" class="form-label fw-semibold">{{ form.customer_name.label }}</label>
+                        {{ form.customer_name }}
+                        {% for error in form.customer_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    {% endfor %}
+                    <div class="mb-3">
+                        <label for="{{ form.customer_phone.id_for_label }}" class="form-label fw-semibold">{{ form.customer_phone.label }}</label>
+                        {{ form.customer_phone }}
+                        {% for error in form.customer_phone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.customer_email.id_for_label }}" class="form-label fw-semibold">{{ form.customer_email.label }}</label>
+                        {{ form.customer_email }}
+                        {% for error in form.customer_email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.company.id_for_label }}" class="form-label fw-semibold">{{ form.company.label }}</label>
+                        {{ form.company }}
+                        {% for error in form.company.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.industry.id_for_label }}" class="form-label fw-semibold">{{ form.industry.label }}</label>
+                        {{ form.industry }}
+                        {% for error in form.industry.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.location.id_for_label }}" class="form-label fw-semibold">{{ form.location.label }}</label>
+                        {{ form.location }}
+                        {% for error in form.location.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.broker.id_for_label }}" class="form-label fw-semibold">{{ form.broker.label }}</label>
+                        {{ form.broker }}
+                        {% for error in form.broker.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.raw_text.id_for_label }}" class="form-label fw-semibold">{{ form.raw_text.label }}</label>
+                        {{ form.raw_text }}
+                        {% for error in form.raw_text.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% for error in form.notes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Save Lead</button>
                         <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary">Cancel</a>
@@ -36,4 +90,74 @@
         </div>
     </div>
 </div>
+
+<script>
+const searchUrl = '{% url "customer_search_json" %}';
+const searchInput = document.getElementById('customer-search');
+const resultsBox  = document.getElementById('customer-results');
+let debounceTimer;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+    debounceTimer = setTimeout(() => doSearch(q), 280);
+});
+
+async function doSearch(q) {
+    try {
+        const resp = await fetch(`${searchUrl}?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        renderResults(data.results);
+    } catch { /* silent */ }
+}
+
+function renderResults(results) {
+    resultsBox.innerHTML = '';
+    results.forEach(c => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action py-2';
+        btn.innerHTML = `<span class="fw-semibold">${c.name}</span>` +
+            (c.company ? ` <span class="text-muted">— ${c.company}</span>` : '') +
+            `<br><small class="text-muted">${[c.phone, c.email].filter(Boolean).join(' · ')}</small>`;
+        btn.addEventListener('click', () => selectCustomer(c));
+        resultsBox.appendChild(btn);
+    });
+
+    if (!results.length) {
+        const noResult = document.createElement('div');
+        noResult.className = 'list-group-item text-muted small py-2';
+        noResult.textContent = 'No customers found.';
+        resultsBox.appendChild(noResult);
+    }
+
+    // Always show "Add New Customer" at the bottom
+    const addBtn = document.createElement('a');
+    addBtn.href = '{% url "customer_add" %}';
+    addBtn.target = '_blank';
+    addBtn.className = 'list-group-item list-group-item-action py-2 text-primary fw-semibold';
+    addBtn.textContent = '+ Add New Customer';
+    resultsBox.appendChild(addBtn);
+
+    resultsBox.style.display = '';
+}
+
+function selectCustomer(c) {
+    document.getElementById('id_customer_name').value  = c.name    || '';
+    document.getElementById('id_customer_phone').value = c.phone   || '';
+    document.getElementById('id_customer_email').value = c.email   || '';
+    document.getElementById('id_company').value        = c.company || '';
+    document.getElementById('id_location').value       = c.location|| '';
+    searchInput.value = c.name + (c.company ? ' — ' + c.company : '');
+    resultsBox.style.display = 'none';
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function (e) {
+    if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+        resultsBox.style.display = 'none';
+    }
+});
+</script>
 {% endblock %}

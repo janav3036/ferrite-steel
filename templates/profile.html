@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}My Profile — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">My Profile</h2>
+    <a href="/dashboard/" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+</div>
+
+<div class="row g-4">
+
+    <!-- Left: account info + security -->
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">Account</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Username</dt>
+                    <dd class="col-7">{{ request.user.username }}</dd>
+
+                    <dt class="col-5">Role</dt>
+                    <dd class="col-7">
+                        <span class="badge bg-secondary">{{ request.user.get_role_display }}</span>
+                    </dd>
+
+                    <dt class="col-5">Team</dt>
+                    <dd class="col-7">
+                        {% if request.user.team %}
+                        <span class="badge bg-primary">{{ request.user.get_team_display }}</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </dd>
+
+                    {% if request.user.employee_id %}
+                    <dt class="col-5">Employee ID</dt>
+                    <dd class="col-7">{{ request.user.employee_id }}</dd>
+                    {% endif %}
+
+                    <dt class="col-5">Joined</dt>
+                    <dd class="col-7">{{ request.user.date_joined|date:"d M Y" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Security</div>
+            <div class="card-body">
+                <a href="{% url 'password_change' %}" class="btn btn-outline-secondary w-100 btn-sm">
+                    Change Password
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: editable fields -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Personal Information</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+
+                        <div class="col-sm-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                            {{ form.first_name }}
+                            {% for error in form.first_name.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                            {% for error in form.last_name.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                            {{ form.email }}
+                            {% for error in form.email.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
+                            {{ form.phone }}
+                            {% for error in form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label for="{{ form.branch.id_for_label }}" class="form-label">Branch</label>
+                            {{ form.branch }}
+                            {% for error in form.branch.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

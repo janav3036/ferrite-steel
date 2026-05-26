@@ -14,7 +14,37 @@
     <a href="{% url 'lead_list' %}" class="btn btn-sm btn-outline-secondary">All Leads</a>
 </div>
 
-{% if quotations %}
+<!-- Search + Filters -->
+<form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search number, company…" style="min-width:220px">
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            {% for val, label in quotation_statuses %}
+            <option value="{{ val }}" {% if status_f == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="outcome" class="form-select form-select-sm">
+            <option value="">All Outcomes</option>
+            {% for val, label in quotation_outcomes %}
+            <option value="{{ val }}" {% if outcome_f == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-sm btn-outline-secondary">Filter</button>
+        {% if q or status_f or outcome_f %}
+        <a href="{% url 'quotation_list' %}" class="btn btn-sm btn-outline-danger ms-1">✕ Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if page_obj %}
+<p class="text-muted small mb-2">{{ page_obj.paginator.count }} quotation{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-dark">
@@ -30,38 +60,39 @@
             </tr>
         </thead>
         <tbody>
-            {% for q in quotations %}
+            {% for qt in page_obj %}
             <tr>
-                <td>{{ q.quotation_number }}</td>
-                <td>{{ q.lead.customer_name|default:"—" }}</td>
+                <td>{{ qt.quotation_number }}</td>
+                <td>{{ qt.lead.customer_name|default:"—" }}</td>
                 <td>
                     <span class="badge
-                        {% if q.status == 'draft' %}bg-secondary
-                        {% elif q.status == 'approved' %}bg-success
-                        {% elif q.status == 'sent' %}bg-primary
+                        {% if qt.status == 'draft' %}bg-secondary
+                        {% elif qt.status == 'approved' %}bg-success
+                        {% elif qt.status == 'sent' %}bg-primary
                         {% else %}bg-danger{% endif %}">
-                        {{ q.get_status_display }}
+                        {{ qt.get_status_display }}
                     </span>
                 </td>
                 <td>
                     <span class="badge
-                        {% if q.outcome == 'win' %}bg-success
-                        {% elif q.outcome == 'loss' %}bg-danger
+                        {% if qt.outcome == 'win' %}bg-success
+                        {% elif qt.outcome == 'loss' %}bg-danger
                         {% else %}bg-light text-dark{% endif %}">
-                        {{ q.get_outcome_display }}
+                        {{ qt.get_outcome_display }}
                     </span>
                 </td>
-                <td>{{ q.total_amount|floatformat:2 }}</td>
-                <td>{{ q.created_by.username|default:"—" }}</td>
-                <td>{{ q.created_at|date:"d M Y" }}</td>
-                <td><a href="{% url 'quotation_detail' q.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                <td>{{ qt.total_amount|floatformat:2 }}</td>
+                <td>{{ qt.created_by.username|default:"—" }}</td>
+                <td>{{ qt.created_at|date:"d M Y" }}</td>
+                <td><a href="{% url 'quotation_detail' qt.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% include 'partials/pagination.html' %}
 {% else %}
-<p class="text-muted">No quotations yet.</p>
+<p class="text-muted">No quotations found.</p>
 {% endif %}
 
 <h4 class="mt-5 mb-3">Leads Awaiting Quotation</h4>

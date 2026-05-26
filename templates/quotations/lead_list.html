@@ -10,7 +10,37 @@
     </div>
 </div>
 
-{% if leads %}
+<!-- Search + Filters -->
+<form method="get" class="row g-2 mb-3 align-items-end">
+    <div class="col-auto">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search name, company, email…" style="min-width:220px">
+    </div>
+    <div class="col-auto">
+        <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            {% for val, label in lead_statuses %}
+            <option value="{{ val }}" {% if status_f == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="source" class="form-select form-select-sm">
+            <option value="">All Sources</option>
+            {% for val, label in lead_sources %}
+            <option value="{{ val }}" {% if source_f == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-sm btn-outline-secondary">Filter</button>
+        {% if q or status_f or source_f %}
+        <a href="{% url 'lead_list' %}" class="btn btn-sm btn-outline-danger ms-1">✕ Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if page_obj %}
+<p class="text-muted small mb-2">{{ page_obj.paginator.count }} lead{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-dark">
@@ -25,7 +55,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for lead in leads %}
+            {% for lead in page_obj %}
             <tr>
                 <td>{{ lead.pk }}</td>
                 <td>{{ lead.customer_name|default:"—" }}</td>
@@ -55,7 +85,8 @@
         </tbody>
     </table>
 </div>
+{% include 'partials/pagination.html' %}
 {% else %}
-<p class="text-muted">No leads yet. <a href="{% url 'lead_create' %}">Create the first one.</a></p>
+<p class="text-muted">No leads found. {% if not q and not status_f and not source_f %}<a href="{% url 'lead_create' %}">Create the first one.</a>{% endif %}</p>
 {% endif %}
 {% endblock %}

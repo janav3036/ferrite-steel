@@ -90,6 +90,7 @@ class Quotation(models.Model):
     valid_until = models.DateField(null=True, blank=True)
     payment_terms = models.CharField(max_length=100, choices=PAYMENT_TERMS_CHOICES, default='Advance')
     delivery_address = models.TextField(blank=True)
+    loading_extra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     transport_extra = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sgst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=9)
     cgst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=9)
