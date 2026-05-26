@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mail
 
 class Lead(models.Model):
     SOURCE_CHOICES = [
@@ -193,6 +195,12 @@ class MarketOrder(models.Model):
         on_delete=models.SET_NULL,
         related_name='market_orders',
     )
+    lead = models.ForeignKey(
+        Lead, 
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='market_orders'
+    )
     sub_team = models.CharField(max_length=20, choices=SUB_TEAM_CHOICES)
     product_details = models.TextField(help_text='What the broker ordered')
     quantity = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
@@ -260,6 +268,15 @@ class TeamEmailConfig(models.Model):
     imap_password = models.CharField(max_length=255, help_text='Use an App Password, not the account password')
     use_ssl       = models.BooleanField(default=True)
     is_active     = models.BooleanField(default=True)
+    poll_interval_minutes = models.IntegerField(
+        default=30, 
+        help_text = 'How often to poll this inbox automatically (minutes)'
+
+    )
+    last_polled_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="set automatically after each successful poll"
+    )
 
     class Meta:
         verbose_name = 'Team Email Config'
@@ -268,3 +285,25 @@ class TeamEmailConfig(models.Model):
 
     def __str__(self):
         return f'{self.get_team_display()} — {self.email_address}'
+
+
+@receiver(post_save, sender=MarketOrder)
+def notify_loading_dock(sender, instance, **kwargs):
+    update_fields = kwargs.get('update_fields') or []
+    if instance.status != 'broker_confirmed' or 'status' not in update_fields:
+        return
+    if not instance.loading_dock_member or not instance.loading_dock_member.email:
+        return
+    send_mail(
+        subject=f'New Order Confirmed — MO-{instance.pk:05d}',
+        message=(
+            f'Broker {instance.broker.name} has confirmed the order.\n\n'
+            f'Order: MO-{instance.pk:05d}\n'
+            f'Product: {instance.product_details}\n'
+            f'Quantity: {instance.quantity}\n\n'
+            f'Please issue the Delivery Order.'
+        ),
+        from_email=None,
+        recipient_list=[instance.loading_dock_member.email],
+        fail_silently=True,
+    )

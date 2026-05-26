@@ -4,9 +4,17 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Leads</h2>
-    <div class="d-flex gap-2">
-        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary">+ New Lead</a>
-        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary">+ New Quotation</a>
+    <div class="d-flex gap-2 align-items-center">
+        {% if request.user.role == 'admin' or request.user.role == 'lead' %}
+        <form method="post" action="{% url 'poll_emails_now' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Poll team inboxes now">
+                <i class="bi bi-arrow-clockwise me-1"></i>Poll Inbox
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm">+ New Lead</a>
+        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary btn-sm">+ New Quotation</a>
     </div>
 </div>
 

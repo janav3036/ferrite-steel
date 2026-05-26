@@ -26,4 +26,8 @@ urlpatterns = [
     path('market-orders/<int:pk>/confirm/', views.market_order_confirm, name='market_order_confirm'),
     path('market-orders/<int:pk>/assign-do/', views.market_order_assign_do, name='market_order_assign_do'),
     path('market-orders/<int:pk>/set-do/', views.market_order_set_do, name='market_order_set_do'),
+
+    path('poll-now/', views.poll_emails_now, name='poll_emails_now'),
+    path('market-orders/<int:pk>/do-send/', views.market_order_do_send, name='market_order_do_send'),
+
 ]

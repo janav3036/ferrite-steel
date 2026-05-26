@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 24 May 2026 (session 11)
+**Last updated:** 27 May 2026 (session 12)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2: quotation UI/flow done; LLM draft generation wired; classify_message built; email send (SMTP) built; poll_emails command built. WhatsApp ingestion pending Meta approval.**
-**Current phase: Phase 2 — email ingestion pipeline complete (pending live credentials); WhatsApp ingestion deferred.**
+**Phase 1 complete. Phase 2 (Quotation Automator): quotation UI/flow done; LLM draft generation wired; classify_message + classify_broker_response built; email send (SMTP) built; poll_emails command built with --scheduled flag and in-app Poll Inbox button. Broker-to-DO pipeline complete. WhatsApp ingestion pending Meta approval.**
+**Current work: module-3 branch — broker pipeline + poll timer built this session.**
 
 ### What is built
 
@@ -121,11 +121,13 @@ to a non-technical client.
 
 **Stock deduction on Win:** `_deduct_stock()` called once via `stock_deducted` guard. Deducts quantity (converted to tons if uom=kg) using `Greatest(F('quantity') - qty, 0)` — atomic, never negative. Skips line items without `product` FK (LLM-generated items).
 
-**LLM / AI:** `generate_quotation_draft(lead, entity_notes)` in `quotations/services/llm.py` — tool-use loop with `lookup_pricing`, ProductKeyword injection, UOM context, reply-chain focus in system prompt. Graceful fallback to blank editor. `classify_message(text)` — YES/NO classifier for inbound messages. Shared `together_client` in `ferite_steel/ai.py`.
+**LLM / AI:** `generate_quotation_draft(lead, entity_notes)` in `quotations/services/llm.py` — tool-use loop with `lookup_pricing`, ProductKeyword injection, UOM context, reply-chain focus in system prompt. Graceful fallback to blank editor. `classify_message(text)` — YES/NO classifier for inbound messages. `classify_broker_response(text)` — returns `'confirmation'`/`'counter'`/`'other'` for broker replies. Shared `together_client` in `ferite_steel/ai.py`.
 
-**Email pipeline:** `poll_emails` management command — IMAP per TeamEmailConfig, spam pre-filter, classify_message, Lead creation, marks Seen. `--dry-run` flag. `_strip_reply_chain()` handles Gmail/Outlook/forwarded formats. `quotation_send` — compose/confirm form, SMTP send, PDF attach (non-broker), text-only rate email for broker leads. SMTP host = `imap_host.replace("imap.", "smtp.")`.
+**Email pipeline:** `poll_emails` management command — IMAP per TeamEmailConfig, spam pre-filter, broker reply detection (`_find_broker`), classify_message, Lead + MarketOrder creation for broker senders, marks Seen. `--dry-run` flag. `--scheduled` flag throttles by `TeamEmailConfig.poll_interval_minutes`; stamps `last_polled_at` after each real run. "Poll Inbox" button on lead list (admin/lead only) hits `poll_emails_now` view. Cron: `* * * * * manage.py poll_emails --scheduled`. `_strip_reply_chain()` handles Gmail/Outlook/forwarded formats. `quotation_send` — compose/confirm form, SMTP send, PDF attach (non-broker), text-only rate email for broker leads. SMTP host = `imap_host.replace("imap.", "smtp.")`.
 
-**Market team:** MarketOrder full flow (`new`→`rate_sent`→`broker_confirmed`→`do_pending`→`completed`). Separate from Quotation — tracks logistics, not pricing.
+**Broker-to-DO pipeline:** `_find_broker(email_addr)` matches inbound sender to active Broker. Broker email → Lead (with broker FK) + MarketOrder auto-created. Broker reply → `classify_broker_response()` → if confirmation: MarketOrder status → `broker_confirmed`, `broker_confirmed_at` stamped; if counter: reply appended to Lead notes. `notify_loading_dock` signal on `MarketOrder` post_save — fires only when `status` field transitions to `broker_confirmed`, emails `loading_dock_member`. DO send: `market_order_do_send` view + template — user enters DO number, gets compose/confirm UI, sends text to broker email. MarketOrder status → `completed` on send. `lead` FK added to `MarketOrder`.
+
+**Market team:** MarketOrder full flow (`new`→`rate_sent`→`broker_confirmed`→`do_pending`→`completed`). Visual pipeline timeline on detail page (numbered nodes, connector line, state-aware colours). Separate from Quotation — tracks logistics, not pricing.
 
 ### What is NOT yet built (planned for next session)
 - **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
@@ -137,11 +139,12 @@ to a non-technical client.
 - WhatsApp ingestion — deferred until Meta approval confirmed
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
+- `from datetime import timedelta` in `poll_emails.py` should be moved to top-level imports (currently inside `handle`)
 
 ### Pending before Phase 2 is fully live
 - WhatsApp Business API Meta approval
 - Dummy Gmail credentials in `TeamEmailConfig`
-- Hosting decision confirmed (see Section 8)
+- Hetzner VPS provisioning + cron setup for `poll_emails --scheduled`
 
 ---
 
@@ -224,8 +227,11 @@ Broker-sourced (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY".
 ### ProductKeyword (quotations)
 Maps client trade terms (e.g. "sariya") → canonical product names. `keyword`, `maps_to`, `notes`, `is_active`. `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every draft generation call.
 
+### MarketOrder (quotations)
+`broker` FK (CASCADE), `lead` FK (SET_NULL, nullable — set when order auto-created from inbound email), `quotation` FK (nullable), `sub_team` (primary/rolling), `product_details`, `quantity`, `status` (new/rate_sent/broker_confirmed/do_pending/completed/cancelled), `rate`, `loading_dock_member` FK, `do_number`, `notes`, `created_by`. `notify_loading_dock` post_save signal fires email to `loading_dock_member` when `status` transitions to `broker_confirmed` (guarded by `update_fields`).
+
 ### TeamEmailConfig (quotations)
-IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`. SMTP host derived at send time: `imap_host.replace("imap.", "smtp.")`.
+IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`, `poll_interval_minutes` (default 30), `last_polled_at` (stamped after each real poll run). SMTP host derived at send time: `imap_host.replace("imap.", "smtp.")`.
 
 `AUTH_USER_MODEL = 'aegis.CustomUser'`
 **Migration discipline:** Never run `migrate` without reviewing `makemigrations` output first.
@@ -257,7 +263,7 @@ Client confirmed comfort with business data hosted off-premise. VPS not yet prov
 - Database: PostgreSQL on the same VPS
 - Static files: WhiteNoise (already wired in `settings.py`)
 - PDF: WeasyPrint — works natively on Linux via `apt install libpango-1.0-0 libcairo2`
-- Scheduled tasks: `poll_emails` management command via cron
+- Scheduled tasks: `poll_emails --scheduled` via cron every minute (throttled by `TeamEmailConfig.poll_interval_minutes`)
 
 **Pre-deployment checklist (not yet done):**
 - Set `ALLOWED_HOSTS` to domain/IP in settings

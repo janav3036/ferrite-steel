@@ -8,13 +8,15 @@ import email
 import imaplib
 import re
 from email.header import decode_header
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 
 from django.utils import timezone
 
-from quotations.models import Lead, Quotation, TeamEmailConfig
-from quotations.services.llm import classify_message
+from quotations.models import Lead, Quotation, TeamEmailConfig, MarketOrder
+from database.models import Broker
+from quotations.services.llm import classify_message, classify_broker_response
 
 # Senders we never want to create leads from
 SPAM_PATTERNS = re.compile(
@@ -134,6 +136,12 @@ def _parse_sender(from_header):
     name = ''.join(_decode(part, enc) for part, enc in parts).strip()
     return name, addr.lower()
 
+def _find_broker(email_addr: str):
+    """Return the active Broker whose email matches sender, or None."""
+    if not email_addr:
+        return None
+    return Broker.objects.filter(email__iexact=email_addr, is_active=True).first()
+
 
 class Command(BaseCommand):
     help = 'Poll active team email inboxes and create Leads for product inquiries.'
@@ -144,9 +152,15 @@ class Command(BaseCommand):
             action='store_true',
             help='Classify and print results without creating Leads or marking emails as seen.',
         )
+        parser.add_argument(
+            '--scheduled',
+            action='store_true',
+            help='Skip inboxes that were polled within their configured interval'
+        )
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
+        scheduled = options['scheduled']
         configs = TeamEmailConfig.objects.filter(is_active=True)
 
         if not configs.exists():
@@ -154,6 +168,12 @@ class Command(BaseCommand):
             return
 
         for config in configs:
+            if scheduled and config.last_polled_at:
+                due_at = config.last_polled_at + timedelta(minutes=config.poll_interval_minutes)
+                if timezone.now() < due_at:
+                    self.stdout.write(f'  [SKIP-TIMER]   {config} — next poll at {due_at.strftime("%H:%M:%S")}')
+                    continue
+
             self.stdout.write(f'\n── {config} ──')
             try:
                 self._poll(config, dry_run)
@@ -195,6 +215,45 @@ class Command(BaseCommand):
                 if not dry_run:
                     imap.store(msg_id, '+FLAGS', '\\Seen')
                 continue
+
+            # -- Handle broker replies -----------------------------------------
+            broker = _find_broker(sender_email)
+            if broker: 
+                open_order = MarketOrder.objects.filter(
+                    broker=broker,
+                    status='rate_sent',
+                ).order_by('-created_at').first()
+
+                if open_order:
+                    response_type = classify_broker_response(body)
+                    stamp = timezone.now().strftime('%d %b %Y %H:%M')
+                    block = (
+                        f'\n\n--- Broker reply ({response_type}) on {stamp} ---\n'
+                        f'{body.strip()}'
+                    )
+                    if not dry_run:
+                        if open_order.lead:
+                            open_order.lead.notes = (open_order.lead.notes or '') + block
+                            open_order.lead.save(update_fields=['notes'])
+
+                        if response_type == 'confirmation':
+                            open_order.status = 'broker_confirmed'
+                            open_order.broker_confirmed_at = timezone.now()
+                            open_order.save(update_fields=['status', 'broker_confirmed_at'])
+
+                    if response_type == 'confirmation':
+                        self.stdout.write(self.style.SUCCESS(
+                            f'  [BROKER-CONFIRM] {broker.name} → MO-{open_order.pk:05d}'
+                        ))
+                    else:
+                        self.stdout.write(
+                            f'  [BROKER-COUNTER] {broker.name} → MO-{open_order.pk:05d}'
+                        )
+
+                    if not dry_run:
+                        imap.store(msg_id, '+FLAGS', '\\Seen')
+                    continue
+
 
             # ── Handle replies to our own quotations ──────────────────────────
             if '[Quotation Reference:' in raw_body:
@@ -241,13 +300,31 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f'  [INQUIRY]      From: {sender_email} | Subject: {subject[:60]}')
             )
             if not dry_run:
-                Lead.objects.create(
+                broker = _find_broker(sender_email)
+                lead = Lead.objects.create(
                     source='email',
                     raw_text=text,
                     customer_name=sender_name,
                     customer_email=sender_email,
                     status='new',
+                    broker=broker
                 )
+                if broker:
+                    MarketOrder.objects.create(
+                        broker=broker,
+                        lead=lead,
+                        product_details=body,
+                        sub_team='primary',
+                        status='new',
+                        created_by=None
+                    )
+                    self.stdout.write(self.style.SUCCESS(
+                        f'   [MARKET-ORDER] Created for broker {broker.name}'
+                    ))
                 imap.store(msg_id, '+FLAGS', '\\Seen')
-
         imap.logout()
+
+        if not dry_run:
+            config.last_polled_at = timezone.now()
+            config.save(update_fields=['last_polled_at'])
+

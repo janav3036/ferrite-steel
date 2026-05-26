@@ -13,6 +13,9 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.core.management import call_command
+from django.views.decorators.http import require_POST
+
 
 from .forms import (
     ManualLeadForm, MarketOrderForm, MarketOrderRateForm,
@@ -727,3 +730,43 @@ def market_order_set_do(request, pk):
         order.save()
         messages.success(request, f'DO number {order.do_number} recorded. Order completed.')
     return redirect('market_order_detail', pk=pk)
+
+def market_order_do_send(request, pk):
+    order = get_object_or_404(MarketOrder, pk=pk)
+
+    if request.method == 'POST':
+        do_number = request.POST.get('do_number', '').strip()
+        if do_number:
+            order.do_number = do_number
+            order.do_issued_at = timezone.now()
+            order.status = 'completed'
+            order.save(update_fields=['do_number', 'do_issued_at', 'status'])
+
+        if request.POST.get('confirm_send') and order.broker.email:
+            from django.core.mail import send_mail
+            send_mail(
+                subject=f'Delivery Order — {order.broker.name}',
+                message=(
+                    f'Dear {order.broker.name},\n\n'
+                    f'Your Delivery Order number is: {order.do_number}\n\n'
+                    f'Regards,\nFerrite Steel'
+                ),
+                from_email=None,
+                recipient_list=[order.broker.email],
+                fail_silently=False,
+            )
+            messages.success(request, f'DO number sent to {order.broker.email}.')
+            return redirect('market_order_detail', pk=order.pk)
+
+        return render(request, 'quotations/market_order_do_send.html', {'order': order})
+
+    return render(request, 'quotations/market_order_do_send.html', {'order': order})
+
+@require_POST
+def poll_emails_now(request):
+    try:
+        call_command('poll_emails')
+        messages.success(request, 'Inbox polled successfully')
+    except Exception as exc:
+        messages.error(request, f"Poll failed: {exc}")
+    return redirect(request.META.get('HTTP_REFERER', '/'))

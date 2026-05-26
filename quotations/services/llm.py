@@ -42,6 +42,38 @@ def classify_message(text: str) -> bool:
     answer = (response.choices[0].message.content or '').strip().upper()
     return answer.startswith('YES')
 
+def classify_broker_response(text: str) -> str:
+    """
+    Returns 'confirmation', 'counter', or 'other'.
+    Call this when a broker replies to a rate we sent.
+    """
+    response = together_client.chat.completions.create(
+        model=TOGETHER_MODEL,
+        messages=[
+            {
+                'role': 'system',
+                'content': (
+                    'You are a classifier for an iron and steel trading company. '
+                    'A broker has replied to a rate we sent them. '
+                    'Decide what kind of reply it is:\n'
+                    '- "confirmation": broker agrees and wants to proceed\n'
+                    '- "counter": broker is negotiating — mentions a different price or asks for better rate\n'
+                    '- "other": anything else (query, out of scope, unclear)\n'
+                    'Reply with exactly one word: confirmation, counter, or other.'
+                ),
+            },
+            {'role': 'user', 'content': text},
+        ],
+        max_tokens=10,
+    )
+    answer = (response.choices[0].message.content or '').strip().lower()
+    if answer.startswith('confirmation'):
+        return 'confirmation'
+    if answer.startswith('counter'):
+        return 'counter'
+    return 'other'
+
+
 
 def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
     """

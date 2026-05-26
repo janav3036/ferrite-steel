@@ -2,154 +2,306 @@
 {% block title %}MO-{{ order.pk|stringformat:"05d" }} — Ferrite Steel{% endblock %}
 
 {% block content %}
+<style>
+    /* ── Timeline ── */
+    .pipeline {
+        position: relative;
+        padding: 0;
+        list-style: none;
+        margin: 0;
+    }
+    .pipeline::before {
+        content: '';
+        position: absolute;
+        left: 19px;
+        top: 28px;
+        bottom: 28px;
+        width: 2px;
+        background: var(--border);
+        z-index: 0;
+    }
+    .pipeline-step {
+        position: relative;
+        display: flex;
+        gap: 16px;
+        padding: 0 0 28px 0;
+    }
+    .pipeline-step:last-child { padding-bottom: 0; }
+
+    .step-node {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .75rem;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+        transition: box-shadow .2s;
+    }
+    .step-node.done {
+        background: #DCFCE7;
+        color: #16A34A;
+        border: 2px solid #BBF7D0;
+    }
+    .step-node.active {
+        background: #EFF6FF;
+        color: var(--accent);
+        border: 2px solid #BFDBFE;
+        box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+    }
+    .step-node.pending {
+        background: #F8FAFC;
+        color: #94A3B8;
+        border: 2px solid var(--border);
+    }
+
+    .step-content { flex: 1; padding-top: 8px; }
+    .step-label {
+        font-size: .78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-bottom: 6px;
+    }
+    .step-label.done { color: #16A34A; }
+    .step-label.active { color: var(--accent); }
+    .step-label.pending { color: #94A3B8; }
+
+    .step-body {
+        font-size: .84rem;
+        color: var(--text);
+    }
+    .step-meta {
+        font-size: .74rem;
+        color: var(--muted);
+        margin-top: 3px;
+    }
+
+    /* ── Status pill ── */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: .76rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 100px;
+        letter-spacing: .02em;
+    }
+    .status-pill .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .status-new        { background: #F1F5F9; color: #475569; }
+    .status-new .dot   { background: #94A3B8; }
+    .status-rate_sent        { background: #FFFBEB; color: #92400E; }
+    .status-rate_sent .dot   { background: #F59E0B; }
+    .status-broker_confirmed        { background: #EFF6FF; color: #1D4ED8; }
+    .status-broker_confirmed .dot   { background: #3B82F6; }
+    .status-do_pending        { background: #F5F3FF; color: #6D28D9; }
+    .status-do_pending .dot   { background: #8B5CF6; }
+    .status-completed        { background: #F0FDF4; color: #15803D; }
+    .status-completed .dot   { background: #22C55E; }
+    .status-cancelled        { background: #FFF1F2; color: #BE123C; }
+    .status-cancelled .dot   { background: #FB7185; }
+
+    /* ── Info grid ── */
+    .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 5px 16px; font-size: .84rem; }
+    .info-grid dt { color: var(--muted); font-weight: 500; white-space: nowrap; }
+    .info-grid dd { margin: 0; color: var(--text); }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">MO-{{ order.pk|stringformat:"05d" }}
-        <span class="badge ms-2
-            {% if order.status == 'new' %}bg-secondary
-            {% elif order.status == 'rate_sent' %}bg-warning text-dark
-            {% elif order.status == 'broker_confirmed' %}bg-info text-dark
-            {% elif order.status == 'do_pending' %}bg-primary
-            {% elif order.status == 'completed' %}bg-success
-            {% else %}bg-danger{% endif %}">
+    <div class="d-flex align-items-center gap-3">
+        <h4 class="mb-0">MO-{{ order.pk|stringformat:"05d" }}</h4>
+        <span class="status-pill status-{{ order.status }}">
+            <span class="dot"></span>
             {{ order.get_status_display }}
         </span>
-    </h4>
-    <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary">← Back</a>
+    </div>
+    <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
 </div>
 
 {% if messages %}
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 px-3" style="font-size:.84rem;">
+        {{ message }}<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
     </div>
     {% endfor %}
 {% endif %}
 
 <div class="row g-4">
+    <!-- Left column: details -->
     <div class="col-md-5">
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Order Details</div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Order Details</span>
+                <span class="text-muted" style="font-size:.74rem;font-weight:400;">{{ order.created_at|date:"d M Y" }}</span>
+            </div>
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Broker</dt>
-                    <dd class="col-sm-7">{{ order.broker.name }}{% if order.broker.company %} ({{ order.broker.company }}){% endif %}</dd>
-                    <dt class="col-sm-5">Sub-team</dt>
-                    <dd class="col-sm-7"><span class="badge bg-secondary">{{ order.get_sub_team_display }}</span></dd>
-                    <dt class="col-sm-5">Product</dt>
-                    <dd class="col-sm-7">{{ order.product_details }}</dd>
+                <dl class="info-grid">
+                    <dt>Broker</dt>
+                    <dd><strong>{{ order.broker.name }}</strong>{% if order.broker.company %}<span class="text-muted"> · {{ order.broker.company }}</span>{% endif %}</dd>
+                    <dt>Sub-team</dt>
+                    <dd><span class="badge bg-secondary">{{ order.get_sub_team_display }}</span></dd>
+                    <dt>Product</dt>
+                    <dd>{{ order.product_details }}</dd>
                     {% if order.quantity %}
-                    <dt class="col-sm-5">Quantity</dt>
-                    <dd class="col-sm-7">{{ order.quantity }} tons</dd>
+                    <dt>Quantity</dt>
+                    <dd>{{ order.quantity }} T</dd>
                     {% endif %}
-                    <dt class="col-sm-5">Created By</dt>
-                    <dd class="col-sm-7">{{ order.created_by.username|default:"—" }}</dd>
-                    <dt class="col-sm-5">Created</dt>
-                    <dd class="col-sm-7">{{ order.created_at|date:"d M Y, H:i" }}</dd>
+                    <dt>Created by</dt>
+                    <dd>{{ order.created_by.username|default:"—" }}</dd>
                     {% if order.notes %}
-                    <dt class="col-sm-5">Notes</dt>
-                    <dd class="col-sm-7">{{ order.notes }}</dd>
+                    <dt>Notes</dt>
+                    <dd>{{ order.notes }}</dd>
                     {% endif %}
                 </dl>
             </div>
         </div>
 
         {% if order.quotation %}
-        <div class="card shadow-sm mt-3">
-            <div class="card-header fw-semibold">Linked Quotation</div>
+        <div class="card shadow-sm">
+            <div class="card-header">Linked Quotation</div>
             <div class="card-body">
-                <a href="{% url 'quotation_detail' order.quotation.pk %}" class="btn btn-sm btn-outline-primary">
-                    {{ order.quotation }} (Internal)
+                <a href="{% url 'quotation_detail' order.quotation.pk %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-file-text me-1"></i>{{ order.quotation }} (Internal)
                 </a>
             </div>
         </div>
         {% endif %}
     </div>
 
+    <!-- Right column: pipeline -->
     <div class="col-md-7">
-        <!-- Flow timeline -->
         <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Order Flow</div>
-            <div class="card-body">
+            <div class="card-header">Order Pipeline</div>
+            <div class="card-body" style="padding: 20px 20px 16px;">
+                <ol class="pipeline">
 
-                <!-- Step 1: Rate -->
-                <div class="mb-3 pb-3 border-bottom">
-                    <p class="fw-semibold mb-1">Step 1 — Rate</p>
-                    {% if order.rate %}
-                    <p class="mb-0">Rate: <strong>₹{{ order.rate|floatformat:2 }}</strong>
-                        {% if order.rate_sent_at %}<span class="text-muted small ms-2">sent {{ order.rate_sent_at|date:"d M Y, H:i" }}</span>{% endif %}
-                    </p>
-                    {% elif order.status == 'new' and rate_form %}
-                    <form method="post" action="{% url 'market_order_set_rate' order.pk %}">
-                        {% csrf_token %}
-                        <div class="d-flex gap-2 align-items-center">
-                            <div style="width:160px;">{{ rate_form.rate }}</div>
-                            <button type="submit" class="btn btn-warning">Send Rate to Broker</button>
+                    <!-- Step 1: Rate -->
+                    <li class="pipeline-step">
+                        <div class="step-node {% if order.rate %}done{% elif order.status == 'new' %}active{% else %}pending{% endif %}">
+                            {% if order.rate %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}
                         </div>
-                    </form>
-                    {% else %}
-                    <p class="text-muted mb-0">Not yet sent.</p>
-                    {% endif %}
-                </div>
-
-                <!-- Step 2: Broker Confirmation -->
-                <div class="mb-3 pb-3 border-bottom">
-                    <p class="fw-semibold mb-1">Step 2 — Broker Confirmation</p>
-                    {% if order.broker_confirmed_at %}
-                    <p class="mb-0 text-success">Confirmed {{ order.broker_confirmed_at|date:"d M Y, H:i" }}</p>
-                    {% elif order.status == 'rate_sent' %}
-                    <form method="post" action="{% url 'market_order_confirm' order.pk %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-info">Mark Broker Confirmed</button>
-                    </form>
-                    {% else %}
-                    <p class="text-muted mb-0">Awaiting rate.</p>
-                    {% endif %}
-                </div>
-
-                <!-- Step 3: Assign Loading Dock -->
-                <div class="mb-3 pb-3 border-bottom">
-                    <p class="fw-semibold mb-1">Step 3 — Assign Loading Dock</p>
-                    {% if order.loading_dock_member %}
-                    <p class="mb-0">Assigned to <strong>{{ order.loading_dock_member.get_full_name|default:order.loading_dock_member.username }}</strong>
-                        {% if order.do_requested_at %}<span class="text-muted small ms-2">{{ order.do_requested_at|date:"d M Y, H:i" }}</span>{% endif %}
-                    </p>
-                    {% elif order.status == 'broker_confirmed' and assign_form %}
-                    <form method="post" action="{% url 'market_order_assign_do' order.pk %}">
-                        {% csrf_token %}
-                        <div class="d-flex gap-2 align-items-center">
-                            <div style="min-width:200px;">{{ assign_form.loading_dock_member }}</div>
-                            <button type="submit" class="btn btn-primary">Assign to Loading Dock</button>
+                        <div class="step-content">
+                            <div class="step-label {% if order.rate %}done{% elif order.status == 'new' %}active{% else %}pending{% endif %}">
+                                Rate
+                            </div>
+                            {% if order.rate %}
+                            <div class="step-body">
+                                <strong>₹{{ order.rate|floatformat:2 }}</strong>
+                                {% if order.rate_sent_at %}<span class="step-meta d-block">Sent {{ order.rate_sent_at|date:"d M Y, H:i" }}</span>{% endif %}
+                            </div>
+                            {% elif order.status == 'new' and rate_form %}
+                            <form method="post" action="{% url 'market_order_set_rate' order.pk %}" class="mt-1">
+                                {% csrf_token %}
+                                <div class="d-flex gap-2 align-items-center">
+                                    <div style="width:160px;">{{ rate_form.rate }}</div>
+                                    <button type="submit" class="btn btn-warning btn-sm">Send Rate</button>
+                                </div>
+                            </form>
+                            {% else %}
+                            <div class="step-body text-muted">Not yet sent</div>
+                            {% endif %}
                         </div>
-                    </form>
-                    {% elif order.status == 'broker_confirmed' %}
-                    <p class="text-muted mb-0">Only team leads and admins can assign.</p>
-                    {% else %}
-                    <p class="text-muted mb-0">Awaiting confirmation.</p>
-                    {% endif %}
-                </div>
+                    </li>
 
-                <!-- Step 4: DO Number -->
-                <div>
-                    <p class="fw-semibold mb-1">Step 4 — DO Number</p>
-                    {% if order.do_number %}
-                    <p class="mb-0">DO: <strong>{{ order.do_number }}</strong>
-                        {% if order.do_issued_at %}<span class="text-muted small ms-2">{{ order.do_issued_at|date:"d M Y, H:i" }}</span>{% endif %}
-                    </p>
-                    {% elif order.status == 'do_pending' and do_form %}
-                    <form method="post" action="{% url 'market_order_set_do' order.pk %}">
-                        {% csrf_token %}
-                        <div class="d-flex gap-2 align-items-center">
-                            <div style="min-width:160px;">{{ do_form.do_number }}</div>
-                            <button type="submit" class="btn btn-success">Submit DO Number</button>
+                    <!-- Step 2: Broker Confirmation -->
+                    <li class="pipeline-step">
+                        <div class="step-node {% if order.broker_confirmed_at %}done{% elif order.status == 'rate_sent' %}active{% else %}pending{% endif %}">
+                            {% if order.broker_confirmed_at %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}
                         </div>
-                    </form>
-                    {% elif order.status == 'do_pending' %}
-                    <p class="text-muted mb-0">Waiting for assigned loading dock member.</p>
-                    {% else %}
-                    <p class="text-muted mb-0">Awaiting assignment.</p>
-                    {% endif %}
-                </div>
+                        <div class="step-content">
+                            <div class="step-label {% if order.broker_confirmed_at %}done{% elif order.status == 'rate_sent' %}active{% else %}pending{% endif %}">
+                                Broker Confirmation
+                            </div>
+                            {% if order.broker_confirmed_at %}
+                            <div class="step-body">Confirmed
+                                <span class="step-meta d-block">{{ order.broker_confirmed_at|date:"d M Y, H:i" }}</span>
+                            </div>
+                            {% elif order.status == 'rate_sent' %}
+                            <form method="post" action="{% url 'market_order_confirm' order.pk %}" class="mt-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-sm">Mark Confirmed</button>
+                            </form>
+                            {% else %}
+                            <div class="step-body text-muted">Awaiting rate</div>
+                            {% endif %}
+                        </div>
+                    </li>
 
+                    <!-- Step 3: Loading Dock -->
+                    <li class="pipeline-step">
+                        <div class="step-node {% if order.loading_dock_member %}done{% elif order.status == 'broker_confirmed' %}active{% else %}pending{% endif %}">
+                            {% if order.loading_dock_member %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}
+                        </div>
+                        <div class="step-content">
+                            <div class="step-label {% if order.loading_dock_member %}done{% elif order.status == 'broker_confirmed' %}active{% else %}pending{% endif %}">
+                                Loading Dock
+                            </div>
+                            {% if order.loading_dock_member %}
+                            <div class="step-body">
+                                <strong>{{ order.loading_dock_member.get_full_name|default:order.loading_dock_member.username }}</strong>
+                                {% if order.do_requested_at %}<span class="step-meta d-block">Assigned {{ order.do_requested_at|date:"d M Y, H:i" }}</span>{% endif %}
+                            </div>
+                            {% elif order.status == 'broker_confirmed' and assign_form %}
+                            <form method="post" action="{% url 'market_order_assign_do' order.pk %}" class="mt-1">
+                                {% csrf_token %}
+                                <div class="d-flex gap-2 align-items-center">
+                                    <div style="min-width:200px;">{{ assign_form.loading_dock_member }}</div>
+                                    <button type="submit" class="btn btn-primary btn-sm">Assign</button>
+                                </div>
+                            </form>
+                            {% elif order.status == 'broker_confirmed' %}
+                            <div class="step-body text-muted" style="font-size:.78rem;">Only leads and admins can assign.</div>
+                            {% else %}
+                            <div class="step-body text-muted">Awaiting confirmation</div>
+                            {% endif %}
+                        </div>
+                    </li>
+
+                    <!-- Step 4: DO Number -->
+                    <li class="pipeline-step">
+                        <div class="step-node {% if order.do_number %}done{% elif order.status == 'do_pending' %}active{% else %}pending{% endif %}">
+                            {% if order.do_number %}<i class="bi bi-check-lg"></i>{% else %}4{% endif %}
+                        </div>
+                        <div class="step-content">
+                            <div class="step-label {% if order.do_number %}done{% elif order.status == 'do_pending' %}active{% else %}pending{% endif %}">
+                                Delivery Order
+                            </div>
+                            {% if order.do_number %}
+                            <div class="step-body">
+                                <strong>{{ order.do_number }}</strong>
+                                {% if order.do_issued_at %}<span class="step-meta d-block">Issued {{ order.do_issued_at|date:"d M Y, H:i" }}</span>{% endif %}
+                                <div class="mt-2">
+                                    <a href="{% url 'market_order_do_send' order.pk %}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-send me-1"></i>Send DO to Broker
+                                    </a>
+                                </div>
+                            </div>
+                            {% elif order.status == 'do_pending' and do_form %}
+                            <form method="post" action="{% url 'market_order_set_do' order.pk %}" class="mt-1">
+                                {% csrf_token %}
+                                <div class="d-flex gap-2 align-items-center">
+                                    <div style="min-width:160px;">{{ do_form.do_number }}</div>
+                                    <button type="submit" class="btn btn-success btn-sm">Submit</button>
+                                </div>
+                            </form>
+                            {% elif order.status == 'do_pending' %}
+                            <div class="step-body text-muted" style="font-size:.78rem;">Waiting for loading dock member.</div>
+                            {% else %}
+                            <div class="step-body text-muted">Awaiting assignment</div>
+                            {% endif %}
+                        </div>
+                    </li>
+
+                </ol>
             </div>
         </div>
     </div>
