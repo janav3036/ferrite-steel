@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load fs_filters %}
 {% block title %}Quotations — Ferrite Steel{% endblock %}
 
 {% block content %}
@@ -81,7 +82,7 @@
                         {{ qt.get_outcome_display }}
                     </span>
                 </td>
-                <td>{{ qt.total_amount|floatformat:2 }}</td>
+                <td>{{ qt.total_amount|inr }}</td>
                 <td>{{ qt.created_by.username|default:"—" }}</td>
                 <td>{{ qt.created_at|date:"d M Y" }}</td>
                 <td><a href="{% url 'quotation_detail' qt.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>

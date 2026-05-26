@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load fs_filters %}
 {% block title %}{{ customer.name }} — Ferrite Steel{% endblock %}
 
 {% block content %}
@@ -92,9 +93,9 @@
                         <dt class="text-muted small">Payment Terms</dt>
                         <dd>{{ customer.get_payment_terms_display|default:"—" }}</dd>
                         <dt class="text-muted small">Transport Extra</dt>
-                        <dd>₹{{ customer.transport_extra|floatformat:2 }}</dd>
+                        <dd>{{ customer.transport_extra|inr }}</dd>
                         <dt class="text-muted small">Loading Rate</dt>
-                        <dd>₹{{ customer.loading_rate|floatformat:2 }}/T</dd>
+                        <dd>{{ customer.loading_rate|inr }}/T</dd>
                         <dt class="text-muted small">Last Updated</dt>
                         <dd class="text-muted small">{{ customer.updated_at|date:"d M Y, H:i" }}</dd>
                     </dl>

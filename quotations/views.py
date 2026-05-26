@@ -2,6 +2,7 @@ import json
 import re
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Greatest
 
@@ -341,19 +342,20 @@ def quotation_outcome(request, pk):
         messages.error(request, 'A quotation must be sent before it can be marked Won or Lost.')
         return redirect('quotation_detail', pk=pk)
     if outcome in ('win', 'loss', 'not_updated'):
-        root.outcome = outcome
-        if outcome == 'win':
-            root.winning_quotation = quotation
-            if not root.stock_deducted:
-                _deduct_stock(quotation)
-                root.stock_deducted = True
-        else:
-            root.winning_quotation = None
-        root.save(update_fields=['outcome', 'winning_quotation', 'stock_deducted'])
-        lead = root.lead
-        if outcome in ('win', 'loss') and lead.status != 'closed':
-            lead.status = 'closed'
-            lead.save(update_fields=['status'])
+        with transaction.atomic():
+            root.outcome = outcome
+            if outcome == 'win':
+                root.winning_quotation = quotation
+                if not root.stock_deducted:
+                    _deduct_stock(quotation)
+                    root.stock_deducted = True
+            else:
+                root.winning_quotation = None
+            root.save(update_fields=['outcome', 'winning_quotation', 'stock_deducted'])
+            lead = root.lead
+            if outcome in ('win', 'loss') and lead.status != 'closed':
+                lead.status = 'closed'
+                lead.save(update_fields=['status'])
     return redirect('quotation_detail', pk=pk)
 
 

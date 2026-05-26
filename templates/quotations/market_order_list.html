@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load fs_filters %}
 {% block title %}Market Orders — Ferrite Steel{% endblock %}
 
 {% block content %}
@@ -42,7 +43,7 @@
                     <td class="fw-semibold">{{ order.broker.name }}</td>
                     <td><span class="badge bg-secondary">{{ order.get_sub_team_display }}</span></td>
                     <td>{{ order.product_details|truncatechars:40 }}</td>
-                    <td>{% if order.rate %}₹{{ order.rate|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td>{% if order.rate %}{{ order.rate|inr }}{% else %}—{% endif %}</td>
                     <td>{{ order.do_number|default:"—" }}</td>
                     <td>
                         <span class="badge

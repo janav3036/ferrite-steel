@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load fs_filters %}
 {% block title %}MO-{{ order.pk|stringformat:"05d" }} — Ferrite Steel{% endblock %}
 
 {% block content %}
@@ -195,7 +196,7 @@
                             </div>
                             {% if order.rate %}
                             <div class="step-body">
-                                <strong>₹{{ order.rate|floatformat:2 }}</strong>
+                                <strong>{{ order.rate|inr }}</strong>
                                 {% if order.rate_sent_at %}<span class="step-meta d-block">Sent {{ order.rate_sent_at|date:"d M Y, H:i" }}</span>{% endif %}
                             </div>
                             {% elif order.status == 'new' and rate_form %}
