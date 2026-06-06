@@ -203,6 +203,9 @@ class Customer(models.Model):
         verbose_name = 'Customer'
         verbose_name_plural = 'Customers'
         ordering = ['name']
+        permissions = [
+            ('can_reassign_customer', 'Can reassign customer'),
+        ]
 
     def __str__(self):
         return f'{self.name} ({self.company})' if self.company else self.name

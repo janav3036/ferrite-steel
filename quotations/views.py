@@ -376,7 +376,7 @@ def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=Non
     from email.mime.text import MIMEText
     from email import encoders
 
-    smtp_host = config.imap_host.replace('imap.', 'smtp.')
+    smtp_host = config.smtp_host or config.imap_host.replace('imap.', 'smtp.')
     msg = MIMEMultipart()
     msg['From'] = config.email_address
     msg['To'] = to_email
@@ -390,12 +390,12 @@ def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=Non
         part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
         msg.attach(part)
 
-    if config.use_ssl:
-        server = smtplib.SMTP_SSL(smtp_host, 465)
+    if config.smtp_use_ssl:
+        server = smtplib.SMTP_SSL(smtp_host, config.smtp_port)
     else:
-        server = smtplib.SMTP(smtp_host, 587)
+        server = smtplib.SMTP(smtp_host, config.smtp_port)
         server.starttls()
-    server.login(config.imap_username, config.imap_password)
+    server.login(config.smtp_username or config.imap_username, config.smtp_password or config.imap_password)
     server.sendmail(config.email_address, [to_email], msg.as_string())
     server.quit()
 

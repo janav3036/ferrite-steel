@@ -117,6 +117,9 @@ class Quotation(models.Model):
         verbose_name = 'Quotation'
         verbose_name_plural = 'Quotations'
         ordering = ['-created_at']
+        permissions = [
+            ('can_approve_quotation', 'Can approve quotation'),
+        ]
 
     def __str__(self):
         return self.quotation_number or f'Quotation #{self.pk}'
@@ -232,6 +235,11 @@ class MarketOrder(models.Model):
         verbose_name = 'Market Order'
         verbose_name_plural = 'Market Orders'
         ordering = ['-created_at']
+        permissions = [
+            ('can_assign_loading_dock', 'Can assign loading dock'),
+            ('can_create_market_order', 'Can create market order'),
+            ('can_update_do', 'Can update DO'),
+        ]
 
     def __str__(self):
         return f'MO-{self.pk:05d} — {self.broker.name} ({self.get_status_display()})'
@@ -266,7 +274,12 @@ class TeamEmailConfig(models.Model):
     imap_port     = models.IntegerField(default=993)
     imap_username = models.EmailField()
     imap_password = models.CharField(max_length=255, help_text='Use an App Password, not the account password')
-    use_ssl       = models.BooleanField(default=True)
+    use_ssl       = models.BooleanField(default=True, help_text='Enable SSL for IMAP (port 993)')
+    smtp_host     = models.CharField(max_length=255, blank=True, default='', help_text='Leave blank to derive from IMAP host (Gmail). Set explicitly for Outlook: smtp.office365.com')
+    smtp_port     = models.IntegerField(default=587, help_text='465 for SSL, 587 for STARTTLS (Outlook/M365)')
+    smtp_use_ssl  = models.BooleanField(default=False, help_text='Use SSL for SMTP. Off = STARTTLS (required for Outlook/M365)')
+    smtp_username = models.EmailField(blank=True, default='', help_text='Leave blank to use imap_username. Set if sending from a different account (e.g. Outlook) than the inbox (e.g. Gmail)')
+    smtp_password = models.CharField(max_length=255, blank=True, default='', help_text='Leave blank to use imap_password. Required if smtp_username is set.')
     is_active     = models.BooleanField(default=True)
     poll_interval_minutes = models.IntegerField(
         default=30, 

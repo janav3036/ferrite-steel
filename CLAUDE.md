@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 27 May 2026 (session 12)
+**Last updated:** 7 Jun 2026 (session 13)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): quotation UI/flow done; LLM draft generation wired; classify_message + classify_broker_response built; email send (SMTP) built; poll_emails command built with --scheduled flag and in-app Poll Inbox button. Broker-to-DO pipeline complete. WhatsApp ingestion pending Meta approval.**
-**Current work: module-3 branch — broker pipeline + poll timer built this session.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): architecture fully designed this session; implementation starts next session.**
+**Current work: Django permissions migration (session 13) — custom permissions declared on all models, migrations applied, `post_save` signal built. Next: quotation notes fields + LLM cleanup button, then training app.**
 
 ### What is built
 
@@ -129,17 +129,18 @@ to a non-technical client.
 
 **Market team:** MarketOrder full flow (`new`→`rate_sent`→`broker_confirmed`→`do_pending`→`completed`). Visual pipeline timeline on detail page (numbered nodes, connector line, state-aware colours). Separate from Quotation — tracks logistics, not pricing.
 
-### What is NOT yet built (planned for next session)
+### What is NOT yet built (planned for next sessions)
+- **Quotation notes fields** — `quotation_notes_raw` + `quotation_notes_clean` on `Quotation`; LLM cleanup button; "Convert to Case" button (next session)
 - **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
 - **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000
 - **`transaction.atomic()`** on `quotation_outcome` — stock deduction + outcome save must be atomic
-- **Django permissions signal** — `post_save` on CustomUser to auto-assign role permissions (Architecture Decision 18)
 - **Customer handover view** (`customer_handover`) — `handling_team` field exists, view not built
 - Email ingestion live test — needs dummy Gmail App Password in `TeamEmailConfig` admin (Janav to provide; delete post-demo)
 - WhatsApp ingestion — deferred until Meta approval confirmed
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
 - `from datetime import timedelta` in `poll_emails.py` should be moved to top-level imports (currently inside `handle`)
+- **Existing role checks in views** — gradually replace `request.user.role == 'x'` with `request.user.has_perm()` as views are touched (Architecture Decision 18)
 
 ### Pending before Phase 2 is fully live
 - WhatsApp Business API Meta approval
@@ -194,6 +195,8 @@ Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based
 ### CustomUser (aegis)
 `role`: admin/lead/member/primary/rolling/loading_dock (default: member). `team`: team_9/cs/market/corporate (nullable for admins). Also: `phone`, `branch`, `employee_id`.
 
+**Custom permissions:** `can_manage_users`, `can_view_user_list`. Auto-assigned by `aegis/signals.py` `post_save` signal based on role + team. Superusers bypass all permission checks. Signal clears and resets permissions on every user save.
+
 ### Product (database)
 523 imported rows; rates all 0. Fields: `category` (main/rolling/plate), `make` (manufacturer, 14 choices, blank for existing rows), `sub_type` (angle/channel/ub/uc/beam/flat/red_material/tmt), `size`, `length` (24 choices), `grade` (27 choices), `godown`, `site` (site_1/site_2), `quantity` (T), `rate` (₹/T), `pieces`, `hsn_code`, `is_active`.
 
@@ -214,6 +217,10 @@ Fields: `customer_code`, `name`, `company`, `phone`, `email`, `gst_number`, `pan
 ### Quotation (quotations)
 `quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`.
 
+**Planned additions (next session):** `quotation_notes_raw` (TextField, blank=True) — salesperson raw voice/text input. `quotation_notes_clean` (TextField, blank=True) — LLM-cleaned version, user-editable. "Clean up" button sends raw → LLM → populates clean. "Convert to Case" button (shown only when clean is not empty) pre-fills Case creation form.
+
+**Custom permissions:** `can_approve_quotation`.
+
 Broker-sourced (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY".
 
 ### QuotationLineItem (quotations)
@@ -222,16 +229,28 @@ Broker-sourced (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY".
 `final_price` property = `total_price × (1 − discount_pct/100)` — used in `_quotation_context` so taxes and grand total are discount-aware.
 
 ### MarketOrder (quotations)
-`broker` FK (CASCADE), `quotation` FK (nullable), `sub_team` (primary/rolling), `product_details`, `quantity`, `status` (new/rate_sent/broker_confirmed/do_pending/completed/cancelled), `rate`, `loading_dock_member` FK, `do_number`, `notes`, `created_by`.
+`broker` FK (CASCADE), `lead` FK (SET_NULL, nullable — set when order auto-created from inbound email), `quotation` FK (nullable), `sub_team` (primary/rolling), `product_details`, `quantity`, `status` (new/rate_sent/broker_confirmed/do_pending/completed/cancelled), `rate`, `loading_dock_member` FK, `do_number`, `notes`, `created_by`. `notify_loading_dock` post_save signal fires email to `loading_dock_member` when `status` transitions to `broker_confirmed` (guarded by `update_fields`).
+
+**Custom permissions:** `can_create_market_order`, `can_assign_loading_dock`, `can_update_do`.
 
 ### ProductKeyword (quotations)
 Maps client trade terms (e.g. "sariya") → canonical product names. `keyword`, `maps_to`, `notes`, `is_active`. `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every draft generation call.
 
-### MarketOrder (quotations)
-`broker` FK (CASCADE), `lead` FK (SET_NULL, nullable — set when order auto-created from inbound email), `quotation` FK (nullable), `sub_team` (primary/rolling), `product_details`, `quantity`, `status` (new/rate_sent/broker_confirmed/do_pending/completed/cancelled), `rate`, `loading_dock_member` FK, `do_number`, `notes`, `created_by`. `notify_loading_dock` post_save signal fires email to `loading_dock_member` when `status` transitions to `broker_confirmed` (guarded by `update_fields`).
-
 ### TeamEmailConfig (quotations)
 IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`, `poll_interval_minutes` (default 30), `last_polled_at` (stamped after each real poll run). SMTP host derived at send time: `imap_host.replace("imap.", "smtp.")`.
+
+### Customer (database) — permissions
+**Custom permissions:** `can_reassign_customer`.
+
+### Training models (training app — PLANNED, not yet created)
+
+**Case:** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`.
+
+**KnowledgeDocument:** `file` (FileField, upload_to='documents/'), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. Original files kept. Processing mechanism TBD pending client answer on delay tolerance.
+
+**QuizSet:** `title`, `description`, `departments` (JSONField), `created_by`, `created_at`.
+
+**Question:** `question_text` (TextField), `correct_answer` (TextField — admin-written; LLM judges user answer against this), `source` (TextField — free text/URL reference to related case or document), `quiz_set` (FK → QuizSet, null=True — null = standalone flat pool question), `departments` (JSONField), `created_by`, `created_at`.
 
 `AUTH_USER_MODEL = 'aegis.CustomUser'`
 **Migration discipline:** Never run `migrate` without reviewing `makemigrations` output first.
@@ -301,6 +320,10 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 10. What plan is client on — does it include API access?
 11. What does client actually want the two systems to do together?
 12. Has Meta verification been initiated for WhatsApp Business API?
+13. (Module 3) Should uploaded training documents be kept as original files (downloadable), or is extracted text alone sufficient?
+14. (Module 3) When a document is uploaded, does it need to be available for Q&A immediately, or is a delay of a few minutes acceptable?
+15. (Module 3) Are most questions expected to be in organised quiz sets, or is a flat pool sufficient? What's the rough split?
+16. (Module 3 / voice notes) Do salespeople use Chrome or Edge as their primary browser? (Web Speech API requires Chrome/Edge and HTTPS — Safari/Firefox not supported.)
 
 ---
 
@@ -320,6 +343,8 @@ Do not proceed with affected modules until resolved.
 - **Model-level validators:** GST (15-char) and PAN (10-char) fields need `RegexValidator`
 - **Django logging config:** Must write errors to file before production — currently silent on 500
 - **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
+- **KnowledgeDocument processing mechanism:** Cron vs Process button vs Celery — depends on client answer to question 14. Do not build processing pipeline until confirmed.
+- **Web Speech API browser compatibility:** Voice notes on quotation form require Chrome/Edge + HTTPS. Confirm team browser (client question 16) before building the UI button.
 
 ---
 
@@ -348,8 +373,13 @@ Django scaffold, PostgreSQL, CustomUser, full auth flow, base.html.
 ### Module 2 — Quotation Automator (₹25,000) — Phase 2 (current)
 Parse leads from WhatsApp/email, match pricing, generate LLM draft quotation for salesperson review. Architecture: tool use + function calling. Key dependency: WhatsApp Meta approval (1–3 weeks). Effort: 90–110 hrs.
 
-### Module 3 — Training + Case Solver (₹20,000) — Phase 3
-Staff Q&A on products/processes via static docs. Architecture: RAG, pgvector, together.ai. Effort: 70–85 hrs.
+### Module 3 — Training + Case Solver (₹20,000) — Phase 3 (architecture designed, implementation starting)
+Three parts:
+1. **Static Cases** — admin-adds structured case records (title, problem, context, resolution, departments, customer FK). Convert button on quotation notes pre-fills Case form. Cases are also a RAG source.
+2. **RAG Q&A** — semi-chatbot, no history. Answers from `KnowledgeDocument` (uploaded PDFs/DOCX/Excel) + `Case` records. Document types: product catalogues, pricing guidelines, SOPs, past cases, company policies, technical steel knowledge, FAQs, competitor notes. pgvector embeddings. LLM via together.ai.
+3. **Quiz/Tutorial** — admin creates `Question` records (question + correct answer text). Questions organised into `QuizSet`s or left as standalone flat pool. User answers; LLM judges correctness against admin answer; explains if wrong. Departments filter which questions each team sees.
+
+Architecture: RAG, pgvector, together.ai. Effort: 70–85 hrs.
 
 ### Module 4 — Credit Risk AI (₹20,000) — Phase 4
 Assess customer default risk before extending credit. Inputs: PDFs, GST returns, internal transaction history. Architecture: tool use. Effort: 60–75 hrs.
@@ -406,7 +436,8 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 15. **Stock deduction is one-time and irreversible per deal:** `stock_deducted` guards against repeat deduction. Changing outcome away from Win and back does NOT re-deduct. Stock is never restored on outcome change (Loss/Not Updated after Win). Physical stock has already moved.
 16. **Per-row pricing add-ons are session-only:** The 7 add-on inputs live only in the browser. Defaults read from `customer.notes` on page load; NOT written back on save. Never stored in any model field. Only `unit_price` persisted.
 17. **Product FK on QuotationLineItem is set only via the picker:** LLM fills product_name as free text and never sets `product` FK. Stock deduction skips any line item without `product_id`. Salesperson must re-pick after LLM draft to link FK and enable stock tracking.
-18. **Django custom permissions + role signal for access control:** Feature gates use Django's built-in permission system (`user.has_perm('app.codename')`), not hardcoded role string checks. Custom permissions declared in each model's `Meta.permissions`. `post_save` signal on `CustomUser` auto-assigns the baseline permission set whenever role is set/changed. Admin can grant extra permissions without a code change. Team-scoping (queryset filtering) remains code — permissions don't apply there. New models: define permissions in `Meta` from the start. Existing role checks: replace gradually as views are touched, not as a dedicated refactor.
+18. **Django custom permissions + role signal for access control:** Feature gates use Django's built-in permission system (`user.has_perm('app.codename')`), not hardcoded role string checks. Custom permissions declared in each model's `Meta.permissions`. `post_save` signal on `CustomUser` (`aegis/signals.py`) auto-assigns the baseline permission set whenever role is set/changed — clears first, then assigns fresh. Superusers bypass all checks. Admin can grant extra permissions without a code change. Team-scoping (queryset filtering) remains code — permissions don't apply there. New models: define permissions in `Meta` from the start. Existing role checks: replace gradually as views are touched, not as a dedicated refactor. **Permission baseline:** member gets create/edit quotations+leads, view/add customers+products; lead adds approve, reassign customer, view user list, assign loading dock; market team (any role) adds create market order; loading_dock adds update DO; admin gets all.
+19. **Web Speech API for voice-to-text on quotation notes:** Browser built-in `window.SpeechRecognition` — no external service, no cost. Microphone button populates `quotation_notes_raw` in real-time. Requires Chrome/Edge and HTTPS (production covered by Let's Encrypt; local `runserver` will not work for this feature). LLM cleanup compensates for transcription errors.
 
 ---
 
@@ -419,6 +450,8 @@ ferite_steel/                      ← project root
 │   └── ai.py                      ← shared together_client; import here, never instantiate elsewhere
 ├── aegis/                         ← auth & user management (CustomUser)
 │   ├── models.py, views.py, forms.py, urls.py
+│   ├── signals.py                 ← post_save on CustomUser; auto-assigns permissions by role + team
+│   └── apps.py                    ← ready() imports signals
 ├── database/                      ← Product, Customer, Broker + CRUD views
 │   ├── models.py, views.py, forms.py, admin.py, urls.py
 │   └── migrations/                ← 0001–0016
@@ -454,9 +487,10 @@ Shell context: working directory is the project root. Use `python manage.py` not
 | `aegis` | Auth & user management — CustomUser |
 | `database` | Product, Customer, Broker — CRUD views |
 | `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service |
+| `training` | Module 3 — Case, KnowledgeDocument, QuizSet, Question (planned, not yet created) |
 | `ares`, `athena`, `hephaestus`, `hermes`, `themis` | Not yet created |
 
-Future apps per module: `credit_risk`, `training`, `leads`.
+Future apps per module: `credit_risk`, `leads`.
 
 ---
 

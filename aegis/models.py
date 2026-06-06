@@ -24,3 +24,9 @@ class CustomUser(AbstractUser):
     phone = models.CharField(max_length=20, blank=True, null=True)
     employee_id = models.IntegerField(blank=True, null=True)
     branch = models.CharField(max_length=20,blank=True, null=True)
+
+    class Meta:
+        permissions = [
+            ('can_manage_users', 'Can manage users'),
+            ('can_view_user_list', 'Can view user list'),
+        ]
