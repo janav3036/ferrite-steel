@@ -35,6 +35,7 @@
 | `/quotations/leads/` | lead_list |
 | `/quotations/leads/create/` | lead_create |
 | `/quotations/leads/<pk>/` | lead_detail |
+| `/quotations/leads/<pk>/save-notes/` | lead_save_notes (POST only) |
 | `/quotations/market-orders/` | market_order_list |
 | `/quotations/market-orders/create/` | market_order_create |
 | `/quotations/market-orders/<pk>/` | market_order_detail |
@@ -58,5 +59,16 @@
 | `/database/customers/<pk>/edit/` | customer_edit |
 | `/database/brokers/` | broker_list |
 | `/database/brokers/add/` | broker_create |
+
+## training (prefix: `/training/`)
+
+| URL | View / Name |
+|----|-------------|
+| `/training/` | training_home |
+| `/training/cases/` | case_list |
+| `/training/cases/create/` | case_create |
+| `/training/cases/<pk>/` | case_detail |
+| `/training/cases/<pk>/edit/` | case_edit |
+| `/training/cases/<pk>/delete/` | case_delete |
 
 **admin:** `/admin/` — jazzmin-themed Django admin.

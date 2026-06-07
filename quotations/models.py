@@ -35,6 +35,9 @@ class Lead(models.Model):
         related_name='leads',
     )
     notes = models.TextField(blank=True)
+    lead_notes_raw = models.TextField(blank=True)
+    lead_notes_clean = models.TextField(blank=True)
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

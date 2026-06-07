@@ -100,6 +100,49 @@
 
     <div class="col-12">
         <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Case Notes</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'lead_save_notes' lead.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold text-muted small mb-0">Raw Notes</label>
+                            <button type="button" id="micBtn" class="btn btn-sm btn-outline-secondary" title="Dictate notes (Chrome/Edge + HTTPS only)">🎤 Dictate</button>
+                        </div>
+                        <textarea id="leadNotesRaw" name="lead_notes_raw" class="form-control" rows="4" placeholder="Type, paste, or dictate rough notes here…">{{ lead.lead_notes_raw }}</textarea>
+                        <div id="micStatus" class="form-text text-danger d-none"></div>
+                    </div>
+                    <div class="d-flex gap-2 mb-0">
+                        <button type="submit" name="action" value="save" class="btn btn-sm btn-outline-secondary">Save</button>
+                        <button type="submit" name="action" value="cleanup" class="btn btn-sm btn-primary">✦ Clean up with AI</button>
+                    </div>
+                </form>
+
+                {% if lead.lead_notes_clean %}
+                <hr>
+                <form method="post" action="{% url 'lead_save_notes' lead.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted small">Cleaned Notes <span class="badge bg-success ms-1">AI</span></label>
+                        <textarea name="lead_notes_clean" class="form-control" rows="4">{{ lead.lead_notes_clean }}</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="action" value="save_clean" class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
+                        {% if perms.training.add_case %}
+                        <a href="{% url 'case_create' %}?lead={{ lead.pk }}&notes={{ lead.lead_notes_clean|urlencode }}"
+                           class="btn btn-sm btn-success">→ Convert to Case</a>
+                        {% else %}
+                        <a href="#" class="btn btn-sm btn-success disabled" title="Only team leads and admins can create cases">→ Convert to Case</a>
+                        {% endif %}
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
                 <span>Quotations <span class="badge bg-secondary ms-1">{{ lead.quotations.count }}</span></span>
                 <form method="post" action="{% url 'quotation_create' lead.pk %}">
@@ -130,4 +173,100 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const btn = document.getElementById('micBtn');
+    const textarea = document.getElementById('leadNotesRaw');
+    const status = document.getElementById('micStatus');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        btn.disabled = true;
+        btn.title = 'Voice input requires Chrome or Edge';
+        return;
+    }
+
+    // Punctuation words → symbols (case-insensitive, whole word)
+    const PUNCT = [
+        [/\b(full stop|period)\b/gi, '. '],
+        [/\bcomma\b/gi, ', '],
+        [/\bquestion mark\b/gi, '? '],
+        [/\bexclamation( mark| point)?\b/gi, '! '],
+        [/\bcolon\b/gi, ': '],
+        [/\bsemicolon\b/gi, '; '],
+        [/\bnew line\b/gi, '\n'],
+        [/\bdash\b/gi, ' — '],
+    ];
+
+    // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
+    const KEYWORDS = {{ voice_keywords|safe }};
+    KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
+
+    function postProcess(text) {
+        // Punctuation first
+        PUNCT.forEach(([pattern, replacement]) => {
+            text = text.replace(pattern, replacement);
+        });
+        // Trade term substitution (whole word, case-insensitive)
+        KEYWORDS.forEach(({ keyword, maps_to }) => {
+            const re = new RegExp('\\b' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
+            text = text.replace(re, maps_to);
+        });
+        return text;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = 'en-IN';
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    let listening = false;
+    let savedText = '';
+
+    rec.onresult = function (e) {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+                savedText += postProcess(e.results[i][0].transcript) + ' ';
+            } else {
+                interim = e.results[i][0].transcript;
+            }
+        }
+        textarea.value = savedText + interim;
+    };
+
+    rec.onerror = function (e) {
+        status.textContent = 'Microphone error: ' + e.error;
+        status.classList.remove('d-none');
+        stopListening();
+    };
+
+    rec.onend = function () {
+        if (listening) rec.start();
+    };
+
+    function startListening() {
+        savedText = textarea.value ? textarea.value.trimEnd() + ' ' : '';
+        listening = true;
+        rec.start();
+        btn.textContent = '⏹ Stop';
+        btn.classList.replace('btn-outline-secondary', 'btn-danger');
+        status.classList.add('d-none');
+    }
+
+    function stopListening() {
+        listening = false;
+        rec.stop();
+        btn.textContent = '🎤 Dictate';
+        btn.classList.replace('btn-danger', 'btn-outline-secondary');
+    }
+
+    btn.addEventListener('click', function () {
+        listening ? stopListening() : startListening();
+    });
+})();
+</script>
 {% endblock %}

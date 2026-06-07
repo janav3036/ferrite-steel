@@ -74,8 +74,40 @@ def lead_create(request):
 
 @login_required
 def lead_detail(request, pk):
+    from .models import ProductKeyword
     lead = get_object_or_404(Lead.objects.prefetch_related('quotations'), pk=pk)
-    return render(request, 'quotations/lead_detail.html', {'lead': lead})
+    keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
+    return render(request, 'quotations/lead_detail.html', {'lead': lead, 'voice_keywords': keywords})
+
+
+@login_required
+@require_POST
+def lead_save_notes(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    action = request.POST.get('action')
+
+    if action == 'save':
+        lead.lead_notes_raw = request.POST.get('lead_notes_raw', '').strip()
+        lead.save(update_fields=['lead_notes_raw'])
+        messages.success(request, 'Notes saved.')
+
+    elif action == 'cleanup':
+        raw = request.POST.get('lead_notes_raw', '').strip()
+        lead.lead_notes_raw = raw
+        if raw:
+            from .services.llm import cleanup_lead_notes
+            lead.lead_notes_clean = cleanup_lead_notes(raw)
+            messages.success(request, 'Notes cleaned up by AI.')
+        else:
+            messages.warning(request, 'No notes to clean up.')
+        lead.save(update_fields=['lead_notes_raw', 'lead_notes_clean'])
+
+    elif action == 'save_clean':
+        lead.lead_notes_clean = request.POST.get('lead_notes_clean', '').strip()
+        lead.save(update_fields=['lead_notes_clean'])
+        messages.success(request, 'Cleaned notes saved.')
+
+    return redirect('lead_detail', pk=pk)
 
 
 @login_required

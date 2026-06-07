@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Case — {{ case.title }} — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">{{ case.title }}</h4>
+        <small class="text-muted">Case #{{ case.pk }} · {{ case.created_at|date:'d M Y' }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        {% if perms.training.change_case %}
+        <a href="{% url 'case_edit' case.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+        {% endif %}
+        {% if perms.training.delete_case %}
+        <a href="{% url 'case_delete' case.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+        {% endif %}
+        <a href="{% url 'case_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Customer</dt>
+                    <dd class="col-sm-7">{{ case.customer.name|default:'—' }}</dd>
+                    <dt class="col-sm-5">Departments</dt>
+                    <dd class="col-sm-7">
+                        {% for dept in case.departments %}
+                        <span class="badge bg-secondary me-1">{{ dept }}</span>
+                        {% empty %}—
+                        {% endfor %}
+                    </dd>
+                    <dt class="col-sm-5">Created by</dt>
+                    <dd class="col-sm-7">{{ case.created_by.get_full_name|default:case.created_by.username }}</dd>
+                    <dt class="col-sm-5">Date</dt>
+                    <dd class="col-sm-7">{{ case.created_at|date:'d M Y, H:i' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Problem</div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space:pre-wrap;">{{ case.problem_description }}</p>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Context</div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space:pre-wrap;">{{ case.context }}</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header fw-semibold text-success">Resolution</div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space:pre-wrap;">{{ case.resolution }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

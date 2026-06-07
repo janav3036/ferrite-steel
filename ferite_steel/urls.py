@@ -22,6 +22,7 @@ urlpatterns = [
     path('', include('aegis.urls')),
     path('quotations/', include('quotations.urls')),
     path('database/', include('database.urls')),
+    path('training/', include('training.urls')),
 ]
 
 

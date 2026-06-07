@@ -75,6 +75,33 @@ def classify_broker_response(text: str) -> str:
 
 
 
+def cleanup_lead_notes(raw_notes: str) -> str:
+    """
+    Takes raw salesperson notes (voice transcript or rough text) and returns
+    a clean, structured summary suitable for a Case record.
+    """
+    response = together_client.chat.completions.create(
+        model=TOGETHER_MODEL,
+        messages=[
+            {
+                'role': 'system',
+                'content': (
+                    'You are an assistant for an iron and steel distribution company in India. '
+                    'A salesperson has written rough notes about a customer problem or situation — '
+                    'possibly a voice transcript with errors, abbreviations, or fragmented sentences. '
+                    'Rewrite these notes as a clear, professional summary in 3–6 sentences. '
+                    'Preserve all factual details. Fix grammar and structure. '
+                    'Do not add any information that is not in the original notes. '
+                    'Return only the cleaned notes — no preamble, no commentary.'
+                ),
+            },
+            {'role': 'user', 'content': raw_notes},
+        ],
+        max_tokens=400,
+    )
+    return (response.choices[0].message.content or '').strip()
+
+
 def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
     """
     Generate a quotation draft using the lead's enquiry text, lead notes, and

@@ -6,6 +6,7 @@ urlpatterns = [
     path('leads/create/', views.lead_create, name='lead_create'),
     path('leads/<int:pk>/', views.lead_detail, name='lead_detail'),
     path('leads/<int:pk>/delete/', views.lead_delete, name='lead_delete'),
+    path('leads/<int:pk>/save-notes/', views.lead_save_notes, name='lead_save_notes'),
     path('', views.quotation_list, name='quotation_list'),
     path('select-lead/', views.quotation_select_lead, name='quotation_select_lead'),
     path('create/<int:lead_pk>/', views.quotation_create, name='quotation_create'),

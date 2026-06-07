@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Training — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+<style>
+    .bento-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 20px;
+    }
+    .bento-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card-bg);
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        min-height: 240px;
+        box-shadow: 0 1px 3px rgba(15,23,42,.05);
+        position: relative;
+        overflow: hidden;
+    }
+    .bento-card.bento-full {
+        grid-column: 1 / -1;
+        min-height: 180px;
+    }
+    .bento-card.bento-active {
+        border-color: #BFDBFE;
+        background: linear-gradient(135deg, #FFFFFF 60%, #EFF6FF 100%);
+    }
+    .bento-card.bento-dim {
+        background: #F8FAFC;
+        border-style: dashed;
+    }
+    .bento-module-tag {
+        display: inline-block;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: 100px;
+        margin-bottom: 14px;
+        width: fit-content;
+    }
+    .bento-module-tag.tag-active { background: #DBEAFE; color: #1D4ED8; }
+    .bento-module-tag.tag-dim    { background: #F1F5F9; color: #94A3B8; }
+    .bento-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -.02em;
+        color: var(--text);
+        margin-bottom: 6px;
+    }
+    .bento-dim .bento-title { color: #94A3B8; }
+    .bento-desc {
+        font-size: .83rem;
+        color: var(--muted);
+        line-height: 1.55;
+        flex: 1;
+    }
+    .bento-footer {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .bento-stat {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -.04em;
+        color: var(--accent);
+        line-height: 1;
+    }
+    .bento-stat-label {
+        font-size: .72rem;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+    .bento-coming {
+        font-size: .75rem;
+        font-weight: 500;
+        color: #94A3B8;
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 6px;
+        padding: 5px 12px;
+    }
+    .bento-icon {
+        position: absolute;
+        bottom: 20px;
+        right: 24px;
+        font-size: 4rem;
+        opacity: .05;
+        pointer-events: none;
+    }
+    @media (max-width: 767.98px) {
+        .bento-grid { grid-template-columns: 1fr; }
+        .bento-card.bento-full { grid-column: auto; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Training</h4>
+</div>
+
+<div class="bento-grid">
+
+    <!-- 3A — Case Management -->
+    <div class="bento-card bento-active">
+        <span class="bento-module-tag tag-active">3A · Case Management</span>
+        <div class="bento-title">Case Library</div>
+        <div class="bento-desc">
+            Browse resolved cases from your team. Log difficult situations as structured records
+            so staff can learn from past problems. Convert lead notes directly into cases.
+        </div>
+        <div class="bento-footer">
+            <div>
+                <div class="bento-stat">{{ case_count }}</div>
+                <div class="bento-stat-label">cases in your team</div>
+            </div>
+            <a href="{% url 'case_list' %}" class="btn btn-primary btn-sm">View Cases →</a>
+        </div>
+        <i class="bi bi-journal-text bento-icon"></i>
+    </div>
+
+    <!-- 3B — Quiz / Tutorial -->
+    <div class="bento-card bento-dim">
+        <span class="bento-module-tag tag-dim">3B · Quiz System</span>
+        <div class="bento-title">Quizzes & Tutorials</div>
+        <div class="bento-desc">
+            Test your knowledge with quizzes built by your admin team. Questions are grouped into
+            sets by topic. The AI judges your answers and explains what you got right or wrong.
+        </div>
+        <div class="bento-footer">
+            <span class="bento-coming">Coming soon</span>
+        </div>
+        <i class="bi bi-patch-question bento-icon"></i>
+    </div>
+
+    <!-- 3C — RAG Q&A -->
+    <div class="bento-card bento-dim bento-full">
+        <span class="bento-module-tag tag-dim">3C · Knowledge Base</span>
+        <div class="bento-title">Ask a Question</div>
+        <div class="bento-desc">
+            Ask operational questions in plain English. The system searches uploaded documents —
+            product catalogues, pricing guidelines, SOPs, company policies — and uses AI to
+            compose a grounded answer from the most relevant sources.
+        </div>
+        <div class="bento-footer">
+            <span class="bento-coming">Coming soon — pending client confirmation</span>
+        </div>
+        <i class="bi bi-search bento-icon"></i>
+    </div>
+
+</div>
+{% endblock %}

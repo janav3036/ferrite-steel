@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'aegis',
     'database',
     'quotations',
+    'training',
 ]
 
 MIDDLEWARE = [

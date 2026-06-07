@@ -421,7 +421,16 @@
         {% endif %}
 
         <span class="fs-section-label">Tools</span>
-        <span class="fs-link fs-link-dim" title="Training"><i class="bi bi-book"></i><span class="fs-link-text"> Training</span></span>
+        {% if perms.training.view_case %}
+        <a href="{% url 'training_home' %}"
+           class="fs-link {% if 'case' in url or url == 'training_home' %}active{% endif %}"
+           title="Training">
+            <i class="bi bi-book"></i>
+            <span class="fs-link-text">Training</span>
+        </a>
+        {% else %}
+        <span class="fs-link fs-link-dim" title="Training"><i class="bi bi-book"></i><span class="fs-link-text">Training</span></span>
+        {% endif %}
         {% if request.user.role == 'lead' or request.user.role == 'admin' %}
         <span class="fs-link fs-link-dim" title="Credit Risk"><i class="bi bi-shield-check"></i><span class="fs-link-text"> Credit Risk</span></span>
         <span class="fs-link fs-link-dim" title="Lead Ranking"><i class="bi bi-bar-chart-line"></i><span class="fs-link-text"> Lead Ranking</span></span>
@@ -528,5 +537,6 @@
         syncCollapseIcon();
     });
 </script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>
