@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 7 Jun 2026 (session 13)
+**Last updated:** 8 Jun 2026 (session 14)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): architecture fully designed this session; implementation starts next session.**
-**Current work: Django permissions migration (session 13) — custom permissions declared on all models, migrations applied, `post_save` signal built. Next: quotation notes fields + LLM cleanup button, then training app.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-module 3A (Case Management) complete. 3B and 3C placeholders on training home.**
+**Current work: Session 14 complete — training app built (3A), lead case notes + voice dictation wired, docs written. Next session: KnowledgeDocument + QuizSet + Question models, then 3B quiz views.**
 
 ### What is built
 
@@ -129,8 +129,18 @@ to a non-technical client.
 
 **Market team:** MarketOrder full flow (`new`→`rate_sent`→`broker_confirmed`→`do_pending`→`completed`). Visual pipeline timeline on detail page (numbered nodes, connector line, state-aware colours). Separate from Quotation — tracks logistics, not pricing.
 
+### What is built (continued from above)
+
+**Lead case notes + voice dictation:** `lead_notes_raw` + `lead_notes_clean` fields on `Lead` (migration 0025). Case Notes card on lead detail — raw textarea with 🎤 Dictate button (Web Speech API, `en-IN`, continuous mode), Save + AI Cleanup buttons, cleaned notes textarea with Save + "Convert to Case" button. `cleanup_lead_notes(raw)` in `quotations/services/llm.py`. `lead_save_notes` view handles `save`/`cleanup`/`save_clean` actions. Voice dictation post-processes final results: punctuation word substitution + ProductKeyword trade-term substitution (longest-first). Chrome/Edge only.
+
+**Training app (Sub-module 3A — Case Management):** `training` app with `Case` model (title, problem_description, context, resolution, departments JSONField, customer FK nullable, created_by FK, created_at). Views: `training_home` (bento grid — 3A live, 3B/3C placeholders), `case_list`, `case_detail`, `case_create`, `case_edit`, `case_delete`. URLs at `/training/`. Training sidebar link live (gated by `view_case` perm). "Convert to Case" button on lead detail wired — passes `notes` + `lead` as query params to `case_create`. Permissions: `view_case` in BASE (all roles), `add/change/delete_case` in LEAD_EXTRA (lead + admin). Training home bento: 3A card shows live case count; 3B and 3C are dashed placeholder frames.
+
+**Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created this session.
+
 ### What is NOT yet built (planned for next sessions)
-- **Quotation notes fields** — `quotation_notes_raw` + `quotation_notes_clean` on `Quotation`; LLM cleanup button; "Convert to Case" button (next session)
+- **KnowledgeDocument, QuizSet, Question models** — to be added to `training/models.py` next session before 3B/3C work begins
+- **3B Quiz system** — views, templates, `judge_quiz_answer()` LLM function (no blockers)
+- **3C RAG Q&A** — blocked on client Q13 + Q14 (see Section 10)
 - **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
 - **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000
 - **`transaction.atomic()`** on `quotation_outcome` — stock deduction + outcome save must be atomic
@@ -242,9 +252,9 @@ IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host
 ### Customer (database) — permissions
 **Custom permissions:** `can_reassign_customer`.
 
-### Training models (training app — PLANNED, not yet created)
+### Training models (training app — CREATED, migration applied)
 
-**Case:** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`.
+**Case (created, migrated):** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`. Permissions: `view_case` (all), `add/change/delete_case` (lead+admin).
 
 **KnowledgeDocument:** `file` (FileField, upload_to='documents/'), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. Original files kept. Processing mechanism TBD pending client answer on delay tolerance.
 
