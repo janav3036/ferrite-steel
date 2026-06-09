@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz_set.title }} — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+<style>
+    .q-card {
+        border-left: 3px solid #BFDBFE;
+        background: var(--card-bg);
+        border-radius: 0 8px 8px 0;
+        padding: 20px 22px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-left-width: 3px;
+        border-left-color: #BFDBFE;
+    }
+    .q-number {
+        font-size: .69rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .09em; color: #93C5FD; margin-bottom: 6px;
+    }
+    .q-text { font-size: .93rem; font-weight: 500; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+    .q-source { font-size: .77rem; color: var(--muted); margin-bottom: 10px; }
+
+    #loading-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(255,255,255,.92);
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 16px;
+    }
+    #loading-overlay.active { display: flex; }
+    .loading-title { font-size: .95rem; font-weight: 600; color: var(--text); }
+    .loading-sub   { font-size: .82rem; color: var(--muted); }
+
+    .submit-bar {
+        background: var(--card-bg); border: 1px solid var(--border);
+        border-radius: 8px; padding: 16px 20px;
+        display: flex; align-items: center; gap: 12px;
+    }
+    .submit-note { font-size: .8rem; color: var(--muted); flex: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+    <div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;"></div>
+    <div class="text-center">
+        <div class="loading-title">Evaluating your answers…</div>
+        <div class="loading-sub">The AI is reviewing each response. This takes a few seconds.</div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">{{ quiz_set.title }}</h4>
+        <small class="text-muted">
+            {{ questions|length }} question{{ questions|length|pluralize }} — answer all, then submit
+        </small>
+    </div>
+    <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+</div>
+
+<form method="post" id="quiz-form">
+    {% csrf_token %}
+
+    {% for q in questions %}
+    <div class="q-card">
+        <div class="q-number">Question {{ forloop.counter }} of {{ questions|length }}</div>
+        <div class="q-text">{{ q.question_text }}</div>
+        {% if q.source %}
+        <div class="q-source"><i class="bi bi-link-45deg"></i> Reference: {{ q.source }}</div>
+        {% endif %}
+        <textarea
+            name="answer_{{ q.pk }}"
+            class="form-control"
+            rows="3"
+            placeholder="Write your answer here…"
+            required
+        ></textarea>
+    </div>
+    {% endfor %}
+
+    <div class="submit-bar mt-2">
+        <span class="submit-note">
+            <i class="bi bi-info-circle me-1"></i>
+            Answers are judged by AI — partial credit is given for correct reasoning.
+        </span>
+        <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-sm px-4">Submit Answers</button>
+    </div>
+</form>
+
+<script>
+document.getElementById('quiz-form').addEventListener('submit', function () {
+    document.getElementById('loading-overlay').classList.add('active');
+});
+</script>
+{% endblock %}

@@ -2,62 +2,78 @@
 {% load fs_filters %}
 {% block title %}Market Orders — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .mo-table { font-size: .9rem; }
+    .mo-table td, .mo-table th { padding: 12px 16px; }
+    .mo-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+    .mo-table tbody tr { cursor: pointer; }
+    .status-pill {
+        display: inline-block; font-size: .69rem; font-weight: 600;
+        padding: 2px 9px; border-radius: 100px;
+    }
+    .st-new              { background: #F1F5F9; color: #475569; }
+    .st-rate_sent        { background: #FEF3C7; color: #92400E; }
+    .st-broker_confirmed { background: #DBEAFE; color: #1D4ED8; }
+    .st-do_pending       { background: #EDE9FE; color: #6D28D9; }
+    .st-completed        { background: #DCFCE7; color: #15803D; }
+    .st-cancelled        { background: #FEE2E2; color: #DC2626; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">Market Orders</h4>
+    <div>
+        <h4 class="mb-0">Market Orders</h4>
+        <small class="text-muted">Broker-to-delivery order pipeline</small>
+    </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'broker_list' %}" class="btn btn-outline-secondary">Brokers</a>
-        <a href="{% url 'market_order_create' %}" class="btn btn-dark">+ New Order</a>
+        <a href="{% url 'broker_list' %}" class="btn btn-outline-secondary btn-sm">Brokers</a>
+        <a href="{% url 'market_order_create' %}" class="btn btn-dark btn-sm">+ New Order</a>
     </div>
 </div>
 
 {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
 {% endif %}
 
 {% if orders %}
-<div class="card shadow-sm">
+<div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-hover mo-table mb-0">
+            <thead class="table-dark">
                 <tr>
-                    <th>#</th>
+                    <th>Order</th>
                     <th>Broker</th>
                     <th>Sub-team</th>
                     <th>Product</th>
-                    <th>Rate (₹)</th>
+                    <th>Rate</th>
                     <th>DO No.</th>
                     <th>Status</th>
                     <th>Created</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
-                <tr>
-                    <td>MO-{{ order.pk|stringformat:"05d" }}</td>
+                <tr onclick="location.href='{% url 'market_order_detail' order.pk %}'">
+                    <td class="fw-semibold text-muted" style="font-size:.82rem;">MO-{{ order.pk|stringformat:"05d" }}</td>
                     <td class="fw-semibold">{{ order.broker.name }}</td>
-                    <td><span class="badge bg-secondary">{{ order.get_sub_team_display }}</span></td>
-                    <td>{{ order.product_details|truncatechars:40 }}</td>
-                    <td>{% if order.rate %}{{ order.rate|inr }}{% else %}—{% endif %}</td>
-                    <td>{{ order.do_number|default:"—" }}</td>
                     <td>
-                        <span class="badge
-                            {% if order.status == 'new' %}bg-secondary
-                            {% elif order.status == 'rate_sent' %}bg-warning text-dark
-                            {% elif order.status == 'broker_confirmed' %}bg-info text-dark
-                            {% elif order.status == 'do_pending' %}bg-primary
-                            {% elif order.status == 'completed' %}bg-success
-                            {% else %}bg-danger{% endif %}">
-                            {{ order.get_status_display }}
+                        <span class="status-pill" style="background:#F1F5F9;color:#475569;">
+                            {{ order.get_sub_team_display }}
                         </span>
                     </td>
-                    <td>{{ order.created_at|date:"d M Y" }}</td>
-                    <td><a href="{% url 'market_order_detail' order.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    <td class="text-muted">{{ order.product_details|truncatechars:38 }}</td>
+                    <td>{% if order.rate %}<span class="fw-semibold">{{ order.rate|inr }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                    <td class="text-muted">{{ order.do_number|default:"—" }}</td>
+                    <td>
+                        <span class="status-pill st-{{ order.status }}">{{ order.get_status_display }}</span>
+                    </td>
+                    <td class="text-muted">{{ order.created_at|date:"d M Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -65,6 +81,12 @@
     </div>
 </div>
 {% else %}
-<p class="text-muted">No market orders yet. <a href="{% url 'market_order_create' %}">Create one.</a></p>
+<div class="card">
+    <div class="card-body py-5 text-center">
+        <i class="bi bi-arrow-left-right" style="font-size:2rem;color:#CBD5E1;"></i>
+        <p class="text-muted mt-3 mb-0">No market orders yet.</p>
+        <a href="{% url 'market_order_create' %}" class="btn btn-outline-primary btn-sm mt-3">Create first order</a>
+    </div>
+</div>
 {% endif %}
 {% endblock %}

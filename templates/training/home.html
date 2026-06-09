@@ -128,15 +128,19 @@
     </div>
 
     <!-- 3B — Quiz / Tutorial -->
-    <div class="bento-card bento-dim">
-        <span class="bento-module-tag tag-dim">3B · Quiz System</span>
+    <div class="bento-card bento-active">
+        <span class="bento-module-tag tag-active">3B · Quiz System</span>
         <div class="bento-title">Quizzes & Tutorials</div>
         <div class="bento-desc">
             Test your knowledge with quizzes built by your admin team. Questions are grouped into
             sets by topic. The AI judges your answers and explains what you got right or wrong.
         </div>
         <div class="bento-footer">
-            <span class="bento-coming">Coming soon</span>
+            <div>
+                <div class="bento-stat">{{ quiz_count }}</div>
+                <div class="bento-stat-label">quizzes available</div>
+            </div>
+            <a href="{% url 'quiz_list' %}" class="btn btn-primary btn-sm">View Quizzes →</a>
         </div>
         <i class="bi bi-patch-question bento-icon"></i>
     </div>

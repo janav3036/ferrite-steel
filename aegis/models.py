@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
@@ -30,3 +31,33 @@ class CustomUser(AbstractUser):
             ('can_manage_users', 'Can manage users'),
             ('can_view_user_list', 'Can view user list'),
         ]
+
+
+class Notification(models.Model):
+    NOTIF_TYPES = [
+        ('lead_created',      'New Lead'),
+        ('quotation_approved','Quotation Approved'),
+        ('quotation_win',     'Quotation Won'),
+        ('quotation_loss',    'Quotation Lost'),
+        ('case_created',      'New Case'),
+        ('market_confirmed',  'Order Confirmed'),
+        ('market_do_pending', 'DO Requested'),
+        ('market_completed',  'Order Completed'),
+        ('general',           'General'),
+    ]
+
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    title      = models.CharField(max_length=255)
+    message    = models.TextField(blank=True)
+    link       = models.CharField(max_length=500, blank=True)
+    type       = models.CharField(max_length=30, choices=NOTIF_TYPES, default='general')
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Notification'
+        verbose_name_plural = 'Notifications'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} — {self.title}"

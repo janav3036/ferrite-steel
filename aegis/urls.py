@@ -5,6 +5,8 @@ from django.views.generic import RedirectView
 from .views import (
     dashboard, add_user, user_directory, edit_user_role,
     register, approve_user, delete_user, profile, CustomPasswordResetView,
+    notifications_list, notification_mark_read, notifications_mark_all_read,
+    notifications_unread_count,
 )
 
 urlpatterns = [
@@ -27,4 +29,8 @@ urlpatterns = [
     path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('password-reset/confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('password-reset/complete/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    path('notifications/', notifications_list, name='notifications_list'),
+    path('notifications/<int:pk>/read/', notification_mark_read, name='notification_mark_read'),
+    path('notifications/mark-all-read/', notifications_mark_all_read, name='notifications_mark_all_read'),
+    path('notifications/count/', notifications_unread_count, name='notifications_unread_count'),
 ]

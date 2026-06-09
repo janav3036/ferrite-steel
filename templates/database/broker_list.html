@@ -1,9 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}Brokers — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .broker-table { font-size: .9rem; }
+    .broker-table td, .broker-table th { padding: 12px 16px; }
+    .broker-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Brokers</h4>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">Brokers</h4>
+        <small class="text-muted">Market order broker contacts</small>
+    </div>
     {% if request.user.role == 'lead' or request.user.role == 'admin' %}
     <a href="{% url 'broker_create' %}" class="btn btn-dark btn-sm">+ Add Broker</a>
     {% endif %}
@@ -11,7 +22,7 @@
 
 {% if messages %}
 {% for message in messages %}
-<div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
     {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 {% endfor %}
@@ -20,44 +31,42 @@
 <!-- Scope tabs -->
 <ul class="nav nav-pills mb-3">
     <li class="nav-item">
-        <a class="nav-link {% if scope == 'active' %}active{% endif %}"
-           href="?scope=active">Active</a>
+        <a class="nav-link {% if scope == 'active' %}active{% endif %}" href="?scope=active">Active</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if scope == 'all' %}active{% endif %}"
-           href="?scope=all">All</a>
+        <a class="nav-link {% if scope == 'all' %}active{% endif %}" href="?scope=all">All</a>
     </li>
 </ul>
 
 {% if brokers %}
-<div class="card shadow-sm">
+<div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-hover broker-table mb-0">
+            <thead class="table-dark">
                 <tr>
                     <th>Name</th>
                     <th>Company</th>
                     <th>Phone</th>
                     <th>Location</th>
                     <th>Status</th>
-                    <th>Total Orders</th>
+                    <th>Orders</th>
                 </tr>
             </thead>
             <tbody>
                 {% for broker in brokers %}
                 <tr>
                     <td class="fw-semibold">{{ broker.name }}</td>
-                    <td>{{ broker.company|default:"—" }}</td>
+                    <td class="text-muted">{{ broker.company|default:"—" }}</td>
                     <td>{{ broker.phone|default:"—" }}</td>
-                    <td>{{ broker.location|default:"—" }}</td>
+                    <td class="text-muted">{{ broker.location|default:"—" }}</td>
                     <td>
                         {% if broker.is_active %}
-                        <span class="badge bg-success">Active</span>
+                        <span class="badge" style="background:#DCFCE7;color:#15803D;font-size:.7rem;">Active</span>
                         {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
+                        <span class="badge" style="background:#F1F5F9;color:#64748B;font-size:.7rem;">Inactive</span>
                         {% endif %}
                     </td>
-                    <td>{{ broker.orders.count }}</td>
+                    <td class="text-muted">{{ broker.orders.count }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -65,9 +74,17 @@
     </div>
 </div>
 {% else %}
-<div class="text-muted mt-2">
-    {% if scope == 'active' %}No active brokers.
-    {% else %}No brokers yet. <a href="{% url 'broker_create' %}">Add one.</a>{% endif %}
+<div class="card">
+    <div class="card-body py-5 text-center">
+        <i class="bi bi-person-badge" style="font-size:2rem;color:#CBD5E1;"></i>
+        <p class="text-muted mt-3 mb-0">
+            {% if scope == 'active' %}No active brokers.
+            {% else %}No brokers yet.{% endif %}
+        </p>
+        {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+        <a href="{% url 'broker_create' %}" class="btn btn-outline-primary btn-sm mt-3">Add first broker</a>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 {% endblock %}

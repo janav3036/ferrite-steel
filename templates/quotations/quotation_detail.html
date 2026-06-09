@@ -107,6 +107,18 @@
                 </dl>
             </div>
         </div>
+
+        {% if customer_notes_display %}
+        <div class="card shadow-sm mt-3">
+            <div class="card-header fw-semibold d-flex align-items-center gap-2" style="font-size:.84rem;">
+                <i class="bi bi-person-lines-fill text-muted"></i>
+                Customer Notes
+            </div>
+            <div class="card-body" style="background:#FAFBFC;">
+                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{ customer_notes_display }}</p>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-md-7">

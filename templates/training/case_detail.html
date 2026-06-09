@@ -1,10 +1,44 @@
 {% extends 'base.html' %}
-{% block title %}Case — {{ case.title }} — Ferrite Steel{% endblock %}
+{% block title %}{{ case.title }} — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+<style>
+    .case-section {
+        border-left: 3px solid var(--border);
+        padding-left: 14px;
+        margin-bottom: 20px;
+    }
+    .case-section-label {
+        font-size: .69rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .09em; color: var(--muted); margin-bottom: 8px;
+    }
+    .case-section-body {
+        font-size: .9rem; line-height: 1.7;
+        white-space: pre-wrap; color: var(--text);
+    }
+    .case-section.section-resolution { border-color: #16A34A; }
+    .case-section.section-resolution .case-section-label { color: #16A34A; }
+
+    .meta-label { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
+    .meta-value { font-size: .875rem; color: var(--text); margin-bottom: 16px; }
+
+    .dept-tag {
+        display: inline-block; font-size: .69rem; font-weight: 600;
+        padding: 2px 8px; border-radius: 100px;
+        background: #F1F5F9; color: #475569;
+        margin-right: 3px; margin-bottom: 2px;
+    }
+    .dept-team_9   { background: #EFF6FF; color: #1D4ED8; }
+    .dept-cs       { background: #F0FDF4; color: #15803D; }
+    .dept-market   { background: #FFF7ED; color: #C2410C; }
+    .dept-corporate{ background: #FAF5FF; color: #7C3AED; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="mb-0">{{ case.title }}</h4>
+        <h4 class="mb-1">{{ case.title }}</h4>
         <small class="text-muted">Case #{{ case.pk }} · {{ case.created_at|date:'d M Y' }}</small>
     </div>
     <div class="d-flex gap-2">
@@ -14,53 +48,63 @@
         {% if perms.training.delete_case %}
         <a href="{% url 'case_delete' case.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
         {% endif %}
-        <a href="{% url 'case_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
+        <a href="{% url 'case_list' %}" class="btn btn-outline-secondary btn-sm">← Cases</a>
     </div>
 </div>
 
 <div class="row g-4">
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header fw-semibold">Details</div>
+
+    <!-- Left: metadata -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header fw-semibold" style="font-size:.84rem;">Details</div>
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Customer</dt>
-                    <dd class="col-sm-7">{{ case.customer.name|default:'—' }}</dd>
-                    <dt class="col-sm-5">Departments</dt>
-                    <dd class="col-sm-7">
-                        {% for dept in case.departments %}
-                        <span class="badge bg-secondary me-1">{{ dept }}</span>
-                        {% empty %}—
-                        {% endfor %}
-                    </dd>
-                    <dt class="col-sm-5">Created by</dt>
-                    <dd class="col-sm-7">{{ case.created_by.get_full_name|default:case.created_by.username }}</dd>
-                    <dt class="col-sm-5">Date</dt>
-                    <dd class="col-sm-7">{{ case.created_at|date:'d M Y, H:i' }}</dd>
-                </dl>
+
+                <div class="meta-label">Customer</div>
+                <div class="meta-value">{{ case.customer.name|default:"—" }}</div>
+
+                <div class="meta-label">Departments</div>
+                <div class="meta-value">
+                    {% for dept in case.departments %}
+                    <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
+                    {% empty %}
+                    <span class="text-muted">—</span>
+                    {% endfor %}
+                </div>
+
+                <div class="meta-label">Added by</div>
+                <div class="meta-value">{{ case.created_by.get_full_name|default:case.created_by.username }}</div>
+
+                <div class="meta-label">Date</div>
+                <div class="meta-value mb-0">{{ case.created_at|date:'d M Y, H:i' }}</div>
+
             </div>
         </div>
     </div>
 
-    <div class="col-md-8">
-        <div class="card mb-3">
-            <div class="card-header fw-semibold">Problem</div>
-            <div class="card-body">
-                <p class="mb-0" style="white-space:pre-wrap;">{{ case.problem_description }}</p>
-            </div>
-        </div>
-        <div class="card mb-3">
-            <div class="card-header fw-semibold">Context</div>
-            <div class="card-body">
-                <p class="mb-0" style="white-space:pre-wrap;">{{ case.context }}</p>
-            </div>
-        </div>
+    <!-- Right: content -->
+    <div class="col-md-9">
         <div class="card">
-            <div class="card-header fw-semibold text-success">Resolution</div>
-            <div class="card-body">
-                <p class="mb-0" style="white-space:pre-wrap;">{{ case.resolution }}</p>
+            <div class="card-body" style="padding: 24px 28px;">
+
+                <div class="case-section">
+                    <div class="case-section-label">Problem</div>
+                    <div class="case-section-body">{{ case.problem_description }}</div>
+                </div>
+
+                <div class="case-section">
+                    <div class="case-section-label">Context</div>
+                    <div class="case-section-body">{{ case.context }}</div>
+                </div>
+
+                <div class="case-section section-resolution mb-0">
+                    <div class="case-section-label">Resolution</div>
+                    <div class="case-section-body">{{ case.resolution }}</div>
+                </div>
+
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}

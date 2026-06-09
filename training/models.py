@@ -101,3 +101,28 @@ class Question(models.Model):
 
     def __str__(self):
         return self.question_text[:80]
+    
+class QuizAttempt(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='quiz_attempts'
+    )
+    quiz_set = models.ForeignKey(
+        QuizSet,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='quiz_attempts'
+    )
+    score = models.IntegerField()
+    total_questions = models.IntegerField()
+    passed = models.BooleanField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Quiz Attempt'
+        verbose_name_plural = 'Quiz Attempts'
+        ordering = ['-completed_at']
+
+    def __str__(self):
+        return f"{self.user} - {self.quiz_set}"

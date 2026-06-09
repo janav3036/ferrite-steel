@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Case, KnowledgeDocument, QuizSet, Question
+from .models import Case, KnowledgeDocument, QuizSet, Question, QuizAttempt
+from .forms import QuizSetForm, QuestionForm
 
 
 @admin.register(Case)
@@ -20,14 +21,34 @@ class KnowledgeDocumentAdmin(admin.ModelAdmin):
 
 @admin.register(QuizSet)
 class QuizSetAdmin(admin.ModelAdmin):
+    form = QuizSetForm
     list_display = ('title', 'created_by', 'created_at')
     search_fields = ('title',)
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'created_by')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
+    form = QuestionForm
     list_display = ('question_text', 'quiz_set', 'created_by', 'created_at')
     list_filter = ('quiz_set',)
     search_fields = ('question_text',)
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'created_by')
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(QuizAttempt)
+class QuizAttemptRegister(admin.ModelAdmin):
+    list_display = ('user', 'quiz_set', 'score', 'total_questions', 'passed', 'completed_at')
+    list_filter = ('user', 'quiz_set')
+    search_fields = ('user__username',)
+    readonly_fields = ('completed_at',)

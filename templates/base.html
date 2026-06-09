@@ -423,7 +423,7 @@
         <span class="fs-section-label">Tools</span>
         {% if perms.training.view_case %}
         <a href="{% url 'training_home' %}"
-           class="fs-link {% if 'case' in url or url == 'training_home' %}active{% endif %}"
+           class="fs-link {% if 'case' in url or 'quiz' in url or url == 'training_home' %}active{% endif %}"
            title="Training">
             <i class="bi bi-book"></i>
             <span class="fs-link-text">Training</span>
@@ -431,6 +431,26 @@
         {% else %}
         <span class="fs-link fs-link-dim" title="Training"><i class="bi bi-book"></i><span class="fs-link-text">Training</span></span>
         {% endif %}
+        <a href="{% url 'chat_home' %}"
+           class="fs-link {% if url == 'chat_home' %}active{% endif %}"
+           title="Team Chat">
+            <i class="bi bi-chat-dots"></i>
+            <span class="fs-link-text">Chat</span>
+        </a>
+        <a href="{% url 'notifications_list' %}"
+           class="fs-link {% if url == 'notifications_list' %}active{% endif %}"
+           title="Notifications">
+            <i class="bi bi-bell"></i>
+            <span class="fs-link-text" style="display:flex;align-items:center;gap:6px;">
+                Notifications
+                {% if unread_notification_count > 0 %}
+                <span style="background:#EF4444;color:white;font-size:.62rem;font-weight:700;
+                             padding:1px 6px;border-radius:100px;line-height:1.4;flex-shrink:0;">
+                    {{ unread_notification_count }}
+                </span>
+                {% endif %}
+            </span>
+        </a>
         {% if request.user.role == 'lead' or request.user.role == 'admin' %}
         <span class="fs-link fs-link-dim" title="Credit Risk"><i class="bi bi-shield-check"></i><span class="fs-link-text"> Credit Risk</span></span>
         <span class="fs-link fs-link-dim" title="Lead Ranking"><i class="bi bi-bar-chart-line"></i><span class="fs-link-text"> Lead Ranking</span></span>

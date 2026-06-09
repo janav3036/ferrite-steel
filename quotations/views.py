@@ -1,6 +1,8 @@
 import json
 import re
 from decimal import Decimal
+from aegis.notifications import notify
+from aegis.models import CustomUser
 
 from django.db import transaction
 from django.db.models import F
@@ -66,6 +68,12 @@ def lead_create(request):
             lead.created_by = request.user
             lead.save()
             messages.success(request, f'Lead #{lead.pk} created.')
+            recipients = CustomUser.objects.filter(role__in=['lead', 'admin'], is_active=True).exclude(pk=request.user.pk)
+            if request.user.team:
+                recipients = recipients.filter(team=request.user.team) | CustomUser.objects.filter(role='admin', is_active=True)
+            notify(recipients.distinct(), f'New lead: {lead.customer_name or lead.company or "Unknown"}',
+                   message=f'Lead #{lead.pk} created by {request.user.get_full_name() or request.user.username}.',
+                   link=f'/quotations/leads/{lead.pk}/', notif_type='lead_created')
             return redirect('lead_detail', pk=lead.pk)
     else:
         form = ManualLeadForm()
@@ -282,6 +290,12 @@ def _quotation_context(quotation):
     cgst = taxable_value * quotation.cgst_percent / 100
     grand_total = taxable_value + sgst + cgst
 
+    customer = _find_customer(quotation.lead)
+    raw_notes = customer.notes if customer else ''
+    # Strip the structured pricing add-ons section — that's system-only data
+    addon_marker = '--- Pricing Add-ons ---'
+    customer_notes_display = raw_notes.split(addon_marker)[0].strip() if raw_notes else ''
+
     root = Quotation.objects.select_related('winning_quotation').get(
         pk=(quotation.parent_quotation_id or quotation.pk)
     )
@@ -302,6 +316,8 @@ def _quotation_context(quotation):
         'grand_total': grand_total,
         'versions': versions,
         'root': root,
+        'customer': customer,
+        'customer_notes_display': customer_notes_display,
     }
 
 
@@ -391,6 +407,13 @@ def quotation_outcome(request, pk):
             if outcome in ('win', 'loss') and lead.status != 'closed':
                 lead.status = 'closed'
                 lead.save(update_fields=['status'])
+            if outcome in ('win', 'loss'):
+                notif_type = 'quotation_win' if outcome == 'win' else 'quotation_loss'
+                label = 'Won' if outcome == 'win' else 'Lost'
+                recipients = CustomUser.objects.filter(role__in=['lead', 'admin'], is_active=True).exclude(pk=request.user.pk)
+                notify(recipients, f'{quotation} marked as {label}',
+                       message=f'Outcome recorded by {request.user.get_full_name() or request.user.username}.',
+                       link=f'/quotations/{quotation.pk}/', notif_type=notif_type)
     return redirect('quotation_detail', pk=pk)
 
 
@@ -645,6 +668,10 @@ def quotation_approve(request, pk):
         quotation.approved_at = timezone.now()
         quotation.save()
         messages.success(request, f'{quotation} approved.')
+        if quotation.created_by and quotation.created_by != request.user:
+            notify([quotation.created_by], f'{quotation} approved',
+                   message=f'Approved by {request.user.get_full_name() or request.user.username}.',
+                   link=f'/quotations/{quotation.pk}/', notif_type='quotation_approved')
     return redirect('quotation_detail', pk=pk)
 
 
@@ -730,6 +757,12 @@ def market_order_confirm(request, pk):
     order.broker_confirmed_at = timezone.now()
     order.save(update_fields=['status', 'broker_confirmed_at'])
     messages.success(request, 'Broker confirmation recorded.')
+    recipients = []
+    if order.created_by and order.created_by != request.user:
+        recipients.append(order.created_by)
+    notify(recipients, f'MO-{order.pk:05d}: broker confirmed',
+           message=f'{order.broker.name} confirmed the order.',
+           link=f'/quotations/market-orders/{order.pk}/', notif_type='market_confirmed')
     return redirect('market_order_detail', pk=pk)
 
 
@@ -748,6 +781,10 @@ def market_order_assign_do(request, pk):
         order.do_requested_at = timezone.now()
         order.save()
         messages.success(request, 'Sent to loading dock.')
+        if order.loading_dock_member:
+            notify([order.loading_dock_member], f'DO requested — MO-{order.pk:05d}',
+                   message=f'Issue a DO for {order.broker.name}. Product: {order.product_details[:80]}.',
+                   link=f'/quotations/market-orders/{order.pk}/', notif_type='market_do_pending')
     return redirect('market_order_detail', pk=pk)
 
 
@@ -766,6 +803,10 @@ def market_order_set_do(request, pk):
         order.do_issued_at = timezone.now()
         order.save()
         messages.success(request, f'DO number {order.do_number} recorded. Order completed.')
+        if order.created_by and order.created_by != request.user:
+            notify([order.created_by], f'MO-{order.pk:05d} completed — DO {order.do_number}',
+                   message=f'Order for {order.broker.name} completed.',
+                   link=f'/quotations/market-orders/{order.pk}/', notif_type='market_completed')
     return redirect('market_order_detail', pk=pk)
 
 @login_required

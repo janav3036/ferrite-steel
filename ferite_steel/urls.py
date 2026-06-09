@@ -23,6 +23,7 @@ urlpatterns = [
     path('quotations/', include('quotations.urls')),
     path('database/', include('database.urls')),
     path('training/', include('training.urls')),
+    path('chat/', include('chat.urls')),
 ]
 
 

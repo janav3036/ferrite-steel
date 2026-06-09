@@ -3,13 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.views import PasswordResetView
 from django.core.mail import get_connection, EmailMultiAlternatives
+from django.http import JsonResponse
 from django.template import loader
 from django.contrib import messages
 from quotations.models import Lead, Quotation
 from datetime import timedelta
 from django.utils import timezone
 from .forms import AddUserForm, EditRoleForm, RegistrationForm, ProfileForm
-from .models import CustomUser
+from .models import CustomUser, Notification
 
 
 @login_required
@@ -24,6 +25,8 @@ def dashboard(request):
         leads = Lead.objects.filter(created_at__gte=week_start, created_by=request.user)
         quotations = Quotation.objects.filter(created_at__gte=week_start, created_by=request.user)
         
+    recent_notifs = request.user.notifications.all()[:12]
+
     context = {
         'total_leads': leads.count(),
         'leads_new': leads.filter(status='new').count(),
@@ -33,6 +36,7 @@ def dashboard(request):
         'quotations_draft': quotations.filter(status='draft').count(),
         'quotations_approved': quotations.filter(status='approved').count(),
         'quotations_sent': quotations.filter(status='sent').count(),
+        'recent_notifs': recent_notifs,
     }
 
     return render(request, 'dashboard.html', context)
@@ -171,3 +175,37 @@ class CustomPasswordResetView(PasswordResetView):
     email_template_name = 'registration/password_reset_email.html'
     subject_template_name = 'registration/password_reset_subject.txt'
     success_url = '/password-reset/done/'
+
+
+# ── Notification views ────────────────────────────────────────────────────────
+
+@login_required
+def notifications_list(request):
+    notifs = request.user.notifications.all()[:60]
+    return render(request, 'notifications.html', {'notifs': notifs})
+
+
+@login_required
+def notification_mark_read(request, pk):
+    notif = get_object_or_404(Notification, pk=pk, user=request.user)
+    notif.is_read = True
+    notif.save(update_fields=['is_read'])
+    if notif.link:
+        return redirect(notif.link)
+    return redirect('notifications_list')
+
+
+@login_required
+def notifications_mark_all_read(request):
+    if request.method == 'POST':
+        request.user.notifications.filter(is_read=False).update(is_read=True)
+    next_url = request.POST.get('next') or request.GET.get('next') or 'notifications_list'
+    if next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect('notifications_list')
+
+
+@login_required
+def notifications_unread_count(request):
+    count = request.user.notifications.filter(is_read=False).count()
+    return JsonResponse({'count': count})

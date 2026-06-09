@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Quizzes — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+<style>
+    .quiz-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    .quiz-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 22px 22px 18px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 1px 3px rgba(15,23,42,.04);
+        transition: box-shadow .15s, border-color .15s;
+    }
+    .quiz-card:hover { box-shadow: 0 4px 12px rgba(15,23,42,.08); border-color: #BFDBFE; }
+    .quiz-card.card-passed { border-left: 3px solid #16A34A; }
+    .quiz-card.card-failed { border-left: 3px solid #DC2626; }
+    .quiz-card.card-new    { border-left: 3px solid #CBD5E1; }
+
+    .quiz-status {
+        font-size: .69rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; padding: 2px 8px; border-radius: 100px;
+    }
+    .status-passed { background: #DCFCE7; color: #15803D; }
+    .status-failed { background: #FEE2E2; color: #DC2626; }
+    .status-new    { background: #F1F5F9; color: #64748B; }
+
+    .quiz-count {
+        font-size: 2rem; font-weight: 700;
+        color: var(--accent); letter-spacing: -.04em; line-height: 1;
+    }
+    .quiz-count-label { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    .quiz-title { font-size: 1rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+    .quiz-desc  { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+
+    .quiz-score {
+        font-size: .8rem; font-weight: 500;
+        color: var(--muted);
+        background: #F8FAFC;
+        border-radius: 6px;
+        padding: 6px 10px;
+    }
+    .quiz-score strong { color: var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">Quizzes</h4>
+        <small class="text-muted">Test your knowledge — the AI evaluates your answers</small>
+    </div>
+    <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
+</div>
+
+{% if quiz_set_data %}
+<div class="quiz-grid">
+    {% for item in quiz_set_data %}
+    {% with qs=item.quiz_set %}
+    <div class="quiz-card {% if item.best_attempt %}{% if item.passed %}card-passed{% else %}card-failed{% endif %}{% else %}card-new{% endif %}">
+
+        <!-- Header: title + status -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="quiz-title">{{ qs.title }}</div>
+            <span class="quiz-status ms-2 flex-shrink-0
+                {% if item.best_attempt %}{% if item.passed %}status-passed{% else %}status-failed{% endif %}{% else %}status-new{% endif %}">
+                {% if item.best_attempt %}{% if item.passed %}Passed{% else %}Retake{% endif %}{% else %}New{% endif %}
+            </span>
+        </div>
+
+        {% if qs.description %}
+        <p class="quiz-desc mb-3">{{ qs.description }}</p>
+        {% endif %}
+
+        <!-- Stats row -->
+        <div class="d-flex gap-3 align-items-end mb-3 mt-auto">
+            <div>
+                <div class="quiz-count">{{ qs.question_count }}</div>
+                <div class="quiz-count-label">question{{ qs.question_count|pluralize }}</div>
+            </div>
+            {% if item.best_attempt %}
+            <div class="quiz-score">
+                Best: <strong>{{ item.best_attempt.score }}/{{ item.best_attempt.total_questions }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action -->
+        <a href="{% url 'quiz_detail' qs.pk %}" class="btn btn-outline-primary btn-sm align-self-start">
+            {% if item.best_attempt %}View / Retake{% else %}Start Quiz →{% endif %}
+        </a>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body py-5 text-center">
+        <i class="bi bi-patch-question" style="font-size:2rem;color:#CBD5E1;"></i>
+        <p class="text-muted mt-3 mb-0">No quizzes are available for your team yet.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

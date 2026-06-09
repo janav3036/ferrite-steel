@@ -72,3 +72,8 @@ def assign_role_permissions(sender, instance, **kwargs):
         perms = BASE()
 
     instance.user_permissions.set([p for p in perms if p is not None])
+
+    # Clear Django's per-request permission cache so has_perm() reflects the new set immediately
+    for attr in ('_perm_cache', '_user_perm_cache'):
+        if hasattr(instance, attr):
+            delattr(instance, attr)

@@ -1,48 +1,102 @@
 {% extends 'base.html' %}
-
 {% block title %}User Directory — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .dir-table td, .dir-table th { padding: 12px 16px; }
+    .dir-table { font-size: .9rem; }
+    .dir-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+    .user-avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: #EFF6FF; color: #2563EB;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .71rem; font-weight: 700; flex-shrink: 0;
+        letter-spacing: .02em;
+    }
+    .role-chip {
+        display: inline-block; font-size: .7rem; font-weight: 600;
+        padding: 2px 9px; border-radius: 100px;
+    }
+    .chip-admin  { background: #EFF6FF; color: #1D4ED8; }
+    .chip-lead   { background: #F0FDF4; color: #15803D; }
+    .chip-member { background: #F1F5F9; color: #475569; }
+    .chip-other  { background: #FFF7ED; color: #C2410C; }
+    .section-bar {
+        display: flex; align-items: center; gap: 10px;
+        padding: 13px 16px; border-bottom: 1px solid var(--border);
+    }
+    .section-bar-title { font-size: .875rem; font-weight: 600; margin: 0; color: var(--text); }
+    .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
+</style>
+{% endblock %}
+
 {% block content %}
-<h4 class="mb-4">User Directory</h4>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">User Directory</h4>
+        <small class="text-muted">Manage team members and role assignments</small>
+    </div>
+    <a href="{% url 'add_user' %}" class="btn btn-primary btn-sm">+ Add User</a>
+</div>
 
 {% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
 {% endif %}
 
-<div class="card shadow-sm mb-5">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+<!-- Active Members -->
+<div class="card mb-4">
+    <div class="section-bar">
+        <span class="section-bar-title">Active Members</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover dir-table mb-0">
             <thead class="table-dark">
                 <tr>
-                    <th>Username</th>
+                    <th>User</th>
                     <th>Full Name</th>
+                    <th>Team</th>
                     <th>Branch</th>
                     <th>Role</th>
-                    <th></th>
+                    <th style="width:190px"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 {% if user.is_active %}
                 <tr>
-                    <td>{{ user.username }}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-avatar">{{ user.username|slice:":2"|upper }}</div>
+                            <span class="fw-semibold">{{ user.username }}</span>
+                        </div>
+                    </td>
                     <td>{{ user.get_full_name|default:"—" }}</td>
-                    <td>{{ user.branch|default:"—" }}</td>
-                    <td><span class="badge bg-secondary">{{ user.role }}</span></td>
-                    <td class="d-flex gap-2">
-                        <a href="{% url 'edit_user_role' user.id %}" class="btn btn-sm btn-outline-dark">Edit Role</a>
-                        {% if user.id != request.user.id %}
-                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                data-bs-toggle="modal" data-bs-target="#deleteModal"
-                                data-user-id="{{ user.id }}" data-username="{{ user.username }}">
-                            Delete
-                        </button>
-                        {% endif %}
+                    <td class="text-muted">{{ user.get_team_display|default:"—" }}</td>
+                    <td class="text-muted">{{ user.branch|default:"—" }}</td>
+                    <td>
+                        <span class="role-chip
+                            {% if user.role == 'admin' %}chip-admin
+                            {% elif user.role == 'lead' %}chip-lead
+                            {% elif user.role == 'member' %}chip-member
+                            {% else %}chip-other{% endif %}">
+                            {{ user.get_role_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'edit_user_role' user.id %}" class="btn btn-sm btn-outline-secondary">Edit Role</a>
+                            {% if user.id != request.user.id %}
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                    data-user-id="{{ user.id }}" data-username="{{ user.username }}">
+                                Remove
+                            </button>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endif %}
@@ -52,27 +106,29 @@
     </div>
 </div>
 
-{% with pending=users|dictsort:"username" %}
-{% if users %}
-<h5 class="mb-3">Pending Approvals</h5>
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-warning">
+<!-- Pending Approvals -->
+<div class="card">
+    <div class="section-bar">
+        <div class="pending-dot"></div>
+        <span class="section-bar-title">Pending Approvals</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover dir-table mb-0">
+            <thead style="background:#FEF3C7;">
                 <tr>
-                    <th>Username</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th></th>
+                    <th style="color:#92400E;">Username</th>
+                    <th style="color:#92400E;">Full Name</th>
+                    <th style="color:#92400E;">Email</th>
+                    <th style="color:#92400E;width:190px;"></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="pending-tbody">
                 {% for user in users %}
                 {% if not user.is_active %}
                 <tr>
-                    <td>{{ user.username }}</td>
+                    <td class="fw-semibold">{{ user.username }}</td>
                     <td>{{ user.get_full_name|default:"—" }}</td>
-                    <td>{{ user.email|default:"—" }}</td>
+                    <td class="text-muted">{{ user.email|default:"—" }}</td>
                     <td>
                         <div class="d-flex gap-2">
                             <form method="post" action="{% url 'approve_user' user.id %}">
@@ -92,25 +148,30 @@
             </tbody>
         </table>
     </div>
+    <div id="no-pending" class="px-4 py-3 text-muted small border-top" style="display:none">
+        No pending approvals at this time.
+    </div>
 </div>
-{% endif %}
-{% endwith %}
 
+<!-- Delete / Reject Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Delete</h5>
+            <div class="modal-header border-0 pb-1">
+                <h6 class="modal-title fw-semibold">Confirm removal</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                Are you sure you want to delete <strong id="deleteUsername"></strong>? This cannot be undone.
+            <div class="modal-body pt-0">
+                <p class="text-muted small mb-0">
+                    This will permanently remove <strong id="deleteUsername"></strong> from the system.
+                    This action cannot be undone.
+                </p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <form id="deleteForm" method="post">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Remove User</button>
                 </form>
             </div>
         </div>
@@ -123,6 +184,8 @@
         document.getElementById('deleteUsername').textContent = btn.getAttribute('data-username');
         document.getElementById('deleteForm').action = '/delete-user/' + btn.getAttribute('data-user-id') + '/';
     });
+    if (document.getElementById('pending-tbody').rows.length === 0) {
+        document.getElementById('no-pending').style.display = '';
+    }
 </script>
-
 {% endblock %}

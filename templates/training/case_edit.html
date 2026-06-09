@@ -1,80 +1,112 @@
 {% extends 'base.html' %}
-{% block title %}Edit Case — {{ case.title }} — Ferrite Steel{% endblock %}
+{% block title %}Edit Case — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+<style>
+    .form-wrap { max-width: 760px; }
+    .section-divider { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
+    .section-label {
+        font-size: .69rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .09em; color: var(--muted); margin-bottom: 14px;
+    }
+    .dept-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .dept-check { display: flex; align-items: center; gap: 7px; font-size: .84rem; cursor: pointer; }
+    .dept-check input { width: 15px; height: 15px; cursor: pointer; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">Edit Case #{{ case.pk }}</h4>
+    <div>
+        <h4 class="mb-0">Edit Case</h4>
+        <small class="text-muted">Case #{{ case.pk }} · {{ case.title }}</small>
+    </div>
     <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
+<div class="form-wrap">
+    <div class="card">
+        <div class="card-body" style="padding:24px;">
+            <form method="post">
+                {% csrf_token %}
 
-            <div class="mb-3">
-                <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control {% if form.title.errors %}is-invalid{% endif %}"
-                       value="{{ form.title.value|default:'' }}" required>
-                {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-            </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Title</label>
+                    <input type="text" name="title"
+                           class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                           value="{{ form.title.value|default:'' }}" required>
+                    {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Problem Description</label>
-                <textarea name="problem_description" rows="4"
-                          class="form-control {% if form.problem_description.errors %}is-invalid{% endif %}"
-                          required>{{ form.problem_description.value|default:'' }}</textarea>
-                {% for e in form.problem_description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-            </div>
+                <div class="section-divider">
+                    <div class="section-label">Situation</div>
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Context</label>
-                <textarea name="context" rows="3"
-                          class="form-control {% if form.context.errors %}is-invalid{% endif %}"
-                          required>{{ form.context.value|default:'' }}</textarea>
-                {% for e in form.context.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Problem Description</label>
+                    <textarea name="problem_description" rows="4"
+                              class="form-control {% if form.problem_description.errors %}is-invalid{% endif %}"
+                              required>{{ form.problem_description.value|default:'' }}</textarea>
+                    {% for e in form.problem_description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Resolution</label>
-                <textarea name="resolution" rows="4"
-                          class="form-control {% if form.resolution.errors %}is-invalid{% endif %}"
-                          required>{{ form.resolution.value|default:'' }}</textarea>
-                {% for e in form.resolution.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-            </div>
+                <div class="mb-4">
+                    <label class="form-label">Context <small class="text-muted fw-normal">(customer, product, trigger)</small></label>
+                    <textarea name="context" rows="3"
+                              class="form-control {% if form.context.errors %}is-invalid{% endif %}"
+                              required>{{ form.context.value|default:'' }}</textarea>
+                    {% for e in form.context.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Departments</label>
-                    <div class="border rounded p-3" style="background:#f8fafc">
-                        {% for checkbox in form.departments %}
-                        <div class="form-check">
-                            {{ checkbox.tag }}
-                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                <div class="section-divider">
+                    <div class="section-label">Resolution</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">How was it resolved?</label>
+                    <textarea name="resolution" rows="4"
+                              class="form-control {% if form.resolution.errors %}is-invalid{% endif %}"
+                              required>{{ form.resolution.value|default:'' }}</textarea>
+                    {% for e in form.resolution.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+
+                <div class="section-divider">
+                    <div class="section-label">Classification</div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Departments</label>
+                        <div class="dept-group">
+                            {% for checkbox in form.departments %}
+                            <label class="dept-check">
+                                {{ checkbox.tag }}
+                                <span>{{ checkbox.choice_label }}</span>
+                            </label>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        {% for e in form.departments.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
                     </div>
-                    {% for e in form.departments.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                    <div class="col-md-6">
+                        <label class="form-label">Customer <small class="text-muted fw-normal">(optional)</small></label>
+                        <select name="customer" class="form-select {% if form.customer.errors %}is-invalid{% endif %}">
+                            <option value="">— No customer —</option>
+                            {% for pk, name in form.fields.customer.choices %}
+                            {% if pk %}
+                            <option value="{{ pk }}" {% if form.customer.value|stringformat:'s' == pk|stringformat:'s' %}selected{% endif %}>{{ name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        {% for e in form.customer.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Customer <small class="text-muted">(optional)</small></label>
-                    <select name="customer" class="form-select {% if form.customer.errors %}is-invalid{% endif %}">
-                        <option value="">— No customer —</option>
-                        {% for pk, name in form.fields.customer.choices %}
-                        {% if pk %}
-                        <option value="{{ pk }}" {% if form.customer.value|stringformat:'s' == pk|stringformat:'s' %}selected{% endif %}>{{ name }}</option>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                    {% for e in form.customer.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-                </div>
-            </div>
 
-            <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-                <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Cancel</a>
-            </div>
-        </form>
+                <div class="pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

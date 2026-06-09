@@ -1,6 +1,6 @@
 from django import forms
-from .models import Case
 from database.models import Customer
+from .models import QuizSet, Question, Case
 
 DEPARTMENT_CHOICES = [
     ('team_9', 'Team 9'),
@@ -29,4 +29,31 @@ class CaseForm(forms.ModelForm):
             'problem_description': forms.Textarea(attrs={'rows': 4}),
             'context': forms.Textarea(attrs={'rows': 3}),
             'resolution': forms.Textarea(attrs={'rows': 4}),
+        }
+
+class QuizSetForm(forms.ModelForm):
+    departments = forms.MultipleChoiceField(
+        choices=DEPARTMENT_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    class Meta:
+        model = QuizSet
+        fields = ['title', 'description', 'departments']
+
+
+class QuestionForm(forms.ModelForm):
+    departments = forms.MultipleChoiceField(
+        choices=DEPARTMENT_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
+    class Meta:
+        model = Question
+        fields = ['quiz_set', 'question_text', 'correct_answer', 'source', 'departments']
+        widgets = {
+            'question_text': forms.Textarea(attrs={'rows': 3}),
+            'correct_answer': forms.Textarea(attrs={'rows': 3}),
         }

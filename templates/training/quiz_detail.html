@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz_set.title }} — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">{{ quiz_set.title }}</h4>
+        <small class="text-muted">
+            {{ questions|length }} question{{ questions|length|pluralize }}
+            · Pass mark: {{ pass_threshold }}%
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        {% if questions %}
+        <a href="{% url 'quiz_take' quiz_set.pk %}" class="btn btn-primary btn-sm">
+            {% if attempts %}Retake Quiz{% else %}Start Quiz{% endif %}
+        </a>
+        {% endif %}
+        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        {% if quiz_set.description %}
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">About</div>
+            <div class="card-body">
+                <p class="mb-0 small">{{ quiz_set.description }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header fw-semibold">Your Attempts</div>
+            {% if attempts %}
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Score</th>
+                            <th>Result</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in attempts %}
+                        <tr>
+                            <td>{{ a.score }}/{{ a.total_questions }}</td>
+                            <td>
+                                {% if a.passed %}
+                                <span class="badge bg-success">Pass</span>
+                                {% else %}
+                                <span class="badge bg-danger">Fail</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted small">{{ a.completed_at|date:'d M Y' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card-body">
+                <p class="text-muted small mb-0">No attempts yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body text-muted">
+                This quiz has {{ questions|length }} question{{ questions|length|pluralize }}.
+                Questions are revealed only when you start the quiz.
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

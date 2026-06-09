@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 9 Jun 2026 (session 14 — GCP deploy)
+**Last updated:** 10 Jun 2026 (session 15 — frontend redesign, notifications, chat, 3B quiz)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-module 3A (Case Management) complete. 3B and 3C placeholders on training home.**
-**Current work: Session 14 complete — training app built (3A), lead case notes + voice dictation wired, docs written. Next session: KnowledgeDocument + QuizSet + Question models, then 3B quiz views.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management) and 3B (Quiz System) complete. 3C (RAG Q&A) blocked on client Q13 + Q14.**
+**Current work: Session 15 complete — full frontend redesign (DM Sans / blue accent / bento layouts), notification system, team chat, 3B quiz system. Next session: 3C RAG Q&A (pending client answers), pagination, intcomma.**
 
 ### What is built
 
@@ -133,13 +133,24 @@ to a non-technical client.
 
 **Lead case notes + voice dictation:** `lead_notes_raw` + `lead_notes_clean` fields on `Lead` (migration 0025). Case Notes card on lead detail — raw textarea with 🎤 Dictate button (Web Speech API, `en-IN`, continuous mode), Save + AI Cleanup buttons, cleaned notes textarea with Save + "Convert to Case" button. `cleanup_lead_notes(raw)` in `quotations/services/llm.py`. `lead_save_notes` view handles `save`/`cleanup`/`save_clean` actions. Voice dictation post-processes final results: punctuation word substitution + ProductKeyword trade-term substitution (longest-first). Chrome/Edge only.
 
-**Training app (Sub-module 3A — Case Management):** `training` app with `Case` model (title, problem_description, context, resolution, departments JSONField, customer FK nullable, created_by FK, created_at). Views: `training_home` (bento grid — 3A live, 3B/3C placeholders), `case_list`, `case_detail`, `case_create`, `case_edit`, `case_delete`. URLs at `/training/`. Training sidebar link live (gated by `view_case` perm). "Convert to Case" button on lead detail wired — passes `notes` + `lead` as query params to `case_create`. Permissions: `view_case` in BASE (all roles), `add/change/delete_case` in LEAD_EXTRA (lead + admin). Training home bento: 3A card shows live case count; 3B and 3C are dashed placeholder frames.
+**Training app (Sub-module 3A — Case Management):** `training` app with `Case` model (title, problem_description, context, resolution, departments JSONField, customer FK nullable, created_by FK, created_at). Views: `training_home` (bento grid — 3A live, 3B live, 3C placeholder), `case_list`, `case_detail`, `case_create`, `case_edit`, `case_delete`. URLs at `/training/`. Training sidebar link live (gated by `view_case` perm). "Convert to Case" button on lead detail wired — passes `notes` + `lead` as query params to `case_create`. Permissions: `view_case` in BASE (all roles), `add/change/delete_case` in LEAD_EXTRA (lead + admin).
 
-**Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created this session.
+**Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`. `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets matching their team.
+
+**Notification system:** `Notification` model in `aegis/models.py` (user FK, title, message, link, type choices, is_read, created_at). `notify(users, title, message, link, notif_type)` utility in `aegis/notifications.py` — bulk_creates. Context processor `aegis.context_processors.notification_count` injects `unread_notification_count` globally. Dashboard shows notifications panel (right column, up to 12, scrollable, per-type icons, unread highlighting, mark-all-read). Full notifications page at `/notifications/`. Wired at: lead_create, quotation_approve, quotation_outcome (win/loss), market_order_confirm, market_order_assign_do, market_order_set_do, case_create.
+
+**Team chat:** `chat` app with `ChatMessage` model (channel, sender FK, content, created_at). Channels: all_staff + user's own team; admins see all. Views: `chat_home` (renders last 100 messages), `chat_send` (POST → JSON), `chat_poll` (GET ?channel=&since=id → JSON). 4-second JS polling, tracks `lastId`, sanitizes with `escHtml()`. Auto-resize textarea, Enter to send, Shift+Enter for newline. At `/chat/`.
+
+**Frontend redesign (session 15):** All pages redesigned with DM Sans font, blue accent (`#2563EB`), CSS variable theming. Multi-panel pages use bento/card grid layouts. Table pages use dark headers, `.9rem` font, click-to-navigate rows. Role chips (admin=blue, lead=green, member=grey), dept-tag chips (team_9=blue, cs=green, market=orange, corporate=purple), status pills per entity type. Pages redesigned: directory, profile, case_list, case_detail, case_create, case_edit, case_confirm_delete, quiz_list, quiz_take, broker_list, broker_create, market_order_list, market_order_create, quotation_select_lead, quotation_send_confirm, add_user, edit_user_role, dashboard.
+
+**Quotation detail — customer notes (read-only):** `_quotation_context` now calls `_find_customer(quotation.lead)` and passes `customer_notes_display` (raw notes stripped of `--- Pricing Add-ons ---` section). Shown as a read-only card below the Details panel — only visible when customer record exists and has notes.
+
+**Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
+
+**Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created session 14.
 
 ### What is NOT yet built (planned for next sessions)
-- **KnowledgeDocument, QuizSet, Question models** — to be added to `training/models.py` next session before 3B/3C work begins
-- **3B Quiz system** — views, templates, `judge_quiz_answer()` LLM function (no blockers)
+- **KnowledgeDocument model** — defined in CLAUDE.md Section 6, migration not yet applied; needed for 3C
 - **3C RAG Q&A** — blocked on client Q13 + Q14 (see Section 10)
 - **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
 - **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000

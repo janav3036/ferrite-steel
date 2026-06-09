@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Quiz Results — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Results — {{ attempt.quiz_set }}</h4>
+    <div class="d-flex gap-2">
+        {% if attempt.quiz_set %}
+        <a href="{% url 'quiz_take' attempt.quiz_set.pk %}" class="btn btn-outline-primary btn-sm">Retake</a>
+        <a href="{% url 'quiz_detail' attempt.quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">← Back to Quiz</a>
+        {% endif %}
+        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">All Quizzes</a>
+    </div>
+</div>
+
+<!-- Score card -->
+<div class="card mb-4">
+    <div class="card-body text-center py-4">
+        <div style="font-size:3rem;font-weight:700;letter-spacing:-.04em;color:{% if attempt.passed %}#16A34A{% else %}#DC2626{% endif %}">
+            {{ attempt.score }}/{{ attempt.total_questions }}
+        </div>
+        <div class="text-muted mb-3">{{ attempt.score }} correct out of {{ attempt.total_questions }}</div>
+        {% if attempt.passed %}
+        <span class="badge bg-success px-3 py-2" style="font-size:.9rem;">Passed</span>
+        {% else %}
+        <span class="badge bg-danger px-3 py-2" style="font-size:.9rem;">Failed — retake required</span>
+        <p class="text-muted small mt-2 mb-0">Pass mark is {{ pass_threshold }}%.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Per-question breakdown -->
+{% if results %}
+<h6 class="fw-semibold mb-3">Question Breakdown</h6>
+{% for r in results %}
+<div class="card mb-3" style="border-left:4px solid {% if r.correct %}#16A34A{% else %}#DC2626{% endif %};">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <p class="fw-semibold mb-0">{{ forloop.counter }}. {{ r.question }}</p>
+            {% if r.correct %}
+            <span class="badge bg-success ms-2 flex-shrink-0">Correct</span>
+            {% else %}
+            <span class="badge bg-danger ms-2 flex-shrink-0">Incorrect</span>
+            {% endif %}
+        </div>
+        <p class="text-muted small mb-1">Your answer: {{ r.user_answer|default:"(no answer)" }}</p>
+        <p class="small mb-0">{{ r.explanation }}</p>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<p class="text-muted">Detailed breakdown not available (session expired). Your score of {{ attempt.score }}/{{ attempt.total_questions }} has been saved.</p>
+{% endif %}
+{% endblock %}

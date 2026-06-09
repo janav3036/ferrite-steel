@@ -1,67 +1,110 @@
 {% extends "base.html" %}
 {% block title %}My Profile — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .profile-avatar {
+        width: 68px; height: 68px; border-radius: 50%;
+        background: #EFF6FF; color: #2563EB;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; font-weight: 700;
+        letter-spacing: -.02em;
+        flex-shrink: 0;
+    }
+    .identity-row { margin-bottom: 16px; }
+    .identity-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
+    .identity-value { font-size: .9rem; font-weight: 500; color: var(--text); }
+    .stat-chip {
+        display: inline-block; font-size: .75rem; font-weight: 600;
+        padding: 3px 10px; border-radius: 100px;
+    }
+    .chip-role  { background: #EFF6FF; color: #1D4ED8; }
+    .chip-team  { background: #F0FDF4; color: #15803D; }
+    .chip-admin { background: #FFF7ED; color: #C2410C; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">My Profile</h2>
+    <h4 class="mb-0">My Profile</h4>
     <a href="/dashboard/" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
 </div>
 
 <div class="row g-4">
 
-    <!-- Left: account info + security -->
+    <!-- Left: identity + security -->
     <div class="col-md-4">
+
         <div class="card mb-3">
-            <div class="card-header">Account</div>
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-5">Username</dt>
-                    <dd class="col-7">{{ request.user.username }}</dd>
+                <!-- Avatar + name -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="profile-avatar">{{ request.user.username|slice:":2"|upper }}</div>
+                    <div>
+                        <div style="font-size:1rem;font-weight:600;line-height:1.25;">
+                            {{ request.user.get_full_name|default:request.user.username }}
+                        </div>
+                        <div class="text-muted" style="font-size:.8rem;">{{ request.user.username }}</div>
+                    </div>
+                </div>
 
-                    <dt class="col-5">Role</dt>
-                    <dd class="col-7">
-                        <span class="badge bg-secondary">{{ request.user.get_role_display }}</span>
-                    </dd>
-
-                    <dt class="col-5">Team</dt>
-                    <dd class="col-7">
-                        {% if request.user.team %}
-                        <span class="badge bg-primary">{{ request.user.get_team_display }}</span>
-                        {% else %}
-                        <span class="text-muted">—</span>
-                        {% endif %}
-                    </dd>
-
-                    {% if request.user.employee_id %}
-                    <dt class="col-5">Employee ID</dt>
-                    <dd class="col-7">{{ request.user.employee_id }}</dd>
+                <!-- Role + team chips -->
+                <div class="d-flex gap-2 flex-wrap mb-4">
+                    <span class="stat-chip
+                        {% if request.user.role == 'admin' %}chip-admin
+                        {% else %}chip-role{% endif %}">
+                        {{ request.user.get_role_display }}
+                    </span>
+                    {% if request.user.team %}
+                    <span class="stat-chip chip-team">{{ request.user.get_team_display }}</span>
                     {% endif %}
+                </div>
 
-                    <dt class="col-5">Joined</dt>
-                    <dd class="col-7">{{ request.user.date_joined|date:"d M Y" }}</dd>
-                </dl>
+                <!-- Identity fields -->
+                {% if request.user.employee_id %}
+                <div class="identity-row">
+                    <div class="identity-label">Employee ID</div>
+                    <div class="identity-value">{{ request.user.employee_id }}</div>
+                </div>
+                {% endif %}
+
+                {% if request.user.branch %}
+                <div class="identity-row">
+                    <div class="identity-label">Branch</div>
+                    <div class="identity-value">{{ request.user.branch }}</div>
+                </div>
+                {% endif %}
+
+                <div class="identity-row mb-0">
+                    <div class="identity-label">Member Since</div>
+                    <div class="identity-value">{{ request.user.date_joined|date:"d M Y" }}</div>
+                </div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-header">Security</div>
+            <div class="card-header fw-semibold" style="font-size:.84rem;">Security</div>
             <div class="card-body">
-                <a href="{% url 'password_change' %}" class="btn btn-outline-secondary w-100 btn-sm">
+                <p class="text-muted small mb-3">
+                    Keep your account secure with a strong, unique password.
+                </p>
+                <a href="{% url 'password_change' %}" class="btn btn-outline-secondary btn-sm w-100">
                     Change Password
                 </a>
             </div>
         </div>
+
     </div>
 
-    <!-- Right: editable fields -->
+    <!-- Right: editable personal info -->
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header">Personal Information</div>
+            <div class="card-header fw-semibold" style="font-size:.84rem;">Personal Information</div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    <div class="row g-3">
 
+                    <div class="row g-3 mb-3">
                         <div class="col-sm-6">
                             <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
                             {{ form.first_name }}
@@ -69,7 +112,6 @@
                             <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
-
                         <div class="col-sm-6">
                             <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
                             {{ form.last_name }}
@@ -77,15 +119,17 @@
                             <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
+                    </div>
 
-                        <div class="col-12">
-                            <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                            {{ form.email }}
-                            {% for error in form.email.errors %}
-                            <div class="text-danger small mt-1">{{ error }}</div>
-                            {% endfor %}
-                        </div>
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+                        {{ form.email }}
+                        {% for error in form.email.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
 
+                    <div class="row g-3">
                         <div class="col-sm-6">
                             <label for="{{ form.phone.id_for_label }}" class="form-label">Phone</label>
                             {{ form.phone }}
@@ -93,7 +137,6 @@
                             <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
-
                         <div class="col-sm-6">
                             <label for="{{ form.branch.id_for_label }}" class="form-label">Branch</label>
                             {{ form.branch }}
@@ -101,10 +144,9 @@
                             <div class="text-danger small mt-1">{{ error }}</div>
                             {% endfor %}
                         </div>
-
                     </div>
 
-                    <div class="mt-4">
+                    <div class="mt-4 pt-3 border-top d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
