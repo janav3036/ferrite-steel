@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 8 Jun 2026 (session 14)
+**Last updated:** 9 Jun 2026 (session 14 — GCP deploy)
 
 ---
 
@@ -280,27 +280,36 @@ Client receives 3 Excel files daily via WhatsApp:
 
 ## 8. Hosting Decision
 
-**Status: CONFIRMED — Option B (Hetzner VPS + Gunicorn + Nginx). Confirmed 24 May 2026.**
+**Status: CONFIRMED — GCP e2-small, Ubuntu 24.04. Switched from Hetzner on 9 Jun 2026 (Janav already has GCP free credits from Realm project).**
 
-Client confirmed comfort with business data hosted off-premise. VPS not yet provisioned — next step is to spin up Hetzner CX22 and run the deployment setup.
-
-**Deployment stack:**
-- Server: Hetzner CX22 VPS, Ubuntu 24.04
-- WSGI: Gunicorn
+**Infrastructure:**
+- Server: GCP e2-small VM, us-central1-a, Ubuntu 24.04
+- VM username: janavdshah30 (same GCP project as Realm)
+- Testing domain: `feritesteel.janavshah.com` (Cloudflare DNS-only, grey cloud — no proxy)
+- Client domain: TBD — will point their own subdomain when ready to go live
+- WSGI: Gunicorn (systemd service at `/etc/systemd/system/gunicorn.service`)
 - Reverse proxy: Nginx
-- SSL: Let's Encrypt via Certbot
-- Database: PostgreSQL on the same VPS
+- SSL: Let's Encrypt via Certbot (auto-renews)
+- Database: PostgreSQL on the same VM
 - Static files: WhiteNoise (already wired in `settings.py`)
 - PDF: WeasyPrint — works natively on Linux via `apt install libpango-1.0-0 libcairo2`
 - Scheduled tasks: `poll_emails --scheduled` via cron every minute (throttled by `TeamEmailConfig.poll_interval_minutes`)
+- Deploy scripts: `deploy/setup.sh`, `deploy/nginx.conf`, `deploy/gunicorn.service`
 
-**Pre-deployment checklist (not yet done):**
-- Set `ALLOWED_HOSTS` to domain/IP in settings
-- Set all env vars on VPS (SECRET_KEY, DB_*, TOGETHER_API_KEY)
-- Run `collectstatic` and `migrate` on first deploy
-- Configure systemd service for Gunicorn
-- Set up cron for `poll_emails`
-- Obtain domain and point DNS to VPS IP
+**Future deploys (after VM is set up):**
+```bash
+gcloud compute ssh ferite-steel --zone us-central1-a
+cd /var/www/ferite_steel && git pull && source .venv/bin/activate
+python manage.py migrate && python manage.py collectstatic --noinput
+sudo systemctl restart gunicorn
+```
+
+**Pre-deployment checklist (not yet done — VM not yet provisioned):**
+- Create GCP e2-small VM (us-central1-a, Ubuntu 24.04, HTTP+HTTPS firewall)
+- Reserve static IP and point Cloudflare A record to it
+- SSH in, run `deploy/setup.sh`, fill in `.env`
+- Run `collectstatic`, `migrate`, `createsuperuser`
+- Start Gunicorn + Nginx, run `certbot --nginx`
 
 ---
 
@@ -341,7 +350,7 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 
 Do not proceed with affected modules until resolved.
 
-- **Hosting:** RESOLVED — Option B (Hetzner VPS). VPS not yet provisioned (see Section 8).
+- **Hosting:** RESOLVED — GCP e2-small (switched from Hetzner). VM not yet provisioned (see Section 8).
 - **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
 - **WhatsApp API approval:** Do not build ingestion until Meta confirms
 - **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
