@@ -280,11 +280,11 @@ Client receives 3 Excel files daily via WhatsApp:
 
 ## 8. Hosting Decision
 
-**Status: CONFIRMED — GCP e2-small, Ubuntu 24.04. Switched from Hetzner on 9 Jun 2026 (Janav already has GCP free credits from Realm project).**
+**Status: TEMPORARY — GCP e2-small for client testing only. Will migrate to a proper production service before go-live. Decision on final host is pending.**
 
-**Infrastructure:**
+**Infrastructure (temporary — client testing):**
 - Server: GCP e2-small VM, us-central1-a, Ubuntu 24.04
-- VM username: janavdshah30 (same GCP project as Realm)
+- VM username: janavdshah30 (same GCP project as Realm; using existing free credits)
 - Testing domain: `feritesteel.janavshah.com` (Cloudflare DNS-only, grey cloud — no proxy)
 - Client domain: TBD — will point their own subdomain when ready to go live
 - WSGI: Gunicorn (systemd service at `/etc/systemd/system/gunicorn.service`)
@@ -350,7 +350,7 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 
 Do not proceed with affected modules until resolved.
 
-- **Hosting:** RESOLVED — GCP e2-small (switched from Hetzner). VM not yet provisioned (see Section 8).
+- **Hosting:** PARTIALLY RESOLVED — GCP e2-small is temporary (client testing only, free credits). Final production host TBD — decide before go-live.
 - **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
 - **WhatsApp API approval:** Do not build ingestion until Meta confirms
 - **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
