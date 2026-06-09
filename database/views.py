@@ -103,6 +103,7 @@ def customer_search_json(request):
     return JsonResponse({'results': results})
 
 
+@login_required
 def customer_list(request):
     scope = request.GET.get('scope', 'team')
     q = request.GET.get('q', '').strip()

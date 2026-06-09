@@ -13,8 +13,10 @@ def training_home(request):
     user = request.user
     if user.is_superuser or user.role == 'admin':
         case_count = Case.objects.count()
-    else:
+    elif user.team:
         case_count = Case.objects.filter(departments__contains=user.team).count()
+    else:
+        case_count = 0
     return render(request, 'training/home.html', {'case_count': case_count})
 
 
@@ -26,10 +28,12 @@ def case_list(request):
     user = request.user
     if user.is_superuser or user.role == 'admin':
         cases = Case.objects.select_related('customer', 'created_by').all()
-    else:
+    elif user.team:
         cases = Case.objects.select_related('customer', 'created_by').filter(
             departments__contains=user.team
         )
+    else:
+        cases = Case.objects.none()
     return render(request, 'training/case_list.html', {'cases': cases})
 
 

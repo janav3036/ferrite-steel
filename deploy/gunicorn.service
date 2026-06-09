@@ -1,0 +1,23 @@
+[Unit]
+Description=Gunicorn daemon for Ferite Steel
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/ferite_steel
+EnvironmentFile=/var/www/ferite_steel/.env
+ExecStart=/var/www/ferite_steel/.venv/bin/gunicorn \
+    --workers 3 \
+    --bind unix:/run/gunicorn/ferite_steel.sock \
+    --access-logfile /var/log/gunicorn/ferite_steel.log \
+    --error-logfile /var/log/gunicorn/ferite_steel_error.log \
+    ferite_steel.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+RuntimeDirectory=gunicorn
+
+[Install]
+WantedBy=multi-user.target

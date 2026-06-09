@@ -1,6 +1,7 @@
 # Environment
 .env
 .env.*
+!.env.example
 
 # Virtual environments
 .venv/
@@ -27,3 +28,9 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+
+# Claude Code local settings and memory
+.claude/
+
+# Client data files used for one-time imports — never commit
+extra_data/

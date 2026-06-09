@@ -171,7 +171,7 @@ def quotation_edit(request, pk):
                 item.save()
             for item in formset.deleted_objects:
                 item.delete()
-            total = sum(i.total_price for i in quotation.line_items.all())
+            total = sum(i.final_price for i in quotation.line_items.all())
             quotation.total_amount = total
             quotation.save(update_fields=['total_amount'])
             _upsert_customer(lead, quotation.transport_extra)
@@ -349,14 +349,17 @@ def quotation_revise(request, pk):
     for item in original.line_items.all():
         QuotationLineItem.objects.create(
             quotation=new_q,
+            product=item.product,
             product_name=item.product_name,
             make=item.make,
             length=item.length,
+            hsn_code=item.hsn_code,
             pcs=item.pcs,
             quantity=item.quantity,
             uom=item.uom,
             unit_price=item.unit_price,
             total_price=item.total_price,
+            discount_pct=item.discount_pct,
             notes=item.notes,
         )
     messages.success(request, f'{new_q} created as a new revision.')
@@ -765,7 +768,10 @@ def market_order_set_do(request, pk):
         messages.success(request, f'DO number {order.do_number} recorded. Order completed.')
     return redirect('market_order_detail', pk=pk)
 
+@login_required
 def market_order_do_send(request, pk):
+    if not _require_market_or_admin(request):
+        return redirect('dashboard')
     order = get_object_or_404(MarketOrder, pk=pk)
 
     if request.method == 'POST':
@@ -796,6 +802,7 @@ def market_order_do_send(request, pk):
 
     return render(request, 'quotations/market_order_do_send.html', {'order': order})
 
+@login_required
 @require_POST
 def poll_emails_now(request):
     try:
