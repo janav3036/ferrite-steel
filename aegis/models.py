@@ -23,6 +23,7 @@ class CustomUser(AbstractUser):
     team = models.CharField(max_length=20, choices=TEAM_CHOICES, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
     phone = models.CharField(max_length=20, blank=True, null=True)
+    phone_2 = models.CharField(max_length=20, blank=True, null=True)
     employee_id = models.IntegerField(blank=True, null=True)
     branch = models.CharField(max_length=20,blank=True, null=True)
 
