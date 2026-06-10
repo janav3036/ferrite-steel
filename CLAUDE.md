@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 10 Jun 2026 (session 15 — frontend redesign, notifications, chat, 3B quiz)
+**Last updated:** 10 Jun 2026 (session 16 — GCP deployment, crm.ferrite.in)
 
 ---
 
@@ -166,7 +166,7 @@ to a non-technical client.
 ### Pending before Phase 2 is fully live
 - WhatsApp Business API Meta approval
 - Dummy Gmail credentials in `TeamEmailConfig`
-- Hetzner VPS provisioning + cron setup for `poll_emails --scheduled`
+- Cron setup on GCP VM for `poll_emails --scheduled` (VM deployed but cron not yet configured)
 
 ---
 
@@ -183,8 +183,7 @@ to a non-technical client.
 ### Server (On-Premise)
 Windows Server 2016 — Intel Xeon Bronze 3106, 32 GB RAM, 4 TB HDD, **no GPU**
 
-### Hosting (DECISION PENDING — see Section 8)
-Option A: Windows Server via IIS + static IP · Option B (recommended): Hetzner VPS + Gunicorn + Nginx · Option C: Cloudflare Tunnel
+### Hosting (TEMPORARY — GCP e2-small, client testing only — see Section 8)
 
 ### AI / LLM
 - **Provider:** together.ai only. No local models, no Ollama.
@@ -294,33 +293,28 @@ Client receives 3 Excel files daily via WhatsApp:
 **Status: TEMPORARY — GCP e2-small for client testing only. Will migrate to a proper production service before go-live. Decision on final host is pending.**
 
 **Infrastructure (temporary — client testing):**
-- Server: GCP e2-small VM, us-central1-a, Ubuntu 24.04
-- VM username: janavdshah30 (same GCP project as Realm; using existing free credits)
-- Testing domain: `feritesteel.janavshah.com` (Cloudflare DNS-only, grey cloud — no proxy)
-- Client domain: TBD — will point their own subdomain when ready to go live
-- WSGI: Gunicorn (systemd service at `/etc/systemd/system/gunicorn.service`)
-- Reverse proxy: Nginx
-- SSL: Let's Encrypt via Certbot (auto-renews)
-- Database: PostgreSQL on the same VM
-- Static files: WhiteNoise (already wired in `settings.py`)
-- PDF: WeasyPrint — works natively on Linux via `apt install libpango-1.0-0 libcairo2`
-- Scheduled tasks: `poll_emails --scheduled` via cron every minute (throttled by `TeamEmailConfig.poll_interval_minutes`)
+- Server: GCP e2-small VM, us-central1-a, Ubuntu 24.04, IP: `35.225.244.81`
+- VM name: `ferite-steel`, VM username: `janavdshah30` (same GCP project as Realm; using existing free credits)
+- Domain: `crm.ferrite.in` — A record in ferrite.in Cloudflare account, **must be grey cloud (DNS only)**. Orange cloud causes HTTP→HTTPS redirect loop.
+- WSGI: Gunicorn — running (`systemctl status gunicorn` shows active)
+- Reverse proxy: Nginx — running, certbot-modified config at `/etc/nginx/sites-enabled/ferite_steel`
+- SSL: Let's Encrypt via Certbot — issued, auto-renews, expires 2026-09-08
+- Database: PostgreSQL 16 on the same VM (`ferite_steel_db`, user `ferite_user`)
+- Static files: WhiteNoise; `staticfiles/` owned by `janavdshah30` (fix to `www-data` before production)
+- PDF: WeasyPrint — installed and working
+- Scheduled tasks: cron for `poll_emails --scheduled` **not yet set up**
 - Deploy scripts: `deploy/setup.sh`, `deploy/nginx.conf`, `deploy/gunicorn.service`
+- GitHub repo: `https://github.com/janav3036/ferrite-steel.git` (public; dummy client account added as collaborator — transfer ownership at handover)
 
-**Future deploys (after VM is set up):**
+**Known setup gotcha:** `deploy/setup.sh` PostgreSQL GRANT must run inside `ferite_steel_db` — already fixed in the script. If the schema grant was missed, run: `sudo -u postgres psql -d ferite_steel_db -c "GRANT ALL ON SCHEMA public TO ferite_user;"`
+
+**Future deploys:**
 ```bash
 gcloud compute ssh ferite-steel --zone us-central1-a
 cd /var/www/ferite_steel && git pull && source .venv/bin/activate
 python manage.py migrate && python manage.py collectstatic --noinput
 sudo systemctl restart gunicorn
 ```
-
-**Pre-deployment checklist (not yet done — VM not yet provisioned):**
-- Create GCP e2-small VM (us-central1-a, Ubuntu 24.04, HTTP+HTTPS firewall)
-- Reserve static IP and point Cloudflare A record to it
-- SSH in, run `deploy/setup.sh`, fill in `.env`
-- Run `collectstatic`, `migrate`, `createsuperuser`
-- Start Gunicorn + Nginx, run `certbot --nginx`
 
 ---
 
@@ -345,7 +339,7 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 5. Does the file arrive fresh each day, or as a new sheet in the same workbook?
 6. What are the specific roles within the Corporate team?
 7. ~~Is client comfortable with business data on a cloud server?~~ RESOLVED — Option B confirmed.
-8. ~~Does client's office have a static IP?~~ No longer relevant — using Hetzner VPS.
+8. ~~Does client's office have a static IP?~~ No longer relevant — using GCP VM.
 9. What did ConvoGenie say about API access and integration options?
 10. What plan is client on — does it include API access?
 11. What does client actually want the two systems to do together?
@@ -361,7 +355,8 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 
 Do not proceed with affected modules until resolved.
 
-- **Hosting:** PARTIALLY RESOLVED — GCP e2-small is temporary (client testing only, free credits). Final production host TBD — decide before go-live.
+- **Hosting:** PARTIALLY RESOLVED — GCP e2-small deployed and running (35.225.244.81, crm.ferrite.in). Temporary for client testing. Final production host TBD — decide before go-live.
+- **Cloudflare DNS for crm.ferrite.in:** A record exists but may still be orange cloud (proxied) — ferrite.in admin needs to switch to grey cloud (DNS only). Orange cloud causes HTTP→HTTPS redirect loop with our nginx config.
 - **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
 - **WhatsApp API approval:** Do not build ingestion until Meta confirms
 - **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
@@ -455,7 +450,7 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 4. **No MCP server.** Django-native tool use.
 5. **No separate vector database.** pgvector in PostgreSQL only.
 6. **Bootstrap 5 + Django templates.** No JavaScript framework.
-7. **Deployment:** Hetzner CX22 VPS, Ubuntu 24.04. Gunicorn + Nginx. Let's Encrypt SSL. PostgreSQL on same VPS. (Confirmed 24 May 2026 — see Section 8.)
+7. **Deployment:** GCP e2-small VM, Ubuntu 24.04. Gunicorn + Nginx. Let's Encrypt SSL. PostgreSQL on same VM. (Switched from Hetzner 10 Jun 2026 — temporary for client testing, final host TBD.)
 8. **Stock data:** Excel is transport only. PostgreSQL is destination. No live SAP calls.
 9. **Two-step LLM ingestion flow:** Every inbound message goes through `classify_message(text)` first. If not an inquiry, discard silently — do not create a lead. Only then call `generate_quotation_draft`. Email also pre-filtered by headers before hitting the LLM.
 10. **ProductKeyword model:** Company-specific client terms stored in PostgreSQL, admin-editable. Fetched at call time and injected into the LLM system prompt — not hardcoded in code.
@@ -533,7 +528,7 @@ Future apps per module: `credit_risk`, `leads`.
 | ConvoGenie | Client has account — reviewing | Integration scope TBD (see Section 9) |
 | SAP | Deprioritised | Daily Excel replaces direct integration |
 | Email (IMAP/SMTP) | Built — awaiting live credentials | Needs dummy Gmail App Password in `TeamEmailConfig` admin; delete post-demo |
-| Hetzner VPS | Not provisioned | Pending hosting decision |
+| GCP e2-small VM | Deployed — gunicorn + nginx + SSL running | crm.ferrite.in; pending Cloudflare grey cloud switch |
 | Twilio/Deepgram/ElevenLabs | Not started | Only if Voice Stand-in greenlit |
 
 ---

@@ -33,6 +33,9 @@ ALTER ROLE $DB_USER SET client_encoding TO 'utf8';
 ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';
 ALTER ROLE $DB_USER SET timezone TO 'UTC';
 GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
+SQL
+# Schema grant must run inside the target database (PostgreSQL 15+ requires this)
+sudo -u postgres psql -d $DB_NAME <<SQL
 GRANT ALL ON SCHEMA public TO $DB_USER;
 SQL
 
