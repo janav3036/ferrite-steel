@@ -8,7 +8,7 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('role', 'branch', 'is_active')
     search_fields = ('username', 'first_name', 'last_name', 'employee_id')
     fieldsets = UserAdmin.fieldsets + (
-        ('Staff Info', {'fields': ('role', 'team', 'phone', 'employee_id', 'branch')}),
+        ('Staff Info', {'fields': ('role', 'team', 'phone', 'phone_2', 'employee_id', 'branch')}),
     )
 
     class Media:

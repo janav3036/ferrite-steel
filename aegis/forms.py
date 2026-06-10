@@ -9,7 +9,7 @@ class AddUserForm(UserCreationForm):
         model = CustomUser
         fields = [
             'username', 'first_name', 'last_name', 'email',
-            'team', 'role', 'phone', 'branch', 'employee_id',
+            'team', 'role', 'phone', 'phone_2', 'branch', 'employee_id',
             'password1', 'password2',
         ]
 
@@ -24,7 +24,7 @@ class RegistrationForm(UserCreationForm):
         model = CustomUser
         fields = [
             'username', 'first_name', 'last_name', 'email',
-            'phone', 'branch', 'employee_id',
+            'phone', 'phone_2', 'branch', 'employee_id',
             'password1', 'password2',
         ]
 
@@ -32,11 +32,12 @@ class RegistrationForm(UserCreationForm):
 class ProfileForm(ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name', 'email', 'phone', 'branch']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'phone_2', 'branch']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
             'email':      forms.EmailInput(attrs={'class': 'form-control'}),
             'phone':      forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_2':    forms.TextInput(attrs={'class': 'form-control'}),
             'branch':     forms.TextInput(attrs={'class': 'form-control'}),
         }
