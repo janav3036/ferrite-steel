@@ -346,9 +346,90 @@
         @media (max-width: 767.98px) {
             .fs-sidebar { transform: translateX(-100%); transition: transform .22s ease, width .2s ease; }
             .fs-sidebar.fs-open { transform: translateX(0); }
-            .fs-main { margin-left: 0 !important; padding: 16px; margin-top: 52px; }
+            .fs-main { margin-left: 0 !important; padding: 14px; margin-top: 52px; }
             .fs-mob-bar { display: flex; }
             .fs-collapse-btn { display: none; }
+
+            /* ── Typography ── */
+            h2 { font-size: 1.2rem; }
+            h4 { font-size: 1rem; }
+
+            /* ── Page headers: stack title + buttons ── */
+            .page-hdr {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            .page-hdr > .d-flex { flex-wrap: wrap; gap: 6px !important; }
+            .page-hdr > div > .d-flex { flex-wrap: wrap; gap: 6px !important; }
+
+            /* ── Filter/search rows: full-width inputs ── */
+            .filter-row { flex-direction: column !important; }
+            .filter-row .col-auto {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .filter-row .col-auto .form-control,
+            .filter-row .col-auto .form-select {
+                min-width: 0 !important;
+                width: 100%;
+            }
+
+            /* ── Wrapping action rows ── */
+            .wrap-actions { flex-wrap: wrap !important; gap: 6px !important; }
+
+            /* ── Tables ── */
+            .table { font-size: .79rem; }
+            .table td, .table th { padding: 7px 9px !important; }
+            .table thead.table-dark th { padding: 7px 9px !important; font-size: .64rem; }
+            .table thead.table-warning th { padding: 7px 9px !important; font-size: .64rem; }
+            .hide-xs { display: none !important; }
+
+            /* ── Cards ── */
+            .card-body { padding: 12px; }
+            .card-header { padding: 10px 14px; }
+
+            /* ── Forms ── */
+            .form-wrap { max-width: 100% !important; }
+
+            /* ── Chat: vertical stack ── */
+            .chat-layout {
+                flex-direction: column;
+                height: calc(100dvh - 130px);
+            }
+            .chat-sidebar {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                scrollbar-width: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                flex-shrink: 0;
+                height: 48px;
+                min-height: 48px;
+                max-height: 48px;
+            }
+            .chat-sidebar::-webkit-scrollbar { display: none; }
+            .chat-sidebar-header { display: none; }
+            .channel-link {
+                padding: 10px 16px;
+                white-space: nowrap;
+                border-radius: 0;
+                height: 100%;
+                border-right: 1px solid var(--border);
+            }
+
+            /* ── Notifications ── */
+            .notif-wrap { max-width: 100% !important; }
+
+            /* ── Quiz submit bar ── */
+            .submit-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .submit-bar .btn { width: 100%; }
+            .submit-note { text-align: center; }
         }
     </style>
     {% block extra_head %}{% endblock %}

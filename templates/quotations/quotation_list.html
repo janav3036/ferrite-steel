@@ -3,7 +3,7 @@
 {% block title %}Quotations — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 page-hdr">
     <h2 class="mb-0">Quotations</h2>
     <div class="d-flex gap-2">
         <a href="{% url 'lead_create' %}" class="btn btn-outline-primary">+ New Lead</a>
@@ -16,7 +16,7 @@
 </div>
 
 <!-- Search + Filters -->
-<form method="get" class="row g-2 mb-3 align-items-end">
+<form method="get" class="row g-2 mb-3 align-items-end filter-row">
     <div class="col-auto">
         <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search number, company…" style="min-width:220px">
     </div>
@@ -54,9 +54,9 @@
                 <th>Customer</th>
                 <th>Status</th>
                 <th>Outcome</th>
-                <th>Total (₹)</th>
-                <th>Created By</th>
-                <th>Date</th>
+                <th class="hide-xs">Total (₹)</th>
+                <th class="hide-xs">Created By</th>
+                <th class="hide-xs">Date</th>
                 <th></th>
             </tr>
         </thead>
@@ -82,9 +82,9 @@
                         {{ qt.get_outcome_display }}
                     </span>
                 </td>
-                <td>{{ qt.total_amount|inr }}</td>
-                <td>{{ qt.created_by.username|default:"—" }}</td>
-                <td>{{ qt.created_at|date:"d M Y" }}</td>
+                <td class="hide-xs">{{ qt.total_amount|inr }}</td>
+                <td class="hide-xs">{{ qt.created_by.username|default:"—" }}</td>
+                <td class="hide-xs">{{ qt.created_at|date:"d M Y" }}</td>
                 <td><a href="{% url 'quotation_detail' qt.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
             </tr>
             {% endfor %}

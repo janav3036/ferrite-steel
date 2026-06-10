@@ -3,9 +3,9 @@
 {% block title %}{{ quotation }} — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <h2 class="mb-0">{{ quotation }}</h2>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 wrap-actions">
         <a href="{% url 'quotation_edit' quotation.pk %}" class="btn btn-outline-primary">Edit</a>
         <a href="{% url 'quotation_pdf' quotation.pk %}" class="btn btn-outline-secondary" target="_blank">Download PDF</a>
         <form method="post" action="{% url 'quotation_revise' quotation.pk %}" class="d-inline">

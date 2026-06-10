@@ -21,7 +21,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
         <h4 class="mb-0">Case Library</h4>
         <small class="text-muted">Resolved situations your team can learn from</small>
@@ -38,10 +38,10 @@
             <thead class="table-dark">
                 <tr>
                     <th>Title</th>
-                    <th>Customer</th>
+                    <th class="hide-xs">Customer</th>
                     <th>Departments</th>
-                    <th>Added by</th>
-                    <th>Date</th>
+                    <th class="hide-xs">Added by</th>
+                    <th class="hide-xs">Date</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,7 +50,7 @@
                     <td>
                         <span class="fw-semibold">{{ case.title }}</span>
                     </td>
-                    <td class="text-muted">{{ case.customer.name|default:"—" }}</td>
+                    <td class="text-muted hide-xs">{{ case.customer.name|default:"—" }}</td>
                     <td>
                         {% for dept in case.departments %}
                         <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
@@ -58,8 +58,8 @@
                         <span class="text-muted">—</span>
                         {% endfor %}
                     </td>
-                    <td class="text-muted">{{ case.created_by.get_full_name|default:case.created_by.username }}</td>
-                    <td class="text-muted">{{ case.created_at|date:'d M Y' }}</td>
+                    <td class="text-muted hide-xs">{{ case.created_by.get_full_name|default:case.created_by.username }}</td>
+                    <td class="text-muted hide-xs">{{ case.created_at|date:'d M Y' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

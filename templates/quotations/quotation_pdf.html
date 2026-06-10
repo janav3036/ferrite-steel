@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load fs_filters %}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -78,10 +78,10 @@
       <td class="num">{{ item.length|default:"—" }}</td>
       <td class="num">{{ item.quantity }}</td>
       <td class="num">{{ item.pcs|default:"—" }}</td>
-      <td class="num">{{ item.unit_price|floatformat:2 }}</td>
-      <td class="num">{{ item.total_price|floatformat:2 }}</td>
+      <td class="num">{{ item.unit_price|inr }}</td>
+      <td class="num">{{ item.total_price|inr }}</td>
       <td class="num">{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
-      <td class="num">{{ item.final_price|floatformat:2 }}</td>
+      <td class="num">{{ item.final_price|inr }}</td>
     </tr>
     {% endfor %}
     <!-- Padding rows -->
@@ -111,15 +111,15 @@
     <td style="border:none; width:52%; vertical-align:top; padding-left:10px;">
       <table class="totals-table">
         <tr><td>Total TON</td><td>{{ total_tons|floatformat:2 }}</td></tr>
-        <tr><td>Total Item Value (₹)</td><td>{{ item_value|floatformat:2 }}</td></tr>
-        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra|floatformat:2 }}</td></tr>
-        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra|floatformat:2 }}</td></tr>
-        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value|floatformat:2 }}</td></tr>
-        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst|floatformat:2 }}</td></tr>
-        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst|floatformat:2 }}</td></tr>
+        <tr><td>Total Item Value (₹)</td><td>{{ item_value|inr }}</td></tr>
+        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra|inr }}</td></tr>
+        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra|inr }}</td></tr>
+        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value|inr }}</td></tr>
+        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst|inr }}</td></tr>
+        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst|inr }}</td></tr>
         <tr class="grand-total">
           <td style="text-align:right; padding-right:10px; border:1px solid #000;">Total Amount (₹)</td>
-          <td style="text-align:right; border:1px solid #000;">{{ grand_total|floatformat:2 }}</td>
+          <td style="text-align:right; border:1px solid #000;">{{ grand_total|inr }}</td>
         </tr>
       </table>
     </td>

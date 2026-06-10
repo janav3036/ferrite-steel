@@ -2,7 +2,7 @@
 {% block title %}Leads — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <h2 class="mb-0">Leads</h2>
     <div class="d-flex gap-2 align-items-center">
         {% if request.user.role == 'admin' or request.user.role == 'lead' %}
@@ -19,7 +19,7 @@
 </div>
 
 <!-- Search + Filters -->
-<form method="get" class="row g-2 mb-3 align-items-end">
+<form method="get" class="row g-2 mb-3 align-items-end filter-row">
     <div class="col-auto">
         <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search name, company, email…" style="min-width:220px">
     </div>
@@ -57,8 +57,8 @@
                 <th>Customer</th>
                 <th>Source</th>
                 <th>Status</th>
-                <th>Created By</th>
-                <th>Date</th>
+                <th class="hide-xs">Created By</th>
+                <th class="hide-xs">Date</th>
                 <th></th>
             </tr>
         </thead>
@@ -78,8 +78,8 @@
                         {{ lead.get_status_display }}
                     </span>
                 </td>
-                <td>{{ lead.created_by.username|default:"—" }}</td>
-                <td>{{ lead.created_at|date:"d M Y" }}</td>
+                <td class="hide-xs">{{ lead.created_by.username|default:"—" }}</td>
+                <td class="hide-xs">{{ lead.created_at|date:"d M Y" }}</td>
                 <td class="d-flex gap-1">
                     <a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">View</a>
                     <form method="post" action="{% url 'lead_delete' lead.pk %}"

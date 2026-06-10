@@ -22,7 +22,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
         <h4 class="mb-0">Market Orders</h4>
         <small class="text-muted">Broker-to-delivery order pipeline</small>
@@ -47,33 +47,33 @@
         <table class="table table-hover mo-table mb-0">
             <thead class="table-dark">
                 <tr>
-                    <th>Order</th>
+                    <th class="hide-xs">Order</th>
                     <th>Broker</th>
-                    <th>Sub-team</th>
-                    <th>Product</th>
+                    <th class="hide-xs">Sub-team</th>
+                    <th class="hide-xs">Product</th>
                     <th>Rate</th>
-                    <th>DO No.</th>
+                    <th class="hide-xs">DO No.</th>
                     <th>Status</th>
-                    <th>Created</th>
+                    <th class="hide-xs">Created</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
                 <tr onclick="location.href='{% url 'market_order_detail' order.pk %}'">
-                    <td class="fw-semibold text-muted" style="font-size:.82rem;">MO-{{ order.pk|stringformat:"05d" }}</td>
+                    <td class="fw-semibold text-muted hide-xs" style="font-size:.82rem;">MO-{{ order.pk|stringformat:"05d" }}</td>
                     <td class="fw-semibold">{{ order.broker.name }}</td>
-                    <td>
+                    <td class="hide-xs">
                         <span class="status-pill" style="background:#F1F5F9;color:#475569;">
                             {{ order.get_sub_team_display }}
                         </span>
                     </td>
-                    <td class="text-muted">{{ order.product_details|truncatechars:38 }}</td>
+                    <td class="text-muted hide-xs">{{ order.product_details|truncatechars:38 }}</td>
                     <td>{% if order.rate %}<span class="fw-semibold">{{ order.rate|inr }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-                    <td class="text-muted">{{ order.do_number|default:"—" }}</td>
+                    <td class="text-muted hide-xs">{{ order.do_number|default:"—" }}</td>
                     <td>
                         <span class="status-pill st-{{ order.status }}">{{ order.get_status_display }}</span>
                     </td>
-                    <td class="text-muted">{{ order.created_at|date:"d M Y" }}</td>
+                    <td class="text-muted hide-xs">{{ order.created_at|date:"d M Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
