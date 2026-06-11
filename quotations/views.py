@@ -472,11 +472,13 @@ def quotation_send(request, pk):
 
         sent_to = None
         if to_email:
-            team = lead.created_by.team if lead.created_by else None
-            config = (
-                TeamEmailConfig.objects.filter(is_active=True, team=team).first()
-                if team else None
-            ) or TeamEmailConfig.objects.filter(is_active=True).first()
+            config = lead.received_via if (lead.received_via and lead.received_via.is_active) else None
+            if not config:
+                team = lead.created_by.team if lead.created_by else None
+                config = (
+                    TeamEmailConfig.objects.filter(is_active=True, team=team).first()
+                    if team else None
+                ) or TeamEmailConfig.objects.filter(is_active=True).first()
 
             if config:
                 try:

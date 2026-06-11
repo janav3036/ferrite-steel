@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 10 Jun 2026 (session 16 — GCP deployment, crm.ferrite.in)
+**Last updated:** 11 Jun 2026 (session 17 — email poll notifications, broker/item import, new product sub_types)
 
 ---
 
@@ -101,15 +101,15 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management) and 3B (Quiz System) complete. 3C (RAG Q&A) blocked on client Q13 + Q14.**
-**Current work: Session 15 complete — full frontend redesign (DM Sans / blue accent / bento layouts), notification system, team chat, 3B quiz system. Next session: 3C RAG Q&A (pending client answers), pagination, intcomma.**
+**Current work: Session 17 complete — email poll notifications, broker import (483 rows), product import (577 new items, 5 new sub_types). Next session: 3C RAG Q&A (pending client answers), pagination, intcomma.**
 
 ### What is built
 
 **Auth & Users:** Full auth flow (login/logout/register/password reset). CustomUser with `team` + `role`. User management (add/edit/approve/delete) admin-gated. JS role filter in add/edit user forms. Nav gated by role; Database dropdown (Customers/Products/Brokers for market/admin). Dashboard stats scoped by role (admin/lead see all; member sees own). Market Order button visible to market + admin only.
 
-**Product catalog:** 523 rows imported from client Excel (rates all 0 — fill via admin). Grouped view — rows by sub_type+size; cascading dropdowns Make→Length→Grade→Site; text search only. Relational pricing: `base_product` self-FK + `rate_offset`; `effective_rate` = base rate + offset (or own rate). No chaining — derived products always point directly to a base. `_build_product_groups()` used by product list + catalog JSON at `/database/products/catalog.json`.
+**Product catalog:** 2,117 rows total (523 from ProductList_updated.xlsx + 1,594 from Borker list & Item list.xlsx via `import_broker_items.py`). Rates all 0 — fill via admin. Grouped view — rows by sub_type+size; cascading dropdowns Make→Length→Grade→Site; text search only. Relational pricing: `base_product` self-FK + `rate_offset`; `effective_rate` = base rate + offset (or own rate). No chaining — derived products always point directly to a base. `_build_product_groups()` used by product list + catalog JSON at `/database/products/catalog.json`.
 
-**Customer & Broker:** Customer list team-scoped. 6,414 SAP records imported (`import_business_partners.py`); upsert key = `customer_code`. Customer auto-upserted on every quotation save. Broker CRUD at `/database/brokers/`.
+**Customer & Broker:** Customer list team-scoped. 6,414 SAP records imported (`import_business_partners.py`); upsert key = `customer_code`. Customer auto-upserted on every quotation save. Broker CRUD at `/database/brokers/`. 483 brokers imported from `extra_data/Borker list & Item list.xlsx` via `import_broker_items.py`; upsert key = `name`.
 
 **Lead flow:** List/create/detail/delete with cascade warning modal. Fields: company, industry, location, broker FK (optional; set for market team leads).
 
@@ -137,7 +137,7 @@ to a non-technical client.
 
 **Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`. `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets matching their team.
 
-**Notification system:** `Notification` model in `aegis/models.py` (user FK, title, message, link, type choices, is_read, created_at). `notify(users, title, message, link, notif_type)` utility in `aegis/notifications.py` — bulk_creates. Context processor `aegis.context_processors.notification_count` injects `unread_notification_count` globally. Dashboard shows notifications panel (right column, up to 12, scrollable, per-type icons, unread highlighting, mark-all-read). Full notifications page at `/notifications/`. Wired at: lead_create, quotation_approve, quotation_outcome (win/loss), market_order_confirm, market_order_assign_do, market_order_set_do, case_create.
+**Notification system:** `Notification` model in `aegis/models.py` (user FK, title, message, link, type choices, is_read, created_at). `notify(users, title, message, link, notif_type)` utility in `aegis/notifications.py` — bulk_creates. Context processor `aegis.context_processors.notification_count` injects `unread_notification_count` globally. Dashboard shows notifications panel (right column, up to 12, scrollable, per-type icons, unread highlighting, mark-all-read). Full notifications page at `/notifications/`. Wired at: lead_create, quotation_approve, quotation_outcome (win/loss), market_order_confirm, market_order_assign_do, market_order_set_do, case_create, poll_emails (new inquiry lead → team + admins; broker confirmation → market + admins; broker counter → market + admins).
 
 **Team chat:** `chat` app with `ChatMessage` model (channel, sender FK, content, created_at). Channels: all_staff + user's own team; admins see all. Views: `chat_home` (renders last 100 messages), `chat_send` (POST → JSON), `chat_poll` (GET ?channel=&since=id → JSON). 4-second JS polling, tracks `lastId`, sanitizes with `escHtml()`. Auto-resize textarea, Enter to send, Shift+Enter for newline. At `/chat/`.
 
@@ -218,7 +218,7 @@ Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based
 **Custom permissions:** `can_manage_users`, `can_view_user_list`. Auto-assigned by `aegis/signals.py` `post_save` signal based on role + team. Superusers bypass all permission checks. Signal clears and resets permissions on every user save.
 
 ### Product (database)
-523 imported rows; rates all 0. Fields: `category` (main/rolling/plate), `make` (manufacturer, 14 choices, blank for existing rows), `sub_type` (angle/channel/ub/uc/beam/flat/red_material/tmt), `size`, `length` (24 choices), `grade` (27 choices), `godown`, `site` (site_1/site_2), `quantity` (T), `rate` (₹/T), `pieces`, `hsn_code`, `is_active`.
+2,117 rows total. Fields: `category` (main/rolling/plate), `make` (manufacturer, 14 choices, blank for existing rows), `sub_type` (angle/channel/ub/uc/beam/flat/red_material/tmt/pipe/billet/rail/wire/scrap), `size`, `length` (24 choices), `grade` (27 choices), `godown`, `site` (site_1/site_2), `quantity` (T), `rate` (₹/T), `pieces`, `hsn_code`, `is_active`.
 
 **Relational pricing:** `base_product` self-FK (SET_NULL, nullable) + `rate_offset` (default 0). `effective_rate` property = `base_product.rate + rate_offset` if base set, else own `rate`. No chaining — derived products always point to a base directly, never to another derived product.
 

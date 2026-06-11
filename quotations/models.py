@@ -37,6 +37,14 @@ class Lead(models.Model):
     notes = models.TextField(blank=True)
     lead_notes_raw = models.TextField(blank=True)
     lead_notes_clean = models.TextField(blank=True)
+    received_via = models.ForeignKey(
+        'TeamEmailConfig',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='leads',
+        help_text='Email config that received this lead (used to reply from the correct inbox)',
+    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -271,7 +279,7 @@ class TeamEmailConfig(models.Model):
         ('corporate', 'Corporate Team'),
     ]
 
-    team          = models.CharField(max_length=20, choices=TEAM_CHOICES, unique=True)
+    team          = models.CharField(max_length=20, choices=TEAM_CHOICES)
     email_address = models.EmailField(help_text='Shared team inbox, e.g. enquiry@ferrite.in')
     imap_host     = models.CharField(max_length=255, default='imap.gmail.com')
     imap_port     = models.IntegerField(default=993)

@@ -17,6 +17,8 @@ from django.utils import timezone
 from quotations.models import Lead, Quotation, TeamEmailConfig, MarketOrder
 from database.models import Broker
 from quotations.services.llm import classify_message, classify_broker_response
+from aegis.models import CustomUser
+from aegis.notifications import notify
 
 # Senders we never want to create leads from
 SPAM_PATTERNS = re.compile(
@@ -136,6 +138,12 @@ def _parse_sender(from_header):
     name = ''.join(_decode(part, enc) for part, enc in parts).strip()
     return name, addr.lower()
 
+def _get_recipients(team_slug):
+    """Return active users of the given team plus all admins (distinct)."""
+    team_users = CustomUser.objects.filter(team=team_slug, is_active=True)
+    admins = CustomUser.objects.filter(role='admin', is_active=True)
+    return (team_users | admins).distinct()
+
 def _find_broker(email_addr: str):
     """Return the active Broker whose email matches sender, or None."""
     if not email_addr:
@@ -195,6 +203,9 @@ class Command(BaseCommand):
 
             if not msg_ids:
                 self.stdout.write('  No new messages.')
+                if not dry_run:
+                    config.last_polled_at = timezone.now()
+                    config.save(update_fields=['last_polled_at'])
                 return
 
             self.stdout.write(f'  {len(msg_ids)} unseen message(s).')
@@ -240,6 +251,26 @@ class Command(BaseCommand):
                                 open_order.status = 'broker_confirmed'
                                 open_order.broker_confirmed_at = timezone.now()
                                 open_order.save(update_fields=['status', 'broker_confirmed_at'])
+
+                                recipients = _get_recipients('market')
+                                notify(
+                                    recipients,
+                                    f'Broker confirmed: {broker.name}',
+                                    message=f'MO-{open_order.pk:05d} status → broker confirmed.',
+                                    link=f'/quotations/market-orders/{open_order.pk}/',
+                                    notif_type='general',
+                                )
+                                
+                            elif response_type == 'counter':
+                                recipients = _get_recipients('market')
+                                notify(
+                                    recipients,
+                                    f'Broker counter-reply: {broker.name}',
+                                    message=f'MO-{open_order.pk:05d} — broker sent a counter offer.',
+                                    link=f'/quotations/market-orders/{open_order.pk}/',
+                                    notif_type='general',
+                                )
+
 
                         if response_type == 'confirmation':
                             self.stdout.write(self.style.SUCCESS(
@@ -312,7 +343,8 @@ class Command(BaseCommand):
                         customer_name=sender_name,
                         customer_email=sender_email,
                         status='new',
-                        broker=broker
+                        broker=broker,
+                        received_via=config,
                     )
                     if broker:
                         MarketOrder.objects.create(
@@ -326,6 +358,15 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.SUCCESS(
                             f'   [MARKET-ORDER] Created for broker {broker.name}'
                         ))
+
+                    recipients = _get_recipients(config.team)
+                    notify(
+                        recipients,
+                        f'New lead from email: {sender_name or sender_email}',
+                        message=f'Subject: {subject[:80]}',
+                        link=f'/quotations/leads/{lead.pk}/',
+                        notif_type='lead_created'
+                    )
                     imap.store(msg_id, '+FLAGS', '\\Seen')
 
             if not dry_run:

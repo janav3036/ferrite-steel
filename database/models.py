@@ -35,6 +35,11 @@ class Product(models.Model):
         ('flat', 'Flat'),
         ('red_material', 'Red Material'),
         ('tmt', 'TMT'),
+        ('pipe', 'Pipe'),
+        ('billet', 'Billet'),
+        ('rail', 'Rail'),
+        ('wire', 'Wire'),
+        ('scrap', 'Scrap'),
     ]
     LENGTH_CHOICES = [
         ('6MTR', '6MTR'),
@@ -93,7 +98,7 @@ class Product(models.Model):
     ]
     # Valid sub-types per category (used for form-side JS validation)
     SUB_TYPE_MAP = {
-        'main': ['angle', 'channel', 'ub', 'uc', 'beam', 'red_material', 'tmt'],
+        'main': ['angle', 'channel', 'ub', 'uc', 'beam', 'red_material', 'tmt', 'pipe', 'billet', 'rail', 'wire', 'scrap'],
         'rolling': ['angle', 'channel', 'beam', 'flat'],
         'plate': [],
     }
