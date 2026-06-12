@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 11 Jun 2026 (session 17 — email poll notifications, broker/item import, new product sub_types)
+**Last updated:** 13 Jun 2026 (session 18 — 3C RAG pipeline, quiz/question CRUD, admin-only quiz permissions, per-page amber sidebar theme)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management) and 3B (Quiz System) complete. 3C (RAG Q&A) blocked on client Q13 + Q14.**
-**Current work: Session 17 complete — email poll notifications, broker import (483 rows), product import (577 new items, 5 new sub_types). Next session: 3C RAG Q&A (pending client answers), pagination, intcomma.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management), 3B (Quiz System), and 3C (RAG Q&A pipeline) all built — 3C needs end-to-end test with live credentials.**
+**Current work: Session 18 complete — 3C RAG pipeline (models, services, views, templates), quiz/question CRUD, admin-only quiz permissions, per-page amber sidebar theme across all 21 training templates. Next session: test 3C end-to-end (comment out OneDrive lines first), pagination, intcomma.**
 
 ### What is built
 
@@ -135,7 +135,7 @@ to a non-technical client.
 
 **Training app (Sub-module 3A — Case Management):** `training` app with `Case` model (title, problem_description, context, resolution, departments JSONField, customer FK nullable, created_by FK, created_at). Views: `training_home` (bento grid — 3A live, 3B live, 3C placeholder), `case_list`, `case_detail`, `case_create`, `case_edit`, `case_delete`. URLs at `/training/`. Training sidebar link live (gated by `view_case` perm). "Convert to Case" button on lead detail wired — passes `notes` + `lead` as query params to `case_create`. Permissions: `view_case` in BASE (all roles), `add/change/delete_case` in LEAD_EXTRA (lead + admin).
 
-**Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`. `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets matching their team.
+**Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`, `quiz_set_create`, `quiz_set_edit`, `quiz_set_delete`, `question_create`, `question_create_for_quiz`, `question_edit`, `question_delete`. `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets matching their team. **Quiz/question CRUD restricted to admin only** (QUIZ_MANAGE permission block in `aegis/signals.py`; auto-assigned to admin role only).
 
 **Notification system:** `Notification` model in `aegis/models.py` (user FK, title, message, link, type choices, is_read, created_at). `notify(users, title, message, link, notif_type)` utility in `aegis/notifications.py` — bulk_creates. Context processor `aegis.context_processors.notification_count` injects `unread_notification_count` globally. Dashboard shows notifications panel (right column, up to 12, scrollable, per-type icons, unread highlighting, mark-all-read). Full notifications page at `/notifications/`. Wired at: lead_create, quotation_approve, quotation_outcome (win/loss), market_order_confirm, market_order_assign_do, market_order_set_do, case_create, poll_emails (new inquiry lead → team + admins; broker confirmation → market + admins; broker counter → market + admins).
 
@@ -147,11 +147,14 @@ to a non-technical client.
 
 **Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
 
+**Training app (Sub-module 3C — RAG Q&A):** `KnowledgeDocument` + `DocumentChunk` models (migration 0005). Services in `training/services/`: `extractor.py` (pypdf/python-docx → text), `embedder.py` (together.ai `togethercomputer/m2-bert-80M-8k-retrieval` → 1024-dim vectors), `onedrive.py` (MSAL upload to OneDrive — needs live credentials), `processor.py` (orchestrates extract → chunk → embed → upload). Views: `document_list`, `document_create`, `document_detail`, `document_delete`, `document_ask` (RAG Q&A — semantic search over chunks + LLM answer via together.ai). Templates: full CRUD + Q&A UI at `/training/documents/`. **End-to-end test pending** — comment out OneDrive lines in `processor.py` (line 5 import, lines 11–12 upload call) before local testing.
+
+**Training UI (session 18):** All 21 training templates redesigned with warm amber/cream theme. `templates/training/_sb_amber.html` — shared include that overrides all `--sb-*` CSS variables to amber; included at top of `extra_head` in every training template. Non-training pages retain default navy sidebar from `base.html` `:root`. `base.html` refactored with 15 `--sb-*` sub-tokens so sidebar colour is fully CSS-variable-driven per page.
+
 **Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created session 14.
 
 ### What is NOT yet built (planned for next sessions)
-- **KnowledgeDocument model** — defined in CLAUDE.md Section 6, migration not yet applied; needed for 3C
-- **3C RAG Q&A** — blocked on client Q13 + Q14 (see Section 10)
+- **3C end-to-end test** — comment out OneDrive upload in `processor.py` before running; needs live MSAL credentials for OneDrive integration in production
 - **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
 - **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000
 - **`transaction.atomic()`** on `quotation_outcome` — stock deduction + outcome save must be atomic
@@ -175,7 +178,7 @@ to a non-technical client.
 ### Backend
 - **Framework:** Django 6.0.3 · **Python:** 3.12 · **Database:** PostgreSQL 16 (`ferite_steel_db`)
 - **ORM:** Django ORM only — no raw SQL unless unavoidable
-- **Packages:** `psycopg2-binary`, `python-dotenv`, `whitenoise`, `django-jazzmin`, `together==2.14.0`
+- **Packages:** `psycopg2-binary`, `python-dotenv`, `whitenoise`, `django-jazzmin`, `together==2.14.0`, `pgvector`, `pypdf`, `python-docx`, `msal` (last 4 added for Module 3 RAG)
 
 ### Frontend
 - **CSS:** Bootstrap 5 · **Templating:** Django templates (NOT Jinja2) · No JS framework
@@ -266,11 +269,13 @@ IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host
 
 **Case (created, migrated):** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`. Permissions: `view_case` (all), `add/change/delete_case` (lead+admin).
 
-**KnowledgeDocument:** `file` (FileField, upload_to='documents/'), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. Original files kept. Processing mechanism TBD pending client answer on delay tolerance.
+**KnowledgeDocument (created, migrated — migration 0005):** `source_type` (file/text), `file_url` (URLField — OneDrive link after upload), `direct_text` (TextField — for paste-in text input), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. No `file` field — original file not stored on Django server; text is extracted at upload time and file optionally uploaded to OneDrive. Processing: "Process" button on document detail page triggers `processor.py`.
 
-**QuizSet:** `title`, `description`, `departments` (JSONField), `created_by`, `created_at`.
+**DocumentChunk (created, migrated — migration 0005):** `document` (FK → KnowledgeDocument, CASCADE), `chunk_text` (TextField), `embedding` (VectorField, 1024 dimensions — pgvector), `chunk_index` (IntegerField). Used for semantic similarity search in RAG Q&A.
 
-**Question:** `question_text` (TextField), `correct_answer` (TextField — admin-written; LLM judges user answer against this), `source` (TextField — free text/URL reference to related case or document), `quiz_set` (FK → QuizSet, null=True — null = standalone flat pool question), `departments` (JSONField), `created_by`, `created_at`.
+**QuizSet:** `title`, `description`, `departments` (JSONField), `created_by`, `created_at`. **CRUD admin-only** via `add/change/delete_quizset` permissions (QUIZ_MANAGE block).
+
+**Question:** `question_text` (TextField), `correct_answer` (TextField — admin-written; LLM judges user answer against this), `source` (TextField — free text/URL reference to related case or document), `quiz_set` (FK → QuizSet, null=True — null = standalone flat pool question), `departments` (JSONField), `created_by`, `created_at`. **CRUD admin-only** via `add/change/delete_question` permissions (QUIZ_MANAGE block).
 
 `AUTH_USER_MODEL = 'aegis.CustomUser'`
 **Migration discipline:** Never run `migrate` without reviewing `makemigrations` output first.
@@ -368,7 +373,7 @@ Do not proceed with affected modules until resolved.
 - **Model-level validators:** GST (15-char) and PAN (10-char) fields need `RegexValidator`
 - **Django logging config:** Must write errors to file before production — currently silent on 500
 - **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
-- **KnowledgeDocument processing mechanism:** Cron vs Process button vs Celery — depends on client answer to question 14. Do not build processing pipeline until confirmed.
+- **3C RAG end-to-end test:** Pipeline is built. Before testing locally, comment out OneDrive lines in `training/services/processor.py` (line 5: `from training.services.onedrive import upload_file`, lines 11–12: `web_url = upload_file(...)` + `document.file_url = web_url`). OneDrive integration needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env` before production use.
 - **Web Speech API browser compatibility:** Voice notes on quotation form require Chrome/Edge + HTTPS. Confirm team browser (client question 16) before building the UI button.
 
 ---
@@ -488,15 +493,33 @@ ferite_steel/                      ← project root
 │   └── services/
 │       ├── llm.py                 ← generate_quotation_draft(), classify_message(), _build_keyword_context()
 │       └── tools/pricing.py       ← lookup_pricing tool; returns found: bool + results list
+├── training/                      ← Module 3
+│   ├── models.py                  ← Case, KnowledgeDocument, DocumentChunk, QuizSet, Question, QuizAttempt
+│   ├── views.py                   ← all training views (case, document, quiz, question CRUD + RAG Q&A)
+│   ├── forms.py, admin.py, urls.py
+│   ├── migrations/                ← 0001–0005 (0005 adds DocumentChunk, refactors KnowledgeDocument)
+│   └── services/
+│       ├── llm.py                 ← judge_quiz_answer(), rag_answer()
+│       ├── extractor.py           ← PDF/DOCX/text → plain text
+│       ├── embedder.py            ← text → 1024-dim vectors via together.ai
+│       ├── onedrive.py            ← MSAL upload to OneDrive (needs live credentials)
+│       └── processor.py           ← orchestrates extract → chunk → embed → upload → mark processed
 ├── import_products.py             ← one-time; ProductList_updated.xlsx → database.Product (523 rows)
 ├── import_business_partners.py    ← one-time; Business Partner ALL.xlsx → database.Customer (6,414 rows)
 ├── docs/urls.md                   ← full URL reference for all apps
 ├── templates/                     ← all extend base.html
-│   ├── base.html, dashboard.html, add_user.html, edit_user_role.html
+│   ├── base.html                  ← --sb-* CSS variable tokens for per-page sidebar theming
+│   ├── dashboard.html, add_user.html, edit_user_role.html
 │   ├── registration/              ← login, password reset
 │   ├── database/                  ← product_list/add/edit, customer_list/detail/add/edit, broker_list/create
-│   └── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
-│                                     market_order_list/create/detail, quotation_send_confirm
+│   ├── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
+│   │                                 market_order_list/create/detail, quotation_send_confirm
+│   └── training/                  ← 21 templates; all include _sb_amber.html for amber sidebar theme
+│       ├── _sb_amber.html         ← shared include: Syne font + amber --sb-* CSS variable overrides
+│       ├── home.html, case_list/detail/create/edit/confirm_delete.html
+│       ├── document_list/detail/create/ask/confirm_delete.html
+│       ├── quiz_list/detail/take/results.html, quiz_set_create/edit/confirm_delete.html
+│       └── question_create/edit/confirm_delete.html
 ├── .claude/settings.json, commands/md-write.md
 ├── CLAUDE.md, manage.py, requirements.txt
 ```
@@ -512,7 +535,7 @@ Shell context: working directory is the project root. Use `python manage.py` not
 | `aegis` | Auth & user management — CustomUser |
 | `database` | Product, Customer, Broker — CRUD views |
 | `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service |
-| `training` | Module 3 — Case, KnowledgeDocument, QuizSet, Question (planned, not yet created) |
+| `training` | Module 3 — Case, KnowledgeDocument, DocumentChunk, QuizSet, Question, QuizAttempt — all created and migrated |
 | `ares`, `athena`, `hephaestus`, `hermes`, `themis` | Not yet created |
 
 Future apps per module: `credit_risk`, `leads`.
