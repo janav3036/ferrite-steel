@@ -2,163 +2,347 @@
 {% block title %}Training — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
-    .bento-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 20px;
+    :root { --page-bg: #F0EDE6; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    .bento-card {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--card-bg);
-        padding: 28px;
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+
+    /* ── Outer hub ── */
+    .training-hub {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 6px 32px rgba(26,15,6,.14), 0 1px 4px rgba(26,15,6,.08);
+        animation: fadeUp .3s ease both;
+    }
+
+    /* ── Hero banner ── */
+    .hub-banner {
+        background: #1A0F06;
+        background-image:
+            radial-gradient(ellipse 55% 80% at 10% 110%, rgba(194,103,11,.28) 0%, transparent 65%),
+            radial-gradient(ellipse 30% 50% at 85% -10%, rgba(194,103,11,.1) 0%, transparent 55%);
+        padding: 44px 44px 38px;
         display: flex;
-        flex-direction: column;
-        min-height: 240px;
-        box-shadow: 0 1px 3px rgba(15,23,42,.05);
+        align-items: flex-end;
+        justify-content: space-between;
+        min-height: 180px;
         position: relative;
         overflow: hidden;
     }
-    .bento-card.bento-full {
-        grid-column: 1 / -1;
-        min-height: 180px;
-    }
-    .bento-card.bento-active {
-        border-color: #BFDBFE;
-        background: linear-gradient(135deg, #FFFFFF 60%, #EFF6FF 100%);
-    }
-    .bento-card.bento-dim {
-        background: #F8FAFC;
-        border-style: dashed;
-    }
-    .bento-module-tag {
-        display: inline-block;
-        font-size: .68rem;
-        font-weight: 700;
-        letter-spacing: .1em;
-        text-transform: uppercase;
-        padding: 3px 9px;
-        border-radius: 100px;
-        margin-bottom: 14px;
-        width: fit-content;
-    }
-    .bento-module-tag.tag-active { background: #DBEAFE; color: #1D4ED8; }
-    .bento-module-tag.tag-dim    { background: #F1F5F9; color: #94A3B8; }
-    .bento-title {
-        font-size: 1.15rem;
-        font-weight: 700;
-        letter-spacing: -.02em;
-        color: var(--text);
-        margin-bottom: 6px;
-    }
-    .bento-dim .bento-title { color: #94A3B8; }
-    .bento-desc {
-        font-size: .83rem;
-        color: var(--muted);
-        line-height: 1.55;
-        flex: 1;
-    }
-    .bento-footer {
-        margin-top: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .bento-stat {
-        font-size: 2rem;
-        font-weight: 700;
-        letter-spacing: -.04em;
-        color: var(--accent);
+
+    /* Ghost watermark */
+    .hub-banner::before {
+        content: 'TRAINING';
+        position: absolute;
+        right: -16px; top: 50%;
+        transform: translateY(-50%);
+        font-family: 'Syne', sans-serif;
+        font-size: 9rem; font-weight: 800;
+        color: rgba(255,160,60,.055);
+        letter-spacing: .06em;
+        pointer-events: none;
+        white-space: nowrap;
+        user-select: none;
         line-height: 1;
     }
-    .bento-stat-label {
-        font-size: .72rem;
-        color: var(--muted);
-        margin-top: 2px;
-    }
-    .bento-coming {
-        font-size: .75rem;
-        font-weight: 500;
-        color: #94A3B8;
-        background: #F1F5F9;
-        border: 1px solid #E2E8F0;
-        border-radius: 6px;
-        padding: 5px 12px;
-    }
-    .bento-icon {
+
+    /* Bottom amber line */
+    .hub-banner::after {
+        content: '';
         position: absolute;
-        bottom: 20px;
-        right: 24px;
-        font-size: 4rem;
-        opacity: .05;
-        pointer-events: none;
+        bottom: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, rgba(194,103,11,.5) 0%, transparent 55%);
     }
+
+    .hub-banner-eyebrow {
+        font-family: 'Syne', sans-serif;
+        font-size: .6rem; font-weight: 700;
+        letter-spacing: .18em; text-transform: uppercase;
+        color: rgba(255,160,60,.55);
+        margin-bottom: 10px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .hub-banner-eyebrow::before {
+        content: '';
+        width: 18px; height: 1px;
+        background: rgba(255,160,60,.4);
+        display: inline-block;
+    }
+    .hub-banner-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 2rem; font-weight: 800;
+        color: #FFFFFF;
+        letter-spacing: -.04em;
+        line-height: 1.05;
+    }
+    .hub-banner-sub {
+        font-size: .79rem;
+        color: rgba(255,232,200,.35);
+        margin-top: 9px;
+        letter-spacing: .01em;
+        line-height: 1.5;
+    }
+    .hub-banner-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(194,103,11,.22);
+        border: 1px solid rgba(194,103,11,.38);
+        padding: 6px 16px; border-radius: 100px;
+        font-family: 'Syne', sans-serif; font-size: .63rem; font-weight: 700;
+        letter-spacing: .1em; text-transform: uppercase; color: #F0A050;
+        flex-shrink: 0; align-self: flex-start;
+        animation: fadeIn .4s ease both .15s;
+    }
+
+    /* ── Module grid ── */
+    .hub-modules {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: #FFFFFF;
+    }
+
+    .module-card {
+        background: #FFFFFF;
+        padding: 32px 34px 28px;
+        display: flex;
+        flex-direction: column;
+        min-height: 270px;
+        transition: background .2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .module-card:hover { background: #FFFDF9; }
+
+    /* Internal border dividers */
+    .module-card.card-3a { border-right: 1px solid #EDE8DF; }
+    .module-card.card-3c {
+        grid-column: 1 / -1;
+        border-top: 1px solid #EDE8DF;
+        min-height: auto;
+        padding: 28px 34px;
+        background: linear-gradient(125deg, #FFFDF8 45%, #FEF3DC 100%);
+    }
+    .module-card.card-3c:hover { background: linear-gradient(125deg, #FFFBF2 45%, #FEECCC 100%); }
+
+    /* Large ghost module number watermark */
+    .module-card::after {
+        content: attr(data-num);
+        position: absolute;
+        right: -6px; bottom: -18px;
+        font-family: 'Syne', sans-serif;
+        font-size: 9.5rem; font-weight: 800;
+        color: rgba(28,9,0,.03);
+        letter-spacing: -.06em;
+        pointer-events: none; user-select: none;
+        line-height: 1;
+        z-index: 0;
+    }
+    .module-card.card-3c::after { font-size: 6rem; bottom: -8px; right: 8px; }
+
+    /* Left amber accent strip */
+    .module-card .card-accent {
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #C2670B 0%, rgba(194,103,11,.15) 100%);
+        border-radius: 0;
+        opacity: 0;
+        transition: opacity .25s;
+    }
+    .module-card:hover .card-accent { opacity: 1; }
+
+    /* Card content above watermark */
+    .card-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+
+    /* Module number label */
+    .module-num {
+        font-family: 'Syne', sans-serif;
+        font-size: 3.6rem; font-weight: 800;
+        line-height: 1; letter-spacing: -.06em;
+        color: #EDE7DC;
+        margin-bottom: 12px;
+        transition: color .2s;
+    }
+    .module-card:hover .module-num { color: #D4884A; }
+    .module-num.num-3c { font-size: 2.4rem; color: #C2670B; }
+
+    /* Tag */
+    .module-tag {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: 'Syne', sans-serif;
+        font-size: .61rem; font-weight: 700;
+        letter-spacing: .11em; text-transform: uppercase;
+        padding: 3px 10px; border-radius: 100px;
+        margin-bottom: 10px; width: fit-content;
+    }
+    .tag-live { background: #FEF0D3; color: #B85C08; }
+
+    .module-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.08rem; font-weight: 700;
+        color: #1C1917; margin-bottom: 8px;
+        letter-spacing: -.025em;
+    }
+    .module-desc {
+        font-size: .81rem; color: #78716C;
+        line-height: 1.7; flex: 1;
+    }
+
+    /* Card footer */
+    .module-footer {
+        margin-top: 24px;
+        display: flex; align-items: flex-end;
+        justify-content: space-between;
+        padding-top: 16px;
+        border-top: 1px solid #F0EBE0;
+    }
+    .module-stat {
+        font-family: 'Syne', sans-serif;
+        font-size: 2.4rem; font-weight: 800;
+        color: #C2670B; letter-spacing: -.05em; line-height: 1;
+    }
+    .module-stat-label {
+        font-size: .67rem; color: #A8A29E; margin-top: 3px;
+        letter-spacing: .03em; text-transform: uppercase; font-weight: 600;
+    }
+
+    /* 3C horizontal layout */
+    .card-3c-inner {
+        display: flex; align-items: center;
+        justify-content: space-between; gap: 36px;
+    }
+    .card-3c-text { flex: 1; min-width: 0; }
+    .card-3c-actions {
+        display: flex; flex-direction: column;
+        gap: 9px; align-items: flex-end; flex-shrink: 0;
+    }
+
+    /* Buttons */
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 9px 20px; border-radius: 8px;
+        font-size: .82rem; font-weight: 600;
+        text-decoration: none; transition: background .15s, box-shadow .15s, transform .1s;
+        white-space: nowrap; display: inline-block;
+    }
+    .btn-amber:hover {
+        background: #A3520A; color: #fff;
+        box-shadow: 0 3px 12px rgba(194,103,11,.25);
+        transform: translateY(-1px);
+    }
+
+    /* Card animations */
+    .training-hub .hub-modules .module-card:nth-child(1) { animation: fadeUp .32s ease both .08s; }
+    .training-hub .hub-modules .module-card:nth-child(2) { animation: fadeUp .32s ease both .13s; }
+    .training-hub .hub-modules .module-card:nth-child(3) { animation: fadeUp .32s ease both .18s; }
+
+    /* ── Responsive ── */
     @media (max-width: 767.98px) {
-        .bento-grid { grid-template-columns: 1fr; }
-        .bento-card.bento-full { grid-column: auto; }
+        .hub-banner { padding: 32px 28px 28px; min-height: 140px; }
+        .hub-banner::before { font-size: 5rem; }
+        .hub-banner-title { font-size: 1.5rem; }
+        .hub-modules { grid-template-columns: 1fr; }
+        .module-card.card-3a { border-right: none; border-bottom: 1px solid #EDE8DF; }
+        .module-card.card-3c { padding: 24px 28px; }
+        .card-3c-inner { flex-direction: column; align-items: flex-start; gap: 18px; }
+        .card-3c-actions { flex-direction: row; align-items: center; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
-    <h4 class="mb-0">Training</h4>
-</div>
+<div class="training-hub">
 
-<div class="bento-grid">
-
-    <!-- 3A — Case Management -->
-    <div class="bento-card bento-active">
-        <span class="bento-module-tag tag-active">3A · Case Management</span>
-        <div class="bento-title">Case Library</div>
-        <div class="bento-desc">
-            Browse resolved cases from your team. Log difficult situations as structured records
-            so staff can learn from past problems. Convert lead notes directly into cases.
+    <!-- Hero banner -->
+    <div class="hub-banner">
+        <div>
+            <div class="hub-banner-eyebrow">Module 3</div>
+            <div class="hub-banner-title">Knowledge &amp;<br>Training</div>
+            <div class="hub-banner-sub">Three systems, one purpose — build team expertise.</div>
         </div>
-        <div class="bento-footer">
-            <div>
-                <div class="bento-stat">{{ case_count }}</div>
-                <div class="bento-stat-label">cases in your team</div>
+        <span class="hub-banner-badge">
+            <i class="bi bi-mortarboard-fill"></i> Live
+        </span>
+    </div>
+
+    <!-- Module cards -->
+    <div class="hub-modules">
+
+        <!-- 3A — Case Management -->
+        <div class="module-card card-3a" data-num="3A">
+            <div class="card-accent"></div>
+            <div class="card-content">
+                <div class="module-num">3A</div>
+                <span class="module-tag tag-live"><i class="bi bi-journal-text"></i> Case Management</span>
+                <div class="module-title">Case Library</div>
+                <div class="module-desc">
+                    Browse resolved situations from your team. Log difficult cases as structured records —
+                    problem, context, and resolution — so everyone learns from experience.
+                </div>
+                <div class="module-footer">
+                    <div>
+                        <div class="module-stat">{{ case_count }}</div>
+                        <div class="module-stat-label">cases logged</div>
+                    </div>
+                    <a href="{% url 'case_list' %}" class="btn-amber">View Cases →</a>
+                </div>
             </div>
-            <a href="{% url 'case_list' %}" class="btn btn-primary btn-sm">View Cases →</a>
         </div>
-        <i class="bi bi-journal-text bento-icon"></i>
-    </div>
 
-    <!-- 3B — Quiz / Tutorial -->
-    <div class="bento-card bento-active">
-        <span class="bento-module-tag tag-active">3B · Quiz System</span>
-        <div class="bento-title">Quizzes & Tutorials</div>
-        <div class="bento-desc">
-            Test your knowledge with quizzes built by your admin team. Questions are grouped into
-            sets by topic. The AI judges your answers and explains what you got right or wrong.
-        </div>
-        <div class="bento-footer">
-            <div>
-                <div class="bento-stat">{{ quiz_count }}</div>
-                <div class="bento-stat-label">quizzes available</div>
+        <!-- 3B — Quiz System -->
+        <div class="module-card card-3b" data-num="3B">
+            <div class="card-accent"></div>
+            <div class="card-content">
+                <div class="module-num">3B</div>
+                <span class="module-tag tag-live"><i class="bi bi-patch-question"></i> Quiz System</span>
+                <div class="module-title">Quizzes &amp; Tutorials</div>
+                <div class="module-desc">
+                    Test your knowledge with AI-judged quizzes. The system evaluates your answers
+                    and explains what you got right or wrong — with partial credit for good reasoning.
+                </div>
+                <div class="module-footer">
+                    <div>
+                        <div class="module-stat">{{ quiz_count }}</div>
+                        <div class="module-stat-label">quizzes available</div>
+                    </div>
+                    <a href="{% url 'quiz_list' %}" class="btn-amber">View Quizzes →</a>
+                </div>
             </div>
-            <a href="{% url 'quiz_list' %}" class="btn btn-primary btn-sm">View Quizzes →</a>
         </div>
-        <i class="bi bi-patch-question bento-icon"></i>
-    </div>
 
-    <!-- 3C — RAG Q&A -->
-    <div class="bento-card bento-dim bento-full">
-        <span class="bento-module-tag tag-dim">3C · Knowledge Base</span>
-        <div class="bento-title">Ask a Question</div>
-        <div class="bento-desc">
-            Ask operational questions in plain English. The system searches uploaded documents —
-            product catalogues, pricing guidelines, SOPs, company policies — and uses AI to
-            compose a grounded answer from the most relevant sources.
+        <!-- 3C — RAG Q&A -->
+        <div class="module-card card-3c" data-num="3C">
+            <div class="card-accent" style="background:linear-gradient(90deg,#C2670B,rgba(194,103,11,.1));width:4px;height:100%;top:0;bottom:auto;"></div>
+            <div class="card-3c-inner card-content">
+                <div class="card-3c-text">
+                    <div class="d-flex align-items-baseline gap-3 mb-2">
+                        <div class="module-num num-3c">3C</div>
+                        <span class="module-tag tag-live"><i class="bi bi-stars"></i> Knowledge Base</span>
+                    </div>
+                    <div class="module-title" style="font-size:1rem;">Ask the Knowledge Base</div>
+                    <div class="module-desc" style="max-width:520px;">
+                        Ask operational questions in plain English. Searches uploaded documents —
+                        catalogues, SOPs, pricing guides, policies — and generates a grounded answer.
+                    </div>
+                </div>
+                <div class="card-3c-actions">
+                    <a href="{% url 'document_ask' %}" class="btn-amber">
+                        <i class="bi bi-stars me-1"></i>Ask a question
+                    </a>
+                    {% if perms.training.add_case %}
+                    <a href="{% url 'document_list' %}" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap;">Manage documents</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="bento-footer">
-            <span class="bento-coming">Coming soon — pending client confirmation</span>
-        </div>
-        <i class="bi bi-search bento-icon"></i>
-    </div>
 
+    </div>
 </div>
 {% endblock %}

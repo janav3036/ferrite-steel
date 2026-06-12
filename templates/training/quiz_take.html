@@ -2,100 +2,239 @@
 {% block title %}{{ quiz_set.title }} — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
-    .q-card {
-        border-left: 3px solid #BFDBFE;
-        background: var(--card-bg);
-        border-radius: 0 8px 8px 0;
-        padding: 20px 22px;
-        margin-bottom: 16px;
-        border: 1px solid var(--border);
-        border-left-width: 3px;
-        border-left-color: #BFDBFE;
+    /* Progress bar — z-index above Bootstrap navbar (1030) */
+    .progress-rail {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: 3px; background: rgba(28,25,23,.08); z-index: 2000;
+        pointer-events: none;
     }
-    .q-number {
-        font-size: .69rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .09em; color: #93C5FD; margin-bottom: 6px;
+    .progress-fill {
+        height: 100%; background: #C2670B;
+        width: 0%; transition: width .35s ease;
+        border-radius: 0 2px 2px 0;
     }
-    .q-text { font-size: .93rem; font-weight: 500; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
-    .q-source { font-size: .77rem; color: var(--muted); margin-bottom: 10px; }
 
+    /* Loading overlay */
     #loading-overlay {
         display: none;
         position: fixed; inset: 0;
-        background: rgba(255,255,255,.92);
+        background: rgba(245,241,234,.95);
+        backdrop-filter: blur(4px);
         z-index: 9999;
         flex-direction: column;
         align-items: center; justify-content: center;
-        gap: 16px;
+        gap: 20px;
     }
     #loading-overlay.active { display: flex; }
-    .loading-title { font-size: .95rem; font-weight: 600; color: var(--text); }
-    .loading-sub   { font-size: .82rem; color: var(--muted); }
-
-    .submit-bar {
-        background: var(--card-bg); border: 1px solid var(--border);
-        border-radius: 8px; padding: 16px 20px;
-        display: flex; align-items: center; gap: 12px;
+    .loading-spinner {
+        width: 46px; height: 46px;
+        border: 3px solid #E8E2D8;
+        border-top-color: #C2670B;
+        border-radius: 50%;
+        animation: spin .75s linear infinite;
     }
-    .submit-note { font-size: .8rem; color: var(--muted); flex: 1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title {
+        font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: #1C1917;
+    }
+    .loading-sub { font-size: .81rem; color: #78716C; text-align: center; max-width: 280px; }
+
+    /* Header strip */
+    .take-header {
+        background: #1C1917;
+        border-radius: 14px;
+        padding: 20px 24px;
+        margin-bottom: 20px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: relative; overflow: hidden;
+    }
+    .take-header::before {
+        content: '{{ questions|length }}Q';
+        position: absolute; right: 80px; top: 50%; transform: translateY(-50%);
+        font-family: 'Syne', sans-serif; font-size: 5rem; font-weight: 800;
+        color: rgba(255,255,255,.03); pointer-events: none;
+    }
+    .take-header-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.05rem; font-weight: 800; color: #FFFFFF; letter-spacing: -.02em;
+    }
+    .take-header-meta { font-size: .79rem; color: rgba(255,255,255,.4); margin-top: 4px; }
+    .take-progress-label {
+        font-family: 'Syne', sans-serif; font-size: .78rem;
+        font-weight: 700; color: rgba(255,255,255,.35);
+        white-space: nowrap;
+    }
+    .take-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .btn-abandon {
+        font-size: .78rem; font-weight: 600;
+        color: rgba(255,255,255,.45);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 7px; padding: 5px 12px;
+        background: transparent; text-decoration: none;
+        transition: color .15s, border-color .15s;
+        white-space: nowrap;
+    }
+    .btn-abandon:hover { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.25); }
+
+    /* Question cards */
+    .q-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 14px; overflow: hidden;
+        margin-bottom: 12px;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .q-card:focus-within {
+        border-color: #C2670B;
+        box-shadow: 0 0 0 3px rgba(194,103,11,.08);
+    }
+
+    .q-card-hdr {
+        padding: 13px 20px 0;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .q-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 25px; height: 25px; border-radius: 50%;
+        background: #F5F1EA;
+        font-family: 'Syne', sans-serif;
+        font-size: .68rem; font-weight: 700; color: #78716C;
+        flex-shrink: 0;
+    }
+    .q-of { font-size: .71rem; color: #A8A29E; }
+    .q-source { font-size: .73rem; color: #C2670B; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+
+    .q-text-area {
+        font-family: 'Syne', sans-serif;
+        font-size: .93rem; font-weight: 600;
+        color: #1C1917; line-height: 1.5;
+        padding: 11px 20px 14px;
+    }
+    .q-answer-wrap { padding: 0 20px 20px; }
+    .q-answer-wrap textarea {
+        display: block; width: 100%; box-sizing: border-box;
+        border: 1px solid #E8E2D8; border-radius: 10px;
+        padding: 11px 14px; font-size: .875rem;
+        resize: vertical; background: #FDFCFA;
+        color: #1C1917; line-height: 1.6;
+        font-family: inherit;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .q-answer-wrap textarea:focus {
+        outline: none; border-color: #C2670B;
+        box-shadow: 0 0 0 3px rgba(194,103,11,.08);
+        background: #FFFFFF;
+    }
+
+    /* Sticky submit bar */
+    .submit-bar {
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 14px; padding: 16px 20px;
+        display: flex; align-items: center; gap: 14px;
+        position: sticky; bottom: 16px;
+        box-shadow: 0 4px 24px rgba(28,25,23,.12);
+    }
+    .submit-note { font-size: .78rem; color: #A8A29E; flex: 1; line-height: 1.45; }
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 9px 24px; border-radius: 8px; font-size: .85rem;
+        font-weight: 600; cursor: pointer;
+        transition: background .15s, box-shadow .15s;
+        white-space: nowrap; display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-amber:hover { background: #A3520A; box-shadow: 0 2px 10px rgba(194,103,11,.25); }
+    .btn-amber:disabled { background: #D6D3CE; cursor: not-allowed; box-shadow: none; }
 </style>
 {% endblock %}
 
 {% block content %}
 
+<!-- Top progress rail -->
+<div class="progress-rail">
+    <div class="progress-fill" id="progressFill"></div>
+</div>
+
 <!-- Loading overlay -->
 <div id="loading-overlay">
-    <div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;"></div>
+    <div class="loading-spinner"></div>
     <div class="text-center">
         <div class="loading-title">Evaluating your answers…</div>
-        <div class="loading-sub">The AI is reviewing each response. This takes a few seconds.</div>
+        <div class="loading-sub">The AI is reviewing each response. This may take a moment.</div>
     </div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+<!-- Header -->
+<div class="take-header">
     <div>
-        <h4 class="mb-1">{{ quiz_set.title }}</h4>
-        <small class="text-muted">
-            {{ questions|length }} question{{ questions|length|pluralize }} — answer all, then submit
-        </small>
+        <div class="take-header-title">{{ quiz_set.title }}</div>
+        <div class="take-header-meta">{{ questions|length }} question{{ questions|length|pluralize }} &middot; Answer all, then submit</div>
     </div>
-    <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+    <div class="take-header-right">
+        <span class="take-progress-label" id="progressLabel">0 / {{ questions|length }}</span>
+        <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn-abandon">Abandon</a>
+    </div>
 </div>
 
 <form method="post" id="quiz-form">
     {% csrf_token %}
 
     {% for q in questions %}
-    <div class="q-card">
-        <div class="q-number">Question {{ forloop.counter }} of {{ questions|length }}</div>
-        <div class="q-text">{{ q.question_text }}</div>
-        {% if q.source %}
-        <div class="q-source"><i class="bi bi-link-45deg"></i> Reference: {{ q.source }}</div>
-        {% endif %}
-        <textarea
-            name="answer_{{ q.pk }}"
-            class="form-control"
-            rows="3"
-            placeholder="Write your answer here…"
-            required
-        ></textarea>
+    <div class="q-card" data-index="{{ forloop.counter }}">
+        <div class="q-card-hdr">
+            <span class="q-badge">{{ forloop.counter }}</span>
+            <span class="q-of">of {{ questions|length }}</span>
+            {% if q.source %}
+            <span class="q-source ms-auto">
+                <i class="bi bi-link-45deg me-1"></i>{{ q.source|truncatechars:38 }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="q-text-area">{{ q.question_text }}</div>
+        <div class="q-answer-wrap">
+            <textarea
+                name="answer_{{ q.pk }}"
+                rows="3"
+                placeholder="Write your answer here…"
+                required
+                oninput="updateProgress()"
+            ></textarea>
+        </div>
     </div>
     {% endfor %}
 
-    <div class="submit-bar mt-2">
+    <div class="submit-bar">
         <span class="submit-note">
             <i class="bi bi-info-circle me-1"></i>
-            Answers are judged by AI — partial credit is given for correct reasoning.
+            Partial credit is given for correct reasoning — exact wording is not required.
         </span>
-        <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
-        <button type="submit" class="btn btn-primary btn-sm px-4">Submit Answers</button>
+        <button type="submit" class="btn-amber" id="submitBtn">
+            <i class="bi bi-send-fill"></i>
+            Submit Answers
+        </button>
     </div>
 </form>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
-document.getElementById('quiz-form').addEventListener('submit', function () {
+const totalQ = {{ questions|length }};
+
+function updateProgress() {
+    const textareas = document.querySelectorAll('#quiz-form textarea');
+    const filled = Array.from(textareas).filter(t => t.value.trim().length > 0).length;
+    const pct = (filled / textareas.length) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = filled + ' / ' + textareas.length;
+}
+
+document.getElementById('quiz-form').addEventListener('submit', function(e) {
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Submitting…';
     document.getElementById('loading-overlay').classList.add('active');
+    document.getElementById('progressFill').style.width = '100%';
 });
 </script>
 {% endblock %}

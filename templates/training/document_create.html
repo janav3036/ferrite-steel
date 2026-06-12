@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}Add Document — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    .form-wrap { max-width: 740px; }
+
+    .form-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    .form-card-hdr {
+        padding: 12px 22px;
+        background: #F5F1EA;
+        border-bottom: 1px solid #E8E2D8;
+        font-family: 'Syne', sans-serif;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase; color: #78716C;
+    }
+    .form-card-body { padding: 20px 22px 18px; }
+
+    .form-label {
+        display: block; font-size: .83rem; font-weight: 600;
+        color: #1C1917; margin-bottom: 6px;
+    }
+    .form-label small { font-weight: 400; color: #A8A29E; }
+
+    .form-control {
+        display: block; width: 100%; box-sizing: border-box;
+        border: 1px solid #E8E2D8; border-radius: 8px;
+        font-size: .875rem; padding: 9px 12px;
+        background: #FDFCFA; color: #1C1917;
+        line-height: 1.55;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .form-control:focus {
+        border-color: #C2670B;
+        box-shadow: 0 0 0 3px rgba(194,103,11,.1);
+        outline: none; background: #FFFFFF;
+    }
+    .form-control.is-invalid { border-color: #DC2626; }
+    .invalid-feedback { font-size: .78rem; color: #DC2626; margin-top: 4px; display: block; }
+
+    .dept-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dept-check {
+        display: flex; align-items: center; gap: 7px;
+        font-size: .83rem; cursor: pointer;
+        background: #F5F1EA; border: 1px solid #E8E2D8;
+        border-radius: 8px; padding: 6px 12px;
+        transition: border-color .15s, background .15s;
+        user-select: none;
+    }
+    .dept-check:has(input:checked) { background: #FEF0D3; border-color: #C2670B; color: #92400E; }
+    .dept-check input { width: 14px; height: 14px; cursor: pointer; accent-color: #C2670B; }
+
+    /* Source toggle */
+    .source-toggle {
+        display: flex; gap: 0;
+        background: #F5F1EA; border: 1px solid #E8E2D8;
+        border-radius: 10px; overflow: hidden;
+        margin-bottom: 20px; padding: 3px;
+    }
+    .source-btn {
+        flex: 1; padding: 8px 0; text-align: center;
+        font-size: .83rem; font-weight: 600;
+        cursor: pointer; border: none; background: transparent; color: #78716C;
+        border-radius: 8px; transition: background .15s, color .15s;
+    }
+    .source-btn.active {
+        background: #FFFFFF; color: #1C1917;
+        box-shadow: 0 1px 4px rgba(28,25,23,.09);
+    }
+
+    /* Upload zone */
+    .upload-zone {
+        border: 2px dashed #E8E2D8; border-radius: 12px;
+        padding: 36px 28px; text-align: center; cursor: pointer;
+        transition: border-color .15s, background .15s;
+        background: #FDFCFA;
+    }
+    .upload-zone:hover { border-color: #C2670B; background: #FFFBF4; }
+    .upload-zone.has-file { border-color: #16A34A; background: #F0FDF4; border-style: solid; }
+    .upload-zone input[type=file] { display: none; }
+    .upload-icon {
+        font-size: 1.8rem; color: #D6D3CE;
+        margin-bottom: 10px; display: block;
+        transition: color .15s;
+    }
+    .upload-zone:hover .upload-icon { color: #C2670B; }
+    .upload-zone.has-file .upload-icon { color: #16A34A; }
+    .upload-label {
+        font-size: .88rem; font-weight: 600; color: #1C1917;
+        display: block; margin-bottom: 4px;
+    }
+    .upload-hint { font-size: .77rem; color: #A8A29E; }
+
+    /* Processing bar */
+    .processing-state {
+        display: none;
+        background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px;
+        padding: 12px 16px; font-size: .83rem; color: #92400E;
+        align-items: center; gap: 10px; line-height: 1.5;
+    }
+    .processing-state.active { display: flex; }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 8px 22px; border-radius: 8px; font-size: .84rem;
+        font-weight: 600; cursor: pointer;
+        transition: background .15s, box-shadow .15s;
+        display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-amber:hover { background: #A3520A; box-shadow: 0 2px 8px rgba(194,103,11,.2); }
+    .btn-amber:disabled { background: #D6D3CE; cursor: not-allowed; box-shadow: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+    <div>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Add Document</h4>
+        <small class="text-muted">Upload a file or paste text to add to the knowledge base</small>
+    </div>
+    <a href="{% url 'document_list' %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
+</div>
+
+<div class="form-wrap">
+    <form method="post" enctype="multipart/form-data" id="docForm">
+        {% csrf_token %}
+
+        <!-- Title -->
+        <div class="form-card">
+            <div class="form-card-hdr">Document Title</div>
+            <div class="form-card-body">
+                <label class="form-label">Title</label>
+                <input type="text" name="title"
+                       class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                       value="{{ form.title.value|default:'' }}"
+                       placeholder="e.g. Steel Grade Reference Guide"
+                       required>
+                {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <!-- Source -->
+        <div class="form-card">
+            <div class="form-card-hdr">Source</div>
+            <div class="form-card-body">
+                <div class="source-toggle">
+                    <button type="button" class="source-btn active" id="btnFile" onclick="setSource('file')">
+                        <i class="bi bi-file-earmark-arrow-up me-1"></i>Upload File
+                    </button>
+                    <button type="button" class="source-btn" id="btnText" onclick="setSource('text')">
+                        <i class="bi bi-pencil-square me-1"></i>Enter Text
+                    </button>
+                </div>
+                <input type="hidden" name="source_type" id="source_type" value="file">
+
+                <div id="fileZone">
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <span class="upload-icon"><i class="bi bi-cloud-upload"></i></span>
+                        <span class="upload-label" id="uploadLabel">Click to choose a file</span>
+                        <span class="upload-hint">PDF, DOCX, XLSX, TXT</span>
+                        <input type="file" name="file" id="fileInput"
+                               accept=".pdf,.docx,.xlsx,.xls,.txt"
+                               onchange="fileSelected(this)">
+                    </div>
+                </div>
+
+                <div id="textZone" style="display:none;">
+                    <textarea name="direct_text" rows="10"
+                              class="form-control {% if form.direct_text.errors %}is-invalid{% endif %}"
+                              placeholder="Paste or type content to add to the knowledge base…">{{ form.direct_text.value|default:'' }}</textarea>
+                    {% for e in form.direct_text.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="form-card">
+            <div class="form-card-hdr">Metadata</div>
+            <div class="form-card-body">
+                <div class="mb-3">
+                    <label class="form-label">Description <small>(optional)</small></label>
+                    <textarea name="description" rows="2" class="form-control"
+                              placeholder="Brief summary of what this document covers">{{ form.description.value|default:'' }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label">Departments</label>
+                    <div class="dept-group">
+                        {% for checkbox in form.departments %}
+                        <label class="dept-check">{{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span></label>
+                        {% endfor %}
+                    </div>
+                    {% for e in form.departments.errors %}<div class="text-danger small mt-2">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="processing-state mb-3" id="processingState">
+            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+            <span>Extracting text, generating embeddings, and indexing chunks — this may take 10–30 seconds…</span>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <button type="submit" class="btn-amber" id="submitBtn">
+                <i class="bi bi-cloud-upload"></i>
+                Upload &amp; Process
+            </button>
+            <a href="{% url 'document_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function setSource(type) {
+    document.getElementById('source_type').value = type;
+    document.getElementById('fileZone').style.display = type === 'file' ? '' : 'none';
+    document.getElementById('textZone').style.display = type === 'text' ? '' : 'none';
+    document.getElementById('btnFile').classList.toggle('active', type === 'file');
+    document.getElementById('btnText').classList.toggle('active', type === 'text');
+}
+
+function fileSelected(input) {
+    const zone  = document.getElementById('uploadZone');
+    const label = document.getElementById('uploadLabel');
+    if (input.files.length > 0) {
+        label.textContent = input.files[0].name;
+        zone.classList.add('has-file');
+    } else {
+        label.textContent = 'Click to choose a file';
+        zone.classList.remove('has-file');
+    }
+}
+
+document.getElementById('docForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Processing…';
+    document.getElementById('processingState').classList.add('active');
+});
+</script>
+{% endblock %}

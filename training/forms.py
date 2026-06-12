@@ -1,6 +1,6 @@
 from django import forms
 from database.models import Customer
-from .models import QuizSet, Question, Case
+from .models import QuizSet, Question, Case, KnowledgeDocument
 
 DEPARTMENT_CHOICES = [
     ('team_9', 'Team 9'),
@@ -56,4 +56,20 @@ class QuestionForm(forms.ModelForm):
         widgets = {
             'question_text': forms.Textarea(attrs={'rows': 3}),
             'correct_answer': forms.Textarea(attrs={'rows': 3}),
+        }
+
+class KnowledgeDocumentForm(forms.ModelForm):
+    departments = forms.MultipleChoiceField(
+        choices=DEPARTMENT_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+        )
+    file = forms.FileField(required=False)
+    
+    class Meta:
+        model = KnowledgeDocument
+        fields = ['title', 'source_type', 'departments', 'description', 'direct_text']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows':2}),
+            'direct_text': forms.Textarea(attrs={'rows':8}),
         }

@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+{% block title %}{{ doc.title }} — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .doc-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+
+    /* Sidebar */
+    .sidebar-card {
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 13px; overflow: hidden; margin-bottom: 12px;
+        animation: fadeUp .25s ease both;
+    }
+    .sidebar-hdr {
+        padding: 11px 16px; background: #F5F1EA; border-bottom: 1px solid #E8E2D8;
+        font-family: 'Syne', sans-serif; font-size: .63rem; font-weight: 700;
+        letter-spacing: .11em; text-transform: uppercase; color: #78716C;
+    }
+    .sidebar-body { padding: 16px; }
+
+    .meta-row { margin-bottom: 13px; }
+    .meta-row:last-child { margin-bottom: 0; }
+    .meta-label {
+        font-size: .62rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; color: #A8A29E; margin-bottom: 3px;
+    }
+    .meta-val { font-size: .84rem; color: #1C1917; line-height: 1.5; }
+
+    .dept-tag {
+        display: inline-block; font-size: .62rem; font-weight: 700;
+        letter-spacing: .06em; text-transform: uppercase;
+        padding: 2px 8px; border-radius: 100px;
+        margin-right: 3px; margin-bottom: 3px;
+    }
+    .dept-team_9    { background: #EFF6FF; color: #1D4ED8; }
+    .dept-cs        { background: #F0FDF4; color: #15803D; }
+    .dept-market    { background: #FFF7ED; color: #C2410C; }
+    .dept-corporate { background: #FAF5FF; color: #7C3AED; }
+
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: .77rem; font-weight: 600; padding: 4px 11px; border-radius: 100px;
+    }
+    .badge-ok { background: #DCFCE7; color: #15803D; }
+    .badge-no { background: #FEF9C3; color: #A16207; }
+
+    /* Main content */
+    .doc-main { display: flex; flex-direction: column; gap: 12px; }
+    .main-card {
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 13px; overflow: hidden;
+        animation: fadeUp .25s ease both .05s;
+    }
+    .main-card-hdr {
+        padding: 12px 20px; background: #F5F1EA; border-bottom: 1px solid #E8E2D8;
+        font-family: 'Syne', sans-serif; font-size: .63rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase; color: #78716C;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .main-card-body { padding: 20px; }
+
+    .chunk-stat {
+        display: flex; align-items: center; gap: 16px;
+        background: #FFFBEB; border: 1px solid #FDE68A;
+        border-radius: 10px; padding: 14px 18px;
+    }
+    .chunk-num {
+        font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800;
+        color: #C2670B; line-height: 1; flex-shrink: 0;
+    }
+    .chunk-lbl-title { font-size: .84rem; font-weight: 600; color: #1C1917; }
+    .chunk-lbl-sub { font-size: .77rem; color: #78716C; margin-top: 2px; }
+
+    .text-preview {
+        background: #F5F1EA; border: 1px solid #E8E2D8; border-radius: 10px;
+        padding: 16px; font-size: .83rem; line-height: 1.75; color: #1C1917;
+        white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+        font-family: 'Courier New', monospace;
+    }
+
+    .onedrive-btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE;
+        border-radius: 8px; padding: 6px 14px; font-size: .81rem; font-weight: 600;
+        text-decoration: none; transition: background .15s;
+    }
+    .onedrive-btn:hover { background: #BFDBFE; color: #1D4ED8; }
+
+    .warn-banner {
+        background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px;
+        padding: 12px 16px; font-size: .83rem; color: #92400E;
+        display: flex; gap: 8px; align-items: flex-start; line-height: 1.55;
+    }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none; padding: 5px 12px;
+        border-radius: 7px; font-size: .77rem; font-weight: 600;
+        text-decoration: none; transition: background .15s; display: inline-block;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+    .btn-outline-amber {
+        background: transparent; color: #C2670B; border: 1px solid #C2670B;
+        padding: 6px 14px; border-radius: 8px; font-size: .81rem;
+        font-weight: 600; text-decoration: none;
+        transition: background .15s, color .15s;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-outline-amber:hover { background: #C2670B; color: #fff; }
+
+    .content-sublabel {
+        font-size: .62rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; color: #A8A29E; margin-bottom: 8px;
+    }
+
+    @media (max-width: 767.98px) { .doc-layout { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+    <div>
+        <h4 class="mb-1" style="font-family:'Syne',sans-serif;font-weight:700;">{{ doc.title }}</h4>
+        <small class="text-muted">Document #{{ doc.pk }} &middot; {{ doc.uploaded_at|date:'d M Y' }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'document_ask' %}" class="btn-outline-amber">
+            <i class="bi bi-stars me-1"></i>Ask a question
+        </a>
+        {% if perms.training.delete_case %}
+        <a href="{% url 'document_delete' doc.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+        {% endif %}
+        <a href="{% url 'document_list' %}" class="btn btn-outline-secondary btn-sm">← Documents</a>
+    </div>
+</div>
+
+<div class="doc-layout">
+
+    <!-- Sidebar -->
+    <div>
+        <div class="sidebar-card">
+            <div class="sidebar-hdr">Details</div>
+            <div class="sidebar-body">
+                <div class="meta-row">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-val">
+                        {% if doc.is_processed %}
+                        <span class="status-badge badge-ok"><i class="bi bi-check-circle-fill"></i> Processed</span>
+                        {% else %}
+                        <span class="status-badge badge-no"><i class="bi bi-clock"></i> Not processed</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">Source type</div>
+                    <div class="meta-val">{{ doc.get_source_type_display }}</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">Departments</div>
+                    <div class="meta-val">
+                        {% for dept in doc.departments %}
+                        <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
+                        {% empty %}<span style="font-size:.82rem;color:#A8A29E;">—</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if doc.uploaded_by %}
+                <div class="meta-row">
+                    <div class="meta-label">Uploaded by</div>
+                    <div class="meta-val">{{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</div>
+                </div>
+                {% endif %}
+                {% if doc.processed_at %}
+                <div class="meta-row">
+                    <div class="meta-label">Processed</div>
+                    <div class="meta-val">{{ doc.processed_at|date:'d M Y, H:i' }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="doc-main">
+
+        {% if doc.is_processed %}
+        <div class="main-card">
+            <div class="main-card-hdr">
+                <span>Indexed Chunks</span>
+                <a href="{% url 'document_ask' %}" class="btn-amber">Ask a question →</a>
+            </div>
+            <div class="main-card-body">
+                <div class="chunk-stat">
+                    <div class="chunk-num">{{ chunk_count }}</div>
+                    <div>
+                        <div class="chunk-lbl-title">text chunks indexed</div>
+                        <div class="chunk-lbl-sub">ready for semantic search and Q&amp;A</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="main-card">
+            <div class="main-card-hdr">Content</div>
+            <div class="main-card-body">
+
+                {% if doc.description %}
+                <div class="mb-4">
+                    <div class="content-sublabel">Description</div>
+                    <p style="font-size:.88rem;color:#1C1917;margin:0;line-height:1.65;">{{ doc.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if doc.file_url %}
+                <div class="mb-4">
+                    <div class="content-sublabel">File on OneDrive</div>
+                    <a href="{{ doc.file_url }}" target="_blank" class="onedrive-btn">
+                        <i class="bi bi-cloud"></i>
+                        Open in OneDrive
+                        <i class="bi bi-box-arrow-up-right" style="font-size:.75rem;"></i>
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if doc.source_type == 'text' and doc.direct_text %}
+                <div>
+                    <div class="content-sublabel">Content</div>
+                    <div class="text-preview">{{ doc.direct_text }}</div>
+                </div>
+                {% endif %}
+
+                {% if not doc.is_processed %}
+                <div class="warn-banner {% if doc.description or doc.file_url or doc.direct_text %}mt-4{% endif %}">
+                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+                    <span>This document has not been processed yet and is not available for Q&amp;A.</span>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

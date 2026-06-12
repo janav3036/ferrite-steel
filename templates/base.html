@@ -15,20 +15,38 @@
     <style>
         /* ── Design tokens ── */
         :root {
-            --sb-bg:        #0F172A;
-            --sb-w:         220px;
-            --sb-w-col:     52px;
-            --sb-link:      rgba(255,255,255,.58);
-            --sb-hover:     rgba(255,255,255,.88);
-            --sb-active-bg: rgba(147,197,253,.1);
-            --sb-active:    #93C5FD;
-            --page-bg:      #F1F5F9;
-            --card-bg:      #FFFFFF;
-            --border:       #E2E8F0;
-            --text:         #0F172A;
-            --muted:        #64748B;
-            --accent:       #2563EB;
-            --accent-h:     #1D4ED8;
+            /* Sidebar base */
+            --sb-bg:          #0F172A;
+            --sb-w:           220px;
+            --sb-w-col:       52px;
+            --sb-link:        rgba(255,255,255,.58);
+            --sb-hover:       rgba(255,255,255,.88);
+            --sb-active-bg:   rgba(147,197,253,.1);
+            --sb-active:      #93C5FD;
+            /* Sidebar sub-tokens (theme-switchable per page) */
+            --sb-border:      rgba(255,255,255,.07);
+            --sb-section:     rgba(255,255,255,.28);
+            --sb-hover-bg:    rgba(255,255,255,.06);
+            --sb-btn-bg:      rgba(255,255,255,.06);
+            --sb-btn-border:  rgba(255,255,255,.1);
+            --sb-btn-color:   rgba(255,255,255,.38);
+            --sb-btn-bg2:     rgba(255,255,255,.1);
+            --sb-btn-color2:  rgba(255,255,255,.7);
+            --sb-avatar-bg:   rgba(255,255,255,.1);
+            --sb-avatar-text: rgba(255,255,255,.8);
+            --sb-user-name:   rgba(255,255,255,.82);
+            --sb-user-meta:   rgba(255,255,255,.36);
+            --sb-mob-text:    rgba(255,255,255,.75);
+            --sb-brand-mark:  #3B82F6;
+            --sb-brand-name:  rgba(255,255,255,.9);
+            /* Page & content */
+            --page-bg:        #F1F5F9;
+            --card-bg:        #FFFFFF;
+            --border:         #E2E8F0;
+            --text:           #0F172A;
+            --muted:          #64748B;
+            --accent:         #2563EB;
+            --accent-h:       #1D4ED8;
         }
 
         /* ── Reset & base ── */
@@ -64,7 +82,7 @@
             align-items: center;
             gap: 10px;
             padding: 18px 14px 16px;
-            border-bottom: 1px solid rgba(255,255,255,.07);
+            border-bottom: 1px solid var(--sb-border);
             text-decoration: none;
             flex-shrink: 0;
             overflow: hidden;
@@ -72,7 +90,7 @@
         }
         .fs-brand-mark {
             width: 30px; height: 30px;
-            background: #3B82F6;
+            background: var(--sb-brand-mark);
             border-radius: 7px;
             display: flex; align-items: center; justify-content: center;
             font-size: .68rem; font-weight: 700;
@@ -82,7 +100,7 @@
         }
         .fs-brand-name {
             font-size: .88rem; font-weight: 600;
-            color: rgba(255,255,255,.9);
+            color: var(--sb-brand-name);
             letter-spacing: -.01em;
             transition: opacity .15s, width .2s;
         }
@@ -95,7 +113,7 @@
             font-size: .62rem; font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .1em;
-            color: rgba(255,255,255,.28);
+            color: var(--sb-section);
             padding: 12px 8px 4px;
             white-space: nowrap;
             overflow: hidden;
@@ -117,7 +135,7 @@
             white-space: nowrap;
             overflow: hidden;
         }
-        .fs-link:hover { background: rgba(255,255,255,.06); color: var(--sb-hover); }
+        .fs-link:hover { background: var(--sb-hover-bg); color: var(--sb-hover); }
         .fs-link.active { background: var(--sb-active-bg); color: var(--sb-active); }
         .fs-link .bi { font-size: .9rem; flex-shrink: 0; opacity: .85; }
         .fs-link-text { transition: opacity .15s; }
@@ -129,21 +147,21 @@
             align-items: center;
             justify-content: center;
             width: 28px; height: 28px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.1);
+            background: var(--sb-btn-bg);
+            border: 1px solid var(--sb-btn-border);
             border-radius: 6px;
-            color: rgba(255,255,255,.38);
+            color: var(--sb-btn-color);
             cursor: pointer;
             margin: 8px auto 4px;
             font-size: .75rem;
             transition: background .12s, color .12s;
         }
-        .fs-collapse-btn:hover { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); }
+        .fs-collapse-btn:hover { background: var(--sb-btn-bg2); color: var(--sb-btn-color2); }
 
         /* ── Footer ── */
         .fs-footer {
             padding: 11px 10px;
-            border-top: 1px solid rgba(255,255,255,.07);
+            border-top: 1px solid var(--sb-border);
             flex-shrink: 0;
             overflow: hidden;
         }
@@ -156,16 +174,16 @@
         }
         .fs-avatar {
             width: 30px; height: 30px;
-            background: rgba(255,255,255,.1);
+            background: var(--sb-avatar-bg);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: .73rem; font-weight: 600;
-            color: rgba(255,255,255,.8);
+            color: var(--sb-avatar-text);
             flex-shrink: 0;
             letter-spacing: -.02em;
         }
-        .fs-user-name { font-size: .79rem; font-weight: 500; color: rgba(255,255,255,.82); line-height: 1.25; }
-        .fs-user-meta { font-size: .69rem; color: rgba(255,255,255,.36); margin-top: 1px; }
+        .fs-user-name { font-size: .79rem; font-weight: 500; color: var(--sb-user-name); line-height: 1.25; }
+        .fs-user-meta { font-size: .69rem; color: var(--sb-user-meta); margin-top: 1px; }
 
         /* ── Main content ── */
         .fs-main {
@@ -289,12 +307,12 @@
         h4 { font-size: 1.08rem; }
 
         /* ── Links ── */
-        a:not(.btn):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge) {
+        a:not(.btn):not([class*="btn-"]):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge) {
             color: var(--accent);
             font-weight: 500;
             text-decoration: none;
         }
-        a:not(.btn):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge):hover {
+        a:not(.btn):not([class*="btn-"]):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge):hover {
             text-decoration: underline;
         }
 
@@ -339,7 +357,7 @@
         }
         .fs-mob-toggle {
             background: none; border: none;
-            color: rgba(255,255,255,.75);
+            color: var(--sb-mob-text);
             font-size: 1.25rem; cursor: pointer; padding: 2px;
         }
 

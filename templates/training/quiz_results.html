@@ -1,54 +1,231 @@
 {% extends 'base.html' %}
 {% block title %}Quiz Results — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scaleIn {
+        from { opacity: 0; transform: scale(.85); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Hero */
+    .result-hero {
+        background: #1C1917;
+        border-radius: 16px;
+        padding: 34px 40px;
+        display: flex; align-items: center; gap: 28px;
+        margin-bottom: 20px;
+        position: relative; overflow: hidden;
+        animation: fadeUp .3s ease both;
+    }
+    .result-hero::before {
+        content: attr(data-score);
+        position: absolute;
+        right: 24px; top: 50%; transform: translateY(-50%);
+        font-family: 'Syne', sans-serif;
+        font-size: 7.5rem; font-weight: 800;
+        color: rgba(255,255,255,.04);
+        letter-spacing: -.06em;
+        pointer-events: none;
+        line-height: 1;
+        user-select: none;
+    }
+
+    .score-ring {
+        flex-shrink: 0;
+        width: 88px; height: 88px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column;
+        animation: scaleIn .35s ease both .1s;
+    }
+    .ring-pass { background: rgba(22,163,74,.15); outline: 3px solid rgba(22,163,74,.7); outline-offset: 2px; }
+    .ring-fail { background: rgba(220,38,38,.12); outline: 3px solid rgba(220,38,38,.5); outline-offset: 2px; }
+
+    .score-fraction {
+        font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 800;
+        line-height: 1; color: #FFFFFF;
+    }
+    .score-label { font-size: .62rem; color: rgba(255,255,255,.38); margin-top: 3px; letter-spacing: .04em; text-transform: uppercase; }
+
+    .hero-text { flex: 1; }
+    .hero-title {
+        font-family: 'Syne', sans-serif; font-size: 1.45rem; font-weight: 800;
+        color: #FFFFFF; letter-spacing: -.03em; margin-bottom: 8px;
+    }
+    .hero-verdict {
+        display: inline-block; font-size: .72rem; font-weight: 700;
+        letter-spacing: .09em; text-transform: uppercase; padding: 3px 10px;
+        border-radius: 100px;
+    }
+    .verdict-pass { background: rgba(22,163,74,.2); color: #4ADE80; }
+    .verdict-fail { background: rgba(220,38,38,.18); color: #FCA5A5; }
+    .hero-sub { font-size: .82rem; color: rgba(255,255,255,.38); margin-top: 7px; }
+
+    .hero-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 8px 18px; border-radius: 8px; font-size: .82rem;
+        font-weight: 600; text-decoration: none; transition: background .15s;
+        white-space: nowrap; display: block; text-align: center;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+    .btn-ghost-white {
+        font-size: .78rem; font-weight: 600;
+        color: rgba(255,255,255,.45);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 7px; padding: 6px 14px;
+        background: transparent; text-decoration: none; text-align: center;
+        transition: color .15s, border-color .15s; display: block;
+    }
+    .btn-ghost-white:hover { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.25); }
+
+    /* Breakdown section label */
+    .breakdown-label {
+        font-family: 'Syne', sans-serif; font-size: .72rem; font-weight: 700;
+        letter-spacing: .1em; text-transform: uppercase; color: #78716C;
+        margin-bottom: 12px; padding-left: 2px;
+    }
+
+    /* Per-question result cards */
+    .q-result-card {
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 13px; overflow: hidden; margin-bottom: 10px;
+        animation: fadeUp .25s ease both;
+    }
+    .q-result-card:nth-child(2) { animation-delay: .04s; }
+    .q-result-card:nth-child(3) { animation-delay: .08s; }
+    .q-result-card:nth-child(4) { animation-delay: .11s; }
+    .q-result-card:nth-child(n+5) { animation-delay: .14s; }
+
+    .q-result-hdr {
+        padding: 13px 18px;
+        display: flex; align-items: flex-start; gap: 12px;
+        border-bottom: 1px solid #F5F1EA;
+        border-left: 4px solid;
+    }
+    .q-result-hdr.correct-hdr { border-left-color: #16A34A; background: #FAFFFE; }
+    .q-result-hdr.wrong-hdr   { border-left-color: #DC2626; background: #FFFAFA; }
+
+    .q-num-lbl { font-size: .71rem; color: #A8A29E; flex-shrink: 0; padding-top: 2px; font-weight: 700; }
+    .q-q-text  { font-size: .87rem; font-weight: 600; color: #1C1917; flex: 1; line-height: 1.45; }
+
+    .result-badge {
+        flex-shrink: 0; padding: 2px 9px; border-radius: 100px;
+        font-size: .63rem; font-weight: 700; letter-spacing: .07em;
+        text-transform: uppercase; white-space: nowrap;
+    }
+    .badge-correct { background: #DCFCE7; color: #15803D; }
+    .badge-wrong   { background: #FEE2E2; color: #DC2626; }
+
+    .q-result-body { padding: 14px 18px; }
+    .answer-row { margin-bottom: 12px; }
+    .answer-row:last-child { margin-bottom: 0; }
+    .answer-label {
+        font-size: .63rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; color: #A8A29E; margin-bottom: 5px;
+    }
+    .answer-text { font-size: .85rem; color: #1C1917; line-height: 1.65; }
+
+    .explanation-box {
+        background: #FFFDF4; border: 1px solid #FDE68A;
+        border-radius: 8px; padding: 12px 14px;
+        font-size: .83rem; color: #4A4543; line-height: 1.65;
+    }
+    .expl-label {
+        font-size: .62rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; color: #B45309; margin-bottom: 5px;
+        display: flex; align-items: center; gap: 5px;
+    }
+
+    .no-details { font-size: .84rem; color: #78716C; font-style: italic; }
+
+    @media (max-width: 767.98px) {
+        .result-hero { flex-direction: column; align-items: flex-start; gap: 16px; }
+        .hero-actions { flex-direction: row; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">Results — {{ attempt.quiz_set }}</h4>
-    <div class="d-flex gap-2">
-        {% if attempt.quiz_set %}
-        <a href="{% url 'quiz_take' attempt.quiz_set.pk %}" class="btn btn-outline-primary btn-sm">Retake</a>
-        <a href="{% url 'quiz_detail' attempt.quiz_set.pk %}" class="btn btn-outline-secondary btn-sm">← Back to Quiz</a>
-        {% endif %}
-        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">All Quizzes</a>
-    </div>
-</div>
 
-<!-- Score card -->
-<div class="card mb-4">
-    <div class="card-body text-center py-4">
-        <div style="font-size:3rem;font-weight:700;letter-spacing:-.04em;color:{% if attempt.passed %}#16A34A{% else %}#DC2626{% endif %}">
-            {{ attempt.score }}/{{ attempt.total_questions }}
+<!-- Hero score card -->
+<div class="result-hero" data-score="{{ attempt.score }}/{{ attempt.total_questions }}">
+    <div class="score-ring {% if attempt.passed %}ring-pass{% else %}ring-fail{% endif %}">
+        <div class="score-fraction">{{ attempt.score }}/{{ attempt.total_questions }}</div>
+        <div class="score-label">correct</div>
+    </div>
+    <div class="hero-text">
+        <div class="hero-title">
+            {% if attempt.passed %}Well done.{% else %}Not quite there.{% endif %}
         </div>
-        <div class="text-muted mb-3">{{ attempt.score }} correct out of {{ attempt.total_questions }}</div>
-        {% if attempt.passed %}
-        <span class="badge bg-success px-3 py-2" style="font-size:.9rem;">Passed</span>
-        {% else %}
-        <span class="badge bg-danger px-3 py-2" style="font-size:.9rem;">Failed — retake required</span>
-        <p class="text-muted small mt-2 mb-0">Pass mark is {{ pass_threshold }}%.</p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Per-question breakdown -->
-{% if results %}
-<h6 class="fw-semibold mb-3">Question Breakdown</h6>
-{% for r in results %}
-<div class="card mb-3" style="border-left:4px solid {% if r.correct %}#16A34A{% else %}#DC2626{% endif %};">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start mb-1">
-            <p class="fw-semibold mb-0">{{ forloop.counter }}. {{ r.question }}</p>
-            {% if r.correct %}
-            <span class="badge bg-success ms-2 flex-shrink-0">Correct</span>
+        <div>
+            <span class="hero-verdict {% if attempt.passed %}verdict-pass{% else %}verdict-fail{% endif %}">
+                {% if attempt.passed %}Passed{% else %}Failed{% endif %}
+            </span>
+        </div>
+        <div class="hero-sub">
+            {% if attempt.passed %}
+            You met the pass mark of {{ pass_threshold }}%. Score recorded.
             {% else %}
-            <span class="badge bg-danger ms-2 flex-shrink-0">Incorrect</span>
+            Pass mark is {{ pass_threshold }}%. Review the feedback below and retake when ready.
             {% endif %}
         </div>
-        <p class="text-muted small mb-1">Your answer: {{ r.user_answer|default:"(no answer)" }}</p>
-        <p class="small mb-0">{{ r.explanation }}</p>
+    </div>
+    {% if attempt.quiz_set %}
+    <div class="hero-actions">
+        <a href="{% url 'quiz_take' attempt.quiz_set.pk %}" class="btn-amber">Retake Quiz</a>
+        <a href="{% url 'quiz_detail' attempt.quiz_set.pk %}" class="btn-ghost-white">Back to Quiz</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Breakdown -->
+{% if results %}
+<div class="breakdown-label">Question Breakdown</div>
+
+{% for r in results %}
+<div class="q-result-card">
+    <div class="q-result-hdr {% if r.correct %}correct-hdr{% else %}wrong-hdr{% endif %}">
+        <span class="q-num-lbl">{{ forloop.counter }}</span>
+        <span class="q-q-text">{{ r.question }}</span>
+        <span class="result-badge {% if r.correct %}badge-correct{% else %}badge-wrong{% endif %}">
+            {% if r.correct %}Correct{% else %}Incorrect{% endif %}
+        </span>
+    </div>
+    <div class="q-result-body">
+        <div class="answer-row">
+            <div class="answer-label">Your answer</div>
+            <div class="answer-text">{{ r.user_answer|default:"(no answer given)" }}</div>
+        </div>
+        {% if r.explanation %}
+        <div class="explanation-box">
+            <div class="expl-label"><i class="bi bi-stars"></i> AI Feedback</div>
+            {{ r.explanation }}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endfor %}
+
 {% else %}
-<p class="text-muted">Detailed breakdown not available (session expired). Your score of {{ attempt.score }}/{{ attempt.total_questions }} has been saved.</p>
+<div class="q-result-card">
+    <div style="padding:22px 18px;">
+        <p class="no-details">
+            Detailed breakdown not available (session expired). Your score of
+            {{ attempt.score }}/{{ attempt.total_questions }} has been saved.
+        </p>
+    </div>
+</div>
 {% endif %}
+
+<div class="mt-3 d-flex gap-2">
+    <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">← All Quizzes</a>
+</div>
+
 {% endblock %}

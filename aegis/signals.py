@@ -31,7 +31,16 @@ LEAD_EXTRA = lambda: [
     _perm('training', 'add_case'),
     _perm('training', 'change_case'),
     _perm('training', 'delete_case'),
+]
 
+# Quiz set and question management — admin only
+QUIZ_MANAGE = lambda: [
+    _perm('training', 'add_quizset'),
+    _perm('training', 'change_quizset'),
+    _perm('training', 'delete_quizset'),
+    _perm('training', 'add_question'),
+    _perm('training', 'change_question'),
+    _perm('training', 'delete_question'),
 ]
 
 MARKET_EXTRA = lambda: [
@@ -54,7 +63,7 @@ def assign_role_permissions(sender, instance, **kwargs):
     if role == 'admin':
         perms = (
             BASE() + LEAD_EXTRA() + MARKET_EXTRA() + LOADING_DOCK_EXTRA()
-            + [_perm('aegis', 'can_manage_users')]
+            + QUIZ_MANAGE() + [_perm('aegis', 'can_manage_users')]
         )
     elif role == 'lead':
         perms = BASE() + LEAD_EXTRA()

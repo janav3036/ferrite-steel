@@ -2,110 +2,194 @@
 {% block title %}Quizzes — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
     .quiz-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+        gap: 14px;
     }
+
     .quiz-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 22px 22px 18px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 1px 3px rgba(15,23,42,.04);
-        transition: box-shadow .15s, border-color .15s;
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 14px;
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        text-decoration: none; color: inherit;
+        transition: box-shadow .18s, border-color .18s, transform .14s;
+        animation: fadeUp .28s ease both;
     }
-    .quiz-card:hover { box-shadow: 0 4px 12px rgba(15,23,42,.08); border-color: #BFDBFE; }
-    .quiz-card.card-passed { border-left: 3px solid #16A34A; }
-    .quiz-card.card-failed { border-left: 3px solid #DC2626; }
-    .quiz-card.card-new    { border-left: 3px solid #CBD5E1; }
+    .quiz-card:nth-child(2) { animation-delay: .05s; }
+    .quiz-card:nth-child(3) { animation-delay: .09s; }
+    .quiz-card:nth-child(4) { animation-delay: .13s; }
+    .quiz-card:nth-child(n+5) { animation-delay: .15s; }
 
-    .quiz-status {
-        font-size: .69rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .08em; padding: 2px 8px; border-radius: 100px;
+    .quiz-card:hover {
+        box-shadow: 0 8px 24px rgba(28,25,23,.1);
+        border-color: #C2670B;
+        transform: translateY(-2px);
+        color: inherit; text-decoration: none;
     }
-    .status-passed { background: #DCFCE7; color: #15803D; }
-    .status-failed { background: #FEE2E2; color: #DC2626; }
-    .status-new    { background: #F1F5F9; color: #64748B; }
 
-    .quiz-count {
-        font-size: 2rem; font-weight: 700;
-        color: var(--accent); letter-spacing: -.04em; line-height: 1;
+    /* Status accent on top border */
+    .card-passed { border-top: 3px solid #16A34A; }
+    .card-failed  { border-top: 3px solid #DC2626; }
+    .card-new     { border-top: 3px solid #E8E2D8; }
+
+    .quiz-card-top {
+        padding: 20px 22px 16px;
+        flex: 1;
+        border-bottom: 1px solid #F5F1EA;
     }
-    .quiz-count-label { font-size: .72rem; color: var(--muted); margin-top: 2px; }
-
-    .quiz-title { font-size: 1rem; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
-    .quiz-desc  { font-size: .82rem; color: var(--muted); line-height: 1.5; }
-
-    .quiz-score {
-        font-size: .8rem; font-weight: 500;
-        color: var(--muted);
-        background: #F8FAFC;
-        border-radius: 6px;
-        padding: 6px 10px;
+    .quiz-status-row {
+        display: flex; align-items: center;
+        justify-content: space-between; margin-bottom: 12px;
     }
-    .quiz-score strong { color: var(--text); }
+    .quiz-status-pill {
+        font-size: .62rem; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase; padding: 2px 9px; border-radius: 100px;
+    }
+    .pill-new    { background: #F5F1EA; color: #A8A29E; }
+    .pill-passed { background: #DCFCE7; color: #15803D; }
+    .pill-failed { background: #FEE2E2; color: #DC2626; }
+
+    .quiz-edit-btn {
+        font-size: .71rem; padding: 2px 9px;
+        border: 1px solid #E8E2D8; border-radius: 6px;
+        color: #78716C; background: #FDFCFA;
+        text-decoration: none; transition: background .12s;
+        white-space: nowrap;
+    }
+    .quiz-edit-btn:hover { background: #F5F1EA; color: #1C1917; }
+
+    .quiz-title {
+        font-family: 'Syne', sans-serif;
+        font-size: .96rem; font-weight: 700;
+        color: #1C1917; margin-bottom: 6px;
+        letter-spacing: -.01em; line-height: 1.35;
+    }
+    .quiz-desc { font-size: .8rem; color: #78716C; line-height: 1.55; }
+
+    .quiz-card-bottom {
+        padding: 14px 22px;
+        display: flex; align-items: center;
+        justify-content: space-between;
+        background: #FDFCFA;
+    }
+    .quiz-q-count {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.85rem; font-weight: 800;
+        color: #C2670B; letter-spacing: -.04em; line-height: 1;
+    }
+    .card-passed .quiz-q-count { color: #16A34A; }
+    .quiz-q-label { font-size: .7rem; color: #A8A29E; margin-top: 2px; }
+
+    .quiz-score-chip {
+        background: #F5F1EA; border-radius: 8px;
+        padding: 5px 11px; font-size: .77rem; color: #78716C;
+    }
+    .quiz-score-chip strong { color: #1C1917; font-weight: 700; }
+
+    .quiz-cta {
+        font-size: .79rem; font-weight: 600; color: #C2670B;
+        white-space: nowrap;
+    }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 7px 16px; border-radius: 8px; font-size: .82rem;
+        font-weight: 600; text-decoration: none; transition: background .15s;
+        display: inline-block;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+
+    .empty-state {
+        background: #FFFFFF; border: 1.5px dashed #E8E2D8;
+        border-radius: 16px; padding: 60px 40px; text-align: center;
+    }
+    .empty-icon {
+        width: 60px; height: 60px; border-radius: 50%;
+        background: #F5F1EA;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: #D6D3CE; margin-bottom: 18px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0">Quizzes</h4>
-        <small class="text-muted">Test your knowledge — the AI evaluates your answers</small>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Quizzes</h4>
+        <small class="text-muted">Test your knowledge — AI evaluates your answers</small>
     </div>
-    <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
+    <div class="d-flex gap-2">
+        {% if perms.training.add_quizset %}
+        <a href="{% url 'quiz_set_create' %}" class="btn-amber">+ New Quiz Set</a>
+        {% endif %}
+        <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
+    </div>
 </div>
 
 {% if quiz_set_data %}
 <div class="quiz-grid">
     {% for item in quiz_set_data %}
     {% with qs=item.quiz_set %}
-    <div class="quiz-card {% if item.best_attempt %}{% if item.passed %}card-passed{% else %}card-failed{% endif %}{% else %}card-new{% endif %}">
+    {# Outer is a div — nested <a> inside <a> is invalid HTML and breaks the card layout #}
+    <div class="quiz-card {% if item.best_attempt %}{% if item.passed %}card-passed{% else %}card-failed{% endif %}{% else %}card-new{% endif %}"
+         onclick="window.location='{% url 'quiz_detail' qs.pk %}'"
+         role="link" tabindex="0"
+         onkeydown="if(event.key==='Enter')window.location='{% url 'quiz_detail' qs.pk %}'">
 
-        <!-- Header: title + status -->
-        <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="quiz-card-top">
+            <div class="quiz-status-row">
+                <span class="quiz-status-pill {% if item.best_attempt %}{% if item.passed %}pill-passed{% else %}pill-failed{% endif %}{% else %}pill-new{% endif %}">
+                    {% if item.best_attempt %}{% if item.passed %}Passed{% else %}Needs Retake{% endif %}{% else %}Not Started{% endif %}
+                </span>
+                {% if perms.training.change_quizset %}
+                <a class="quiz-edit-btn" href="{% url 'quiz_set_edit' qs.pk %}"
+                   onclick="event.stopPropagation()">Edit</a>
+                {% endif %}
+            </div>
             <div class="quiz-title">{{ qs.title }}</div>
-            <span class="quiz-status ms-2 flex-shrink-0
-                {% if item.best_attempt %}{% if item.passed %}status-passed{% else %}status-failed{% endif %}{% else %}status-new{% endif %}">
-                {% if item.best_attempt %}{% if item.passed %}Passed{% else %}Retake{% endif %}{% else %}New{% endif %}
-            </span>
-        </div>
-
-        {% if qs.description %}
-        <p class="quiz-desc mb-3">{{ qs.description }}</p>
-        {% endif %}
-
-        <!-- Stats row -->
-        <div class="d-flex gap-3 align-items-end mb-3 mt-auto">
-            <div>
-                <div class="quiz-count">{{ qs.question_count }}</div>
-                <div class="quiz-count-label">question{{ qs.question_count|pluralize }}</div>
-            </div>
-            {% if item.best_attempt %}
-            <div class="quiz-score">
-                Best: <strong>{{ item.best_attempt.score }}/{{ item.best_attempt.total_questions }}</strong>
-            </div>
+            {% if qs.description %}
+            <div class="quiz-desc">{{ qs.description|truncatechars:100 }}</div>
             {% endif %}
         </div>
 
-        <!-- Action -->
-        <a href="{% url 'quiz_detail' qs.pk %}" class="btn btn-outline-primary btn-sm align-self-start">
-            {% if item.best_attempt %}View / Retake{% else %}Start Quiz →{% endif %}
-        </a>
+        <div class="quiz-card-bottom">
+            <div>
+                <div class="quiz-q-count">{{ qs.question_count }}</div>
+                <div class="quiz-q-label">question{{ qs.question_count|pluralize }}</div>
+            </div>
+            {% if item.best_attempt %}
+            <div class="quiz-score-chip">
+                Best: <strong>{{ item.best_attempt.score }}/{{ item.best_attempt.total_questions }}</strong>
+            </div>
+            {% endif %}
+            <span class="quiz-cta">
+                {% if item.best_attempt %}Retake →{% else %}Start →{% endif %}
+            </span>
+        </div>
+
     </div>
     {% endwith %}
     {% endfor %}
 </div>
+
 {% else %}
-<div class="card">
-    <div class="card-body py-5 text-center">
-        <i class="bi bi-patch-question" style="font-size:2rem;color:#CBD5E1;"></i>
-        <p class="text-muted mt-3 mb-0">No quizzes are available for your team yet.</p>
-    </div>
+<div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-patch-question"></i></div>
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:#1C1917;margin-bottom:6px;">No quizzes available</div>
+    <p class="text-muted mb-4" style="font-size:.84rem;">No quiz sets have been created for your team yet.</p>
+    {% if perms.training.add_quizset %}
+    <a href="{% url 'quiz_set_create' %}" class="btn-amber">Create the first quiz set</a>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}

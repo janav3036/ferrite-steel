@@ -120,8 +120,8 @@
     <div class="col-lg-7">
 
         {% if request.user.team == 'market' or request.user.role == 'admin' %}
-        <div class="card mb-4" style="border-top:3px solid #0F172A;">
-            <div class="card-header fw-semibold" style="background:#0F172A;color:white;font-size:.84rem;">Market Orders</div>
+        <div class="card mb-4" style="border-top:3px solid #1A0F06;">
+            <div class="card-header fw-semibold" style="background:#1A0F06;color:rgba(255,232,200,.9);font-size:.84rem;">Market Orders</div>
             <div class="card-body d-flex gap-2 flex-wrap">
                 <a href="{% url 'market_order_list' %}" class="btn btn-outline-dark btn-sm">View Orders</a>
                 <a href="{% url 'market_order_create' %}" class="btn btn-dark btn-sm">+ New Order</a>

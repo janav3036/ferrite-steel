@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Delete Case — Ferrite Steel{% endblock %}
+{% block title %}Delete Document — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
 {% include "training/_sb_amber.html" %}
@@ -62,22 +62,22 @@
 <div class="del-wrap">
     <div class="del-card">
         <div class="del-icon"><i class="bi bi-trash3-fill"></i></div>
-        <div class="del-title">Delete Case</div>
+        <div class="del-title">Delete Document</div>
         <div class="del-sub">This action is permanent and cannot be undone.</div>
         <div class="del-target">
-            <div class="del-target-label">Case to delete</div>
-            <div class="del-target-name">{{ case.title }}</div>
+            <div class="del-target-label">Document to delete</div>
+            <div class="del-target-name">{{ doc.title }}</div>
         </div>
         <p class="del-note">
-            All content associated with this case — problem, context, and resolution —
-            will be permanently removed from the knowledge base.
+            All text chunks and embeddings will be permanently removed from the knowledge base.
+            The file on OneDrive (if any) will not be affected.
         </p>
         <div class="del-footer">
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn-del">Delete permanently</button>
             </form>
-            <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Keep case</a>
+            <a href="{% url 'document_detail' doc.pk %}" class="btn btn-outline-secondary">Keep document</a>
         </div>
     </div>
 </div>

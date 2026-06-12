@@ -2,79 +2,172 @@
 {% block title %}Cases — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
-    .case-table { font-size: .9rem; }
-    .case-table td, .case-table th { padding: 12px 16px; }
-    .case-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
-    .case-table tbody tr { cursor: pointer; }
-    .dept-tag {
-        display: inline-block; font-size: .69rem; font-weight: 600;
-        padding: 2px 8px; border-radius: 100px;
-        background: #F1F5F9; color: #475569;
-        margin-right: 3px; margin-bottom: 2px;
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    .dept-team_9   { background: #EFF6FF; color: #1D4ED8; }
-    .dept-cs       { background: #F0FDF4; color: #15803D; }
-    .dept-market   { background: #FFF7ED; color: #C2410C; }
-    .dept-corporate{ background: #FAF5FF; color: #7C3AED; }
+
+    .case-grid { display: flex; flex-direction: column; gap: 8px; }
+
+    .case-row {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 12px;
+        padding: 16px 20px 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        transition: border-color .15s, box-shadow .15s;
+        position: relative;
+        overflow: hidden;
+        animation: fadeUp .25s ease both;
+    }
+    .case-row:nth-child(2) { animation-delay: .04s; }
+    .case-row:nth-child(3) { animation-delay: .08s; }
+    .case-row:nth-child(4) { animation-delay: .12s; }
+    .case-row:nth-child(n+5) { animation-delay: .14s; }
+
+    .case-row:hover {
+        border-color: #C2670B;
+        box-shadow: 0 3px 14px rgba(194,103,11,.09);
+        color: inherit;
+        text-decoration: none;
+    }
+    /* Amber accent bar on left */
+    .case-accent {
+        width: 3px;
+        align-self: stretch;
+        flex-shrink: 0;
+        background: #E8E2D8;
+        margin-right: 18px;
+        border-radius: 0 2px 2px 0;
+        transition: background .15s;
+    }
+    .case-row:hover .case-accent { background: #C2670B; }
+
+    .case-num {
+        font-family: 'Syne', sans-serif;
+        font-size: .62rem; font-weight: 700;
+        letter-spacing: .1em; text-transform: uppercase;
+        color: #A8A29E; flex-shrink: 0; width: 36px;
+    }
+    .case-title-wrap { flex: 1; min-width: 0; }
+    .case-title {
+        font-family: 'Syne', sans-serif;
+        font-size: .9rem; font-weight: 700;
+        color: #1C1917;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        transition: color .15s;
+    }
+    .case-row:hover .case-title { color: #C2670B; }
+    .case-snippet {
+        font-size: .77rem; color: #78716C;
+        margin-top: 2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .case-meta {
+        display: flex; align-items: center;
+        gap: 10px; flex-shrink: 0; margin-left: 16px;
+    }
+    .dept-tag {
+        display: inline-block;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .06em; text-transform: uppercase;
+        padding: 2px 8px; border-radius: 100px;
+        margin-right: 2px; white-space: nowrap;
+    }
+    .dept-team_9    { background: #EFF6FF; color: #1D4ED8; }
+    .dept-cs        { background: #F0FDF4; color: #15803D; }
+    .dept-market    { background: #FFF7ED; color: #C2410C; }
+    .dept-corporate { background: #FAF5FF; color: #7C3AED; }
+    .dept-default   { background: #F5F1EA; color: #78716C; }
+
+    .case-by   { font-size: .75rem; color: #A8A29E; white-space: nowrap; }
+    .case-date { font-size: .75rem; color: #A8A29E; white-space: nowrap; }
+    .case-chevron { color: #D6D3CE; font-size: .78rem; flex-shrink: 0; margin-left: 8px; }
+
+    .empty-state {
+        background: #FFFFFF;
+        border: 1.5px dashed #E8E2D8;
+        border-radius: 16px;
+        padding: 60px 40px;
+        text-align: center;
+    }
+    .empty-icon {
+        width: 60px; height: 60px; border-radius: 50%;
+        background: #F5F1EA;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; color: #D6D3CE; margin-bottom: 18px;
+    }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 7px 16px; border-radius: 8px; font-size: .82rem;
+        font-weight: 600; text-decoration: none; transition: background .15s;
+        display: inline-block;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+
+    @media (max-width: 767.98px) {
+        .case-meta { display: none; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0">Case Library</h4>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Case Library</h4>
         <small class="text-muted">Resolved situations your team can learn from</small>
     </div>
-    {% if perms.training.add_case %}
-    <a href="{% url 'case_create' %}" class="btn btn-primary btn-sm">+ New Case</a>
-    {% endif %}
+    <div class="d-flex gap-2">
+        {% if perms.training.add_case %}
+        <a href="{% url 'case_create' %}" class="btn-amber">+ New Case</a>
+        {% endif %}
+        <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
+    </div>
 </div>
 
 {% if cases %}
-<div class="card">
-    <div class="table-responsive">
-        <table class="table table-hover case-table mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>Title</th>
-                    <th class="hide-xs">Customer</th>
-                    <th>Departments</th>
-                    <th class="hide-xs">Added by</th>
-                    <th class="hide-xs">Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for case in cases %}
-                <tr onclick="location.href='{% url 'case_detail' case.pk %}'">
-                    <td>
-                        <span class="fw-semibold">{{ case.title }}</span>
-                    </td>
-                    <td class="text-muted hide-xs">{{ case.customer.name|default:"—" }}</td>
-                    <td>
-                        {% for dept in case.departments %}
-                        <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
-                        {% empty %}
-                        <span class="text-muted">—</span>
-                        {% endfor %}
-                    </td>
-                    <td class="text-muted hide-xs">{{ case.created_by.get_full_name|default:case.created_by.username }}</td>
-                    <td class="text-muted hide-xs">{{ case.created_at|date:'d M Y' }}</td>
-                </tr>
+<div class="case-grid">
+    {% for case in cases %}
+    <a class="case-row" href="{% url 'case_detail' case.pk %}">
+        <div class="case-accent"></div>
+        <div class="case-num">#{{ case.pk }}</div>
+        <div class="case-title-wrap">
+            <div class="case-title">{{ case.title }}</div>
+            <div class="case-snippet">{{ case.problem_description|truncatechars:90 }}</div>
+        </div>
+        <div class="case-meta">
+            <div>
+                {% for dept in case.departments %}
+                <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
+                {% empty %}
+                <span class="dept-tag dept-default">—</span>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
+            </div>
+            <div class="case-by">{{ case.created_by.get_full_name|default:case.created_by.username }}</div>
+            <div class="case-date">{{ case.created_at|date:'d M Y' }}</div>
+        </div>
+        <i class="bi bi-chevron-right case-chevron"></i>
+    </a>
+    {% endfor %}
 </div>
+
 {% else %}
-<div class="card">
-    <div class="card-body py-5 text-center">
-        <i class="bi bi-journal-text" style="font-size:2rem;color:#CBD5E1;"></i>
-        <p class="text-muted mt-3 mb-0">No cases found for your team.</p>
-        {% if perms.training.add_case %}
-        <a href="{% url 'case_create' %}" class="btn btn-outline-primary btn-sm mt-3">Create the first case</a>
-        {% endif %}
-    </div>
+<div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-journal-text"></i></div>
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:#1C1917;margin-bottom:6px;">No cases yet</div>
+    <p class="text-muted mb-4" style="font-size:.84rem;">When your team resolves a difficult situation, log it here so others can learn.</p>
+    {% if perms.training.add_case %}
+    <a href="{% url 'case_create' %}" class="btn-amber">Create the first case</a>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}

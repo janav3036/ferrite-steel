@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Delete Case — Ferrite Steel{% endblock %}
+{% block title %}Delete Quiz Set — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
 {% include "training/_sb_amber.html" %}
@@ -62,22 +62,22 @@
 <div class="del-wrap">
     <div class="del-card">
         <div class="del-icon"><i class="bi bi-trash3-fill"></i></div>
-        <div class="del-title">Delete Case</div>
+        <div class="del-title">Delete Quiz Set</div>
         <div class="del-sub">This action is permanent and cannot be undone.</div>
         <div class="del-target">
-            <div class="del-target-label">Case to delete</div>
-            <div class="del-target-name">{{ case.title }}</div>
+            <div class="del-target-label">Quiz set to delete</div>
+            <div class="del-target-name">{{ quiz_set.title }}</div>
         </div>
         <p class="del-note">
-            All content associated with this case — problem, context, and resolution —
-            will be permanently removed from the knowledge base.
+            The quiz set will be removed. Its questions will <strong>not</strong> be deleted —
+            they will become standalone questions in the question pool and can be reassigned later.
         </p>
         <div class="del-footer">
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn-del">Delete permanently</button>
             </form>
-            <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Keep case</a>
+            <a href="{% url 'quiz_detail' quiz_set.pk %}" class="btn btn-outline-secondary">Keep set</a>
         </div>
     </div>
 </div>

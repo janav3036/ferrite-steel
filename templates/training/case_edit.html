@@ -2,46 +2,107 @@
 {% block title %}Edit Case — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
-    .form-wrap { max-width: 760px; }
-    .section-divider { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
-    .section-label {
-        font-size: .69rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .09em; color: var(--muted); margin-bottom: 14px;
+    .form-wrap { max-width: 780px; }
+
+    .form-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 12px;
     }
-    .dept-group { display: flex; flex-wrap: wrap; gap: 10px; }
-    .dept-check { display: flex; align-items: center; gap: 7px; font-size: .84rem; cursor: pointer; }
-    .dept-check input { width: 15px; height: 15px; cursor: pointer; }
+    .form-card-hdr {
+        padding: 12px 22px;
+        background: #F5F1EA;
+        border-bottom: 1px solid #E8E2D8;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .form-card-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-problem    { background: #DC2626; }
+    .dot-resolution { background: #16A34A; }
+    .dot-meta       { background: #7C3AED; }
+    .form-card-label {
+        font-family: 'Syne', sans-serif;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase; color: #78716C;
+    }
+    .form-card-body { padding: 20px 22px 18px; }
+
+    .form-label {
+        display: block; font-size: .83rem; font-weight: 600;
+        color: #1C1917; margin-bottom: 6px;
+    }
+    .form-label small { font-weight: 400; color: #A8A29E; }
+
+    .form-control, .form-select {
+        display: block; width: 100%; box-sizing: border-box;
+        border: 1px solid #E8E2D8; border-radius: 8px;
+        font-size: .875rem; padding: 9px 12px;
+        background: #FDFCFA; color: #1C1917;
+        line-height: 1.55;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #C2670B;
+        box-shadow: 0 0 0 3px rgba(194,103,11,.1);
+        outline: none; background: #FFFFFF;
+    }
+    .form-control.is-invalid { border-color: #DC2626; }
+    .invalid-feedback { font-size: .78rem; color: #DC2626; margin-top: 4px; display: block; }
+
+    .dept-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .dept-check {
+        display: flex; align-items: center; gap: 7px;
+        font-size: .83rem; cursor: pointer;
+        background: #F5F1EA; border: 1px solid #E8E2D8;
+        border-radius: 8px; padding: 6px 12px;
+        transition: border-color .15s, background .15s;
+        user-select: none;
+    }
+    .dept-check:has(input:checked) { background: #FEF0D3; border-color: #C2670B; color: #92400E; }
+    .dept-check input { width: 14px; height: 14px; cursor: pointer; accent-color: #C2670B; }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 8px 22px; border-radius: 8px; font-size: .84rem;
+        font-weight: 600; cursor: pointer;
+        transition: background .15s, box-shadow .15s;
+    }
+    .btn-amber:hover { background: #A3520A; box-shadow: 0 2px 8px rgba(194,103,11,.2); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0">Edit Case</h4>
-        <small class="text-muted">Case #{{ case.pk }} · {{ case.title }}</small>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Edit Case</h4>
+        <small class="text-muted">Case #{{ case.pk }} &middot; {{ case.title|truncatechars:50 }}</small>
     </div>
     <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
 </div>
 
 <div class="form-wrap">
-    <div class="card">
-        <div class="card-body" style="padding:24px;">
-            <form method="post">
-                {% csrf_token %}
+    <form method="post">
+        {% csrf_token %}
 
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Title</label>
-                    <input type="text" name="title"
-                           class="form-control {% if form.title.errors %}is-invalid{% endif %}"
-                           value="{{ form.title.value|default:'' }}" required>
-                    {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-                </div>
+        <div class="form-card">
+            <div class="form-card-body">
+                <label class="form-label">Case Title</label>
+                <input type="text" name="title"
+                       class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                       value="{{ form.title.value|default:'' }}" required>
+                {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
 
-                <div class="section-divider">
-                    <div class="section-label">Situation</div>
-                </div>
-
+        <div class="form-card">
+            <div class="form-card-hdr">
+                <div class="form-card-dot dot-problem"></div>
+                <span class="form-card-label">Problem &amp; Context</span>
+            </div>
+            <div class="form-card-body">
                 <div class="mb-3">
                     <label class="form-label">Problem Description</label>
                     <textarea name="problem_description" rows="4"
@@ -49,46 +110,50 @@
                               required>{{ form.problem_description.value|default:'' }}</textarea>
                     {% for e in form.problem_description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                 </div>
-
-                <div class="mb-4">
-                    <label class="form-label">Context <small class="text-muted fw-normal">(customer, product, trigger)</small></label>
+                <div>
+                    <label class="form-label">Context <small>(customer, product, trigger)</small></label>
                     <textarea name="context" rows="3"
                               class="form-control {% if form.context.errors %}is-invalid{% endif %}"
                               required>{{ form.context.value|default:'' }}</textarea>
                     {% for e in form.context.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                 </div>
+            </div>
+        </div>
 
-                <div class="section-divider">
-                    <div class="section-label">Resolution</div>
-                </div>
+        <div class="form-card">
+            <div class="form-card-hdr">
+                <div class="form-card-dot dot-resolution"></div>
+                <span class="form-card-label">Resolution</span>
+            </div>
+            <div class="form-card-body">
+                <label class="form-label">How was it resolved?</label>
+                <textarea name="resolution" rows="4"
+                          class="form-control {% if form.resolution.errors %}is-invalid{% endif %}"
+                          required>{{ form.resolution.value|default:'' }}</textarea>
+                {% for e in form.resolution.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+        </div>
 
-                <div class="mb-4">
-                    <label class="form-label">How was it resolved?</label>
-                    <textarea name="resolution" rows="4"
-                              class="form-control {% if form.resolution.errors %}is-invalid{% endif %}"
-                              required>{{ form.resolution.value|default:'' }}</textarea>
-                    {% for e in form.resolution.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-                </div>
-
-                <div class="section-divider">
-                    <div class="section-label">Classification</div>
-                </div>
-
-                <div class="row g-3 mb-4">
+        <div class="form-card">
+            <div class="form-card-hdr">
+                <div class="form-card-dot dot-meta"></div>
+                <span class="form-card-label">Classification</span>
+            </div>
+            <div class="form-card-body">
+                <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Departments</label>
                         <div class="dept-group">
                             {% for checkbox in form.departments %}
                             <label class="dept-check">
-                                {{ checkbox.tag }}
-                                <span>{{ checkbox.choice_label }}</span>
+                                {{ checkbox.tag }}<span>{{ checkbox.choice_label }}</span>
                             </label>
                             {% endfor %}
                         </div>
-                        {% for e in form.departments.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                        {% for e in form.departments.errors %}<div class="text-danger small mt-2">{{ e }}</div>{% endfor %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Customer <small class="text-muted fw-normal">(optional)</small></label>
+                        <label class="form-label">Customer <small>(optional)</small></label>
                         <select name="customer" class="form-select {% if form.customer.errors %}is-invalid{% endif %}">
                             <option value="">— No customer —</option>
                             {% for pk, name in form.fields.customer.choices %}
@@ -100,13 +165,17 @@
                         {% for e in form.customer.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
                     </div>
                 </div>
-
-                <div class="pt-3 border-top d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Cancel</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <button type="submit" class="btn-amber">Save Changes</button>
+            <a href="{% url 'case_detail' case.pk %}" class="btn btn-outline-secondary">Cancel</a>
+            {% if perms.training.delete_case %}
+            <a href="{% url 'case_delete' case.pk %}" class="btn btn-outline-danger btn-sm ms-auto" style="align-self:center;">Delete case</a>
+            {% endif %}
+        </div>
+
+    </form>
 </div>
 {% endblock %}

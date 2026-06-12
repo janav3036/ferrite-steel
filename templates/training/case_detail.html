@@ -2,44 +2,124 @@
 {% block title %}{{ case.title }} — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include "training/_sb_amber.html" %}
 <style>
-    .case-section {
-        border-left: 3px solid var(--border);
-        padding-left: 14px;
-        margin-bottom: 20px;
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
-    .case-section-label {
-        font-size: .69rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .09em; color: var(--muted); margin-bottom: 8px;
-    }
-    .case-section-body {
-        font-size: .9rem; line-height: 1.7;
-        white-space: pre-wrap; color: var(--text);
-    }
-    .case-section.section-resolution { border-color: #16A34A; }
-    .case-section.section-resolution .case-section-label { color: #16A34A; }
 
-    .meta-label { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
-    .meta-value { font-size: .875rem; color: var(--text); margin-bottom: 16px; }
+    .case-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+
+    /* Sidebar */
+    .sidebar-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        animation: fadeUp .25s ease both;
+    }
+    .sidebar-hdr {
+        padding: 11px 16px;
+        background: #F5F1EA;
+        border-bottom: 1px solid #E8E2D8;
+        font-family: 'Syne', sans-serif;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase; color: #78716C;
+    }
+    .sidebar-body { padding: 16px; }
+
+    .meta-row { margin-bottom: 14px; }
+    .meta-row:last-child { margin-bottom: 0; }
+    .meta-label {
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .09em; text-transform: uppercase;
+        color: #A8A29E; margin-bottom: 3px;
+    }
+    .meta-val { font-size: .84rem; color: #1C1917; line-height: 1.5; }
 
     .dept-tag {
-        display: inline-block; font-size: .69rem; font-weight: 600;
+        display: inline-block;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .06em; text-transform: uppercase;
         padding: 2px 8px; border-radius: 100px;
-        background: #F1F5F9; color: #475569;
-        margin-right: 3px; margin-bottom: 2px;
+        margin-right: 3px; margin-bottom: 3px;
     }
-    .dept-team_9   { background: #EFF6FF; color: #1D4ED8; }
-    .dept-cs       { background: #F0FDF4; color: #15803D; }
-    .dept-market   { background: #FFF7ED; color: #C2410C; }
-    .dept-corporate{ background: #FAF5FF; color: #7C3AED; }
+    .dept-team_9    { background: #EFF6FF; color: #1D4ED8; }
+    .dept-cs        { background: #F0FDF4; color: #15803D; }
+    .dept-market    { background: #FFF7ED; color: #C2410C; }
+    .dept-corporate { background: #FAF5FF; color: #7C3AED; }
+    .dept-default   { background: #F5F1EA; color: #78716C; }
+
+    /* Section cards */
+    .section-card {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 12px;
+        overflow: hidden;
+        animation: fadeUp .25s ease both;
+    }
+    .section-card.card-d1 { animation-delay: .05s; }
+    .section-card.card-d2 { animation-delay: .1s; }
+    .section-card.card-d3 { animation-delay: .15s; }
+
+    .section-hdr {
+        padding: 12px 20px;
+        display: flex; align-items: center; gap: 9px;
+        border-bottom: 1px solid;
+    }
+    .section-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%; flex-shrink: 0;
+    }
+    .section-label {
+        font-family: 'Syne', sans-serif;
+        font-size: .63rem; font-weight: 700;
+        letter-spacing: .12em; text-transform: uppercase;
+    }
+    .section-body {
+        padding: 20px;
+        font-size: .88rem; line-height: 1.8;
+        color: #1C1917; white-space: pre-wrap;
+    }
+
+    /* Color coding */
+    .section-problem .section-dot   { background: #DC2626; }
+    .section-problem .section-hdr   { background: #FFF8F8; border-color: #FECACA; }
+    .section-problem .section-label { color: #DC2626; }
+
+    .section-context .section-dot   { background: #D97706; }
+    .section-context .section-hdr   { background: #FFFDF0; border-color: #FDE68A; }
+    .section-context .section-label { color: #B45309; }
+
+    .section-resolution .section-dot   { background: #16A34A; }
+    .section-resolution .section-hdr   { background: #F5FFF8; border-color: #BBF7D0; }
+    .section-resolution .section-label { color: #15803D; }
+
+    .case-main { display: flex; flex-direction: column; gap: 10px; }
+
+    .case-id-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: #F5F1EA; border: 1px solid #E8E2D8; border-radius: 100px;
+        padding: 3px 11px;
+        font-family: 'Syne', sans-serif; font-size: .7rem; font-weight: 700;
+        color: #78716C; letter-spacing: .04em;
+    }
+
+    @media (max-width: 767.98px) {
+        .case-layout { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-1">{{ case.title }}</h4>
-        <small class="text-muted">Case #{{ case.pk }} · {{ case.created_at|date:'d M Y' }}</small>
+        <h4 class="mb-1" style="font-family:'Syne',sans-serif;font-weight:700;">{{ case.title }}</h4>
+        <span class="case-id-badge">
+            <i class="bi bi-journal-text"></i> Case #{{ case.pk }} &middot; {{ case.created_at|date:'d M Y' }}
+        </span>
     </div>
     <div class="d-flex gap-2">
         {% if perms.training.change_case %}
@@ -52,58 +132,63 @@
     </div>
 </div>
 
-<div class="row g-4">
+<div class="case-layout">
 
-    <!-- Left: metadata -->
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-header fw-semibold" style="font-size:.84rem;">Details</div>
-            <div class="card-body">
-
-                <div class="meta-label">Customer</div>
-                <div class="meta-value">{{ case.customer.name|default:"—" }}</div>
-
-                <div class="meta-label">Departments</div>
-                <div class="meta-value">
-                    {% for dept in case.departments %}
-                    <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
-                    {% empty %}
-                    <span class="text-muted">—</span>
-                    {% endfor %}
+    <div>
+        <div class="sidebar-card">
+            <div class="sidebar-hdr">Details</div>
+            <div class="sidebar-body">
+                <div class="meta-row">
+                    <div class="meta-label">Customer</div>
+                    <div class="meta-val">{{ case.customer.name|default:"—" }}</div>
                 </div>
-
-                <div class="meta-label">Added by</div>
-                <div class="meta-value">{{ case.created_by.get_full_name|default:case.created_by.username }}</div>
-
-                <div class="meta-label">Date</div>
-                <div class="meta-value mb-0">{{ case.created_at|date:'d M Y, H:i' }}</div>
-
+                <div class="meta-row">
+                    <div class="meta-label">Departments</div>
+                    <div class="meta-val">
+                        {% for dept in case.departments %}
+                        <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
+                        {% empty %}<span style="font-size:.82rem;color:#A8A29E;">—</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">Logged by</div>
+                    <div class="meta-val">{{ case.created_by.get_full_name|default:case.created_by.username }}</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">Date</div>
+                    <div class="meta-val">{{ case.created_at|date:'d M Y, H:i' }}</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Right: content -->
-    <div class="col-md-9">
-        <div class="card">
-            <div class="card-body" style="padding: 24px 28px;">
+    <div class="case-main">
 
-                <div class="case-section">
-                    <div class="case-section-label">Problem</div>
-                    <div class="case-section-body">{{ case.problem_description }}</div>
-                </div>
-
-                <div class="case-section">
-                    <div class="case-section-label">Context</div>
-                    <div class="case-section-body">{{ case.context }}</div>
-                </div>
-
-                <div class="case-section section-resolution mb-0">
-                    <div class="case-section-label">Resolution</div>
-                    <div class="case-section-body">{{ case.resolution }}</div>
-                </div>
-
+        <div class="section-card section-problem card-d1">
+            <div class="section-hdr">
+                <div class="section-dot"></div>
+                <span class="section-label">Problem</span>
             </div>
+            <div class="section-body">{{ case.problem_description }}</div>
         </div>
+
+        <div class="section-card section-context card-d2">
+            <div class="section-hdr">
+                <div class="section-dot"></div>
+                <span class="section-label">Context</span>
+            </div>
+            <div class="section-body">{{ case.context }}</div>
+        </div>
+
+        <div class="section-card section-resolution card-d3">
+            <div class="section-hdr">
+                <div class="section-dot"></div>
+                <span class="section-label">Resolution</span>
+            </div>
+            <div class="section-body">{{ case.resolution }}</div>
+        </div>
+
     </div>
 
 </div>

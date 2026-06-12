@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Knowledge Base — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .doc-grid { display: flex; flex-direction: column; gap: 8px; }
+
+    .doc-row {
+        background: #FFFFFF;
+        border: 1px solid #E8E2D8;
+        border-radius: 12px;
+        padding: 14px 18px 14px 0;
+        display: flex; align-items: center; gap: 0;
+        cursor: pointer; text-decoration: none; color: inherit;
+        transition: border-color .15s, box-shadow .15s;
+        position: relative; overflow: hidden;
+        animation: fadeUp .25s ease both;
+    }
+    .doc-row:nth-child(2) { animation-delay: .04s; }
+    .doc-row:nth-child(3) { animation-delay: .08s; }
+    .doc-row:nth-child(4) { animation-delay: .12s; }
+    .doc-row:nth-child(n+5) { animation-delay: .14s; }
+
+    .doc-row:hover {
+        border-color: #C2670B;
+        box-shadow: 0 3px 14px rgba(194,103,11,.09);
+        color: inherit; text-decoration: none;
+    }
+    .doc-accent {
+        width: 3px; align-self: stretch; flex-shrink: 0;
+        background: #E8E2D8; margin-right: 14px;
+        border-radius: 0 2px 2px 0;
+        transition: background .15s;
+    }
+    .doc-row:hover .doc-accent { background: #C2670B; }
+
+    .doc-icon {
+        width: 36px; height: 36px; border-radius: 9px;
+        background: #F5F1EA; display: flex; align-items: center; justify-content: center;
+        font-size: .95rem; flex-shrink: 0; margin-right: 14px;
+        transition: background .15s;
+    }
+    .doc-row:hover .doc-icon { background: #FEF0D3; }
+    .doc-icon.type-file { color: #C2670B; }
+    .doc-icon.type-text { color: #78716C; }
+
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-title {
+        font-family: 'Syne', sans-serif; font-size: .88rem; font-weight: 700;
+        color: #1C1917; transition: color .15s;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .doc-row:hover .doc-title { color: #C2670B; }
+    .doc-desc  {
+        font-size: .77rem; color: #78716C; margin-top: 2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+        display: flex; align-items: center; gap: 10px;
+        flex-shrink: 0; margin-left: 14px;
+    }
+
+    .dept-tag {
+        display: inline-block; font-size: .62rem; font-weight: 700;
+        letter-spacing: .06em; text-transform: uppercase;
+        padding: 2px 8px; border-radius: 100px; margin-right: 2px;
+    }
+    .dept-team_9    { background: #EFF6FF; color: #1D4ED8; }
+    .dept-cs        { background: #F0FDF4; color: #15803D; }
+    .dept-market    { background: #FFF7ED; color: #C2410C; }
+    .dept-corporate { background: #FAF5FF; color: #7C3AED; }
+    .dept-default   { background: #F5F1EA; color: #78716C; }
+
+    .status-dot {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: .71rem; font-weight: 600; padding: 2px 9px; border-radius: 100px;
+        white-space: nowrap;
+    }
+    .dot-ok { background: #DCFCE7; color: #15803D; }
+    .dot-no { background: #FEF9C3; color: #A16207; }
+    .status-dot::before {
+        content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+    }
+    .dot-ok::before { background: #16A34A; }
+    .dot-no::before { background: #D97706; }
+
+    .doc-date { font-size: .74rem; color: #A8A29E; white-space: nowrap; }
+    .doc-chevron { color: #D6D3CE; font-size: .78rem; flex-shrink: 0; margin-left: 8px; }
+
+    .empty-state {
+        background: #FFFFFF; border: 1.5px dashed #E8E2D8;
+        border-radius: 16px; padding: 60px 40px; text-align: center;
+    }
+    .empty-icon {
+        width: 60px; height: 60px; border-radius: 50%;
+        background: #F5F1EA; display: inline-flex;
+        align-items: center; justify-content: center;
+        font-size: 1.5rem; color: #D6D3CE; margin-bottom: 18px;
+    }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 7px 16px; border-radius: 8px; font-size: .82rem;
+        font-weight: 600; text-decoration: none; transition: background .15s;
+        display: inline-block;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+    .btn-outline-amber {
+        background: transparent; color: #C2670B; border: 1px solid #C2670B;
+        padding: 6px 14px; border-radius: 8px; font-size: .81rem;
+        font-weight: 600; text-decoration: none;
+        transition: background .15s, color .15s;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-outline-amber:hover { background: #C2670B; color: #fff; }
+
+    @media (max-width: 767.98px) { .doc-meta { display: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+    <div>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Knowledge Base</h4>
+        <small class="text-muted">Documents and text available for Q&amp;A</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'document_ask' %}" class="btn-outline-amber">
+            <i class="bi bi-stars me-1"></i>Ask a question
+        </a>
+        {% if perms.training.add_case %}
+        <a href="{% url 'document_create' %}" class="btn-amber">+ Add Document</a>
+        {% endif %}
+        <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
+    </div>
+</div>
+
+{% if docs %}
+<div class="doc-grid">
+    {% for doc in docs %}
+    <a class="doc-row" href="{% url 'document_detail' doc.pk %}">
+        <div class="doc-accent"></div>
+        <div class="doc-icon {% if doc.source_type == 'file' %}type-file{% else %}type-text{% endif %}">
+            {% if doc.source_type == 'file' %}
+            <i class="bi bi-file-earmark-text"></i>
+            {% else %}
+            <i class="bi bi-pencil-square"></i>
+            {% endif %}
+        </div>
+        <div class="doc-info">
+            <div class="doc-title">{{ doc.title }}</div>
+            <div class="doc-desc">{{ doc.description|default:doc.get_source_type_display }}</div>
+        </div>
+        <div class="doc-meta">
+            <div>
+                {% for dept in doc.departments %}
+                <span class="dept-tag dept-{{ dept }}">{{ dept }}</span>
+                {% empty %}
+                <span class="dept-tag dept-default">all</span>
+                {% endfor %}
+            </div>
+            {% if doc.is_processed %}
+            <span class="status-dot dot-ok">Processed</span>
+            {% else %}
+            <span class="status-dot dot-no">Pending</span>
+            {% endif %}
+            <div class="doc-date">{{ doc.uploaded_at|date:'d M Y' }}</div>
+        </div>
+        <i class="bi bi-chevron-right doc-chevron"></i>
+    </a>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon"><i class="bi bi-file-earmark-text"></i></div>
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:#1C1917;margin-bottom:6px;">No documents yet</div>
+    <p class="text-muted mb-4" style="font-size:.84rem;">Upload documents or paste text to build the knowledge base for Q&amp;A.</p>
+    {% if perms.training.add_case %}
+    <a href="{% url 'document_create' %}" class="btn-amber">Add the first document</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

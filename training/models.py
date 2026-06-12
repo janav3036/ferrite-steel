@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from pgvector.django import VectorField
 
 class Case(models.Model):
     title = models.CharField(max_length=255)
@@ -31,7 +32,11 @@ class Case(models.Model):
         return self.title
     
 class KnowledgeDocument(models.Model):
-    file = models.FileField(upload_to='documents/' )
+    SOURCE_CHOICES = [('file', 'File'), ('text', 'Direct Text')]
+
+    source_type = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='file')
+    file_url = models.URLField(blank=True)
+    direct_text = models.TextField(blank=True)
     title = models.CharField(max_length=255)
     keywords = models.JSONField(default=list)
     departments = models.JSONField(default=list)
@@ -54,6 +59,24 @@ class KnowledgeDocument(models.Model):
     def __str__(self):
         return self.title
     
+class DocumentChunk(models.Model):
+    document = models.ForeignKey(
+        KnowledgeDocument,
+        on_delete=models.CASCADE,
+        related_name='chunks'
+    )
+    chunk_text = models.TextField()
+    embedding = VectorField(dimensions=1024)
+    chunk_index = models.IntegerField()
+
+    class Meta:
+        verbose_name = 'Document Chunk'
+        verbose_name_plural = 'Document Chunks'
+        ordering = ['document', 'chunk_index']
+
+    def __str__(self):
+        return f"{self.document.title} - chunk {self.chunk_index}"
+
 class QuizSet(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
