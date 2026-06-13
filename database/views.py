@@ -59,11 +59,18 @@ def product_list(request):
             Q(godown__icontains=q)
         )
 
-    groups = _build_product_groups(products)
+    all_groups = _build_product_groups(products)
+    group_items = list(all_groups.items())
+    total_groups = len(group_items)
+
+    paginator = Paginator(group_items, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    groups_page = dict(page_obj.object_list)
 
     return render(request, 'database/product_list.html', {
-        'groups_json': json.dumps(groups),
-        'group_count': len(groups),
+        'groups_json': json.dumps(groups_page),
+        'group_count': total_groups,
+        'page_obj': page_obj,
         'q': q,
     })
 
@@ -214,11 +221,14 @@ def broker_list(request):
         return redirect('dashboard')
     scope = request.GET.get('scope', 'active')
     if scope == 'all':
-        brokers = Broker.objects.all()
+        qs = Broker.objects.all()
     else:
-        brokers = Broker.objects.filter(is_active=True)
+        qs = Broker.objects.filter(is_active=True)
+    paginator = Paginator(qs, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'database/broker_list.html', {
-        'brokers': brokers,
+        'brokers': page_obj.object_list,
+        'page_obj': page_obj,
         'scope': scope,
     })
 

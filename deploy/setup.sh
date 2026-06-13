@@ -8,7 +8,7 @@
 
 set -e
 
-DOMAIN="feritesteel.janavshah.com"
+DOMAIN="ferritesteel.janavshah.com"
 REPO_URL="https://github.com/janav3036/ferrite-steel.git"
 APP_DIR="/var/www/ferite_steel"
 DB_NAME="ferite_steel_db"
@@ -20,6 +20,7 @@ apt update && apt upgrade -y
 apt install -y \
     python3.12 python3.12-venv python3-pip \
     postgresql postgresql-contrib \
+    postgresql-16-pgvector \
     nginx \
     certbot python3-certbot-nginx \
     git \
@@ -69,7 +70,10 @@ exit 0
 
 # ── 5. After filling .env — run these manually ───────────────────────────────
 #
+#   sudo -u postgres psql -d $DB_NAME -c "CREATE EXTENSION IF NOT EXISTS vector;"
+#
 #   cd $APP_DIR && source .venv/bin/activate
+#   pip install gunicorn
 #   python manage.py collectstatic --noinput
 #   python manage.py migrate
 #   python manage.py createsuperuser
