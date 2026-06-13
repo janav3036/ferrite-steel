@@ -2,47 +2,157 @@
 {% block title %}Notifications — Ferrite Steel{% endblock %}
 
 {% block extra_head %}
+{% include '_sb_notif.html' %}
 <style>
-    .notif-wrap { max-width: 680px; }
+    .notif-wrap { max-width: 700px; }
+
+    /* ── Page header ── */
+    .notif-page-title {
+        font-family: 'Playfair Display', 'DM Sans', Georgia, serif;
+        font-size: 1.55rem;
+        font-weight: 600;
+        letter-spacing: -.02em;
+        color: #0F172A;
+        line-height: 1.2;
+    }
+    .notif-count-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: .73rem;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 100px;
+        background: #FFE4EA;
+        color: #BE123C;
+        letter-spacing: .01em;
+        vertical-align: middle;
+        margin-left: 8px;
+    }
+
+    /* ── Notification card ── */
+    .notif-card {
+        border: 1px solid #EDE8EA;
+        border-radius: 10px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 1px 6px rgba(22,12,16,.05);
+    }
+
     .notif-item {
-        display: flex; align-items: flex-start; gap: 14px;
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border);
-        transition: background .1s;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid #F0EAEC;
+        transition: background .12s;
         text-decoration: none;
         color: inherit;
+        position: relative;
     }
     .notif-item:last-child { border-bottom: none; }
-    .notif-item:hover { background: #F8FAFC; }
-    .notif-item.unread { background: #F0F7FF; }
-    .notif-item.unread:hover { background: #E8F2FF; }
+    .notif-item:hover { background: #FCF8F9; text-decoration: none; color: inherit; }
 
-    .notif-dot {
-        width: 8px; height: 8px; border-radius: 50%;
-        background: #2563EB; flex-shrink: 0; margin-top: 6px;
+    /* Unread — left border accent */
+    .notif-item.unread {
+        background: #FEF6F8;
+        border-left: 3px solid #FB7185;
+        padding-left: 15px;
     }
-    .notif-dot.read { background: transparent; }
+    .notif-item.unread:hover { background: #FDF0F3; }
+    .notif-item.read { border-left: 3px solid transparent; padding-left: 15px; }
 
+    /* ── Icon ── */
     .notif-icon {
-        width: 36px; height: 36px; border-radius: 50%;
+        width: 38px; height: 38px;
+        border-radius: 9px;
         display: flex; align-items: center; justify-content: center;
-        font-size: .9rem; flex-shrink: 0;
+        font-size: .9rem;
+        flex-shrink: 0;
+        margin-top: 1px;
     }
-    .icon-lead_created      { background: #EFF6FF; color: #2563EB; }
-    .icon-quotation_approved{ background: #F0FDF4; color: #15803D; }
-    .icon-quotation_win     { background: #F0FDF4; color: #15803D; }
-    .icon-quotation_loss    { background: #FEF2F2; color: #DC2626; }
-    .icon-case_created      { background: #FFF7ED; color: #C2410C; }
-    .icon-market_confirmed  { background: #DBEAFE; color: #1D4ED8; }
-    .icon-market_do_pending { background: #EDE9FE; color: #6D28D9; }
-    .icon-market_completed  { background: #DCFCE7; color: #15803D; }
-    .icon-general           { background: #F1F5F9; color: #475569; }
+    .icon-lead_created       { background: #EFF6FF; color: #2563EB; }
+    .icon-quotation_approved { background: #F0FDF4; color: #15803D; }
+    .icon-quotation_win      { background: #FEFCE8; color: #A16207; }
+    .icon-quotation_loss     { background: #FEF2F2; color: #DC2626; }
+    .icon-case_created       { background: #FFF7ED; color: #C2410C; }
+    .icon-market_confirmed   { background: #ECFDF5; color: #065F46; }
+    .icon-market_do_pending  { background: #EDE9FE; color: #6D28D9; }
+    .icon-market_completed   { background: #F0FDF4; color: #15803D; }
+    .icon-general            { background: #F1F5F9; color: #475569; }
 
-    .notif-title { font-size: .88rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-    .notif-msg   { font-size: .81rem; color: var(--muted); line-height: 1.5; }
-    .notif-time  { font-size: .73rem; color: #94A3B8; margin-top: 4px; }
+    /* ── Content ── */
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-title {
+        font-size: .875rem;
+        font-weight: 600;
+        color: #0F172A;
+        margin-bottom: 2px;
+        line-height: 1.4;
+    }
+    .notif-msg {
+        font-size: .81rem;
+        color: #64748B;
+        line-height: 1.5;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .notif-time {
+        font-size: .70rem;
+        color: #A0B4AE;  /* slightly warm to match sidebar */
+        font-variant-numeric: tabular-nums;
+    }
 
-    .empty-state { padding: 60px 20px; text-align: center; }
+    /* ── Unread dot ── */
+    .notif-unread-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #FB7185;
+        flex-shrink: 0;
+        margin-top: 6px;
+        box-shadow: 0 0 0 3px rgba(251,113,133,.18);
+    }
+
+    /* ── Mark all read button ── */
+    .btn-mark-read {
+        font-size: .78rem;
+        font-weight: 500;
+        padding: 5px 14px;
+        border-radius: 7px;
+        border: 1px solid #E0D0D5;
+        background: white;
+        color: #64748B;
+        cursor: pointer;
+        transition: background .12s, border-color .12s, color .12s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-mark-read:hover {
+        background: #FEF6F8;
+        border-color: #FB7185;
+        color: #BE123C;
+    }
+
+    /* ── Empty state ── */
+    .notif-empty {
+        padding: 64px 20px;
+        text-align: center;
+    }
+    .notif-empty-icon {
+        width: 56px; height: 56px;
+        border-radius: 16px;
+        background: #FEF6F8;
+        border: 1px solid #FECDD3;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        margin: 0 auto 14px;
+    }
+    .notif-empty p { font-size: .84rem; color: #94A3B8; margin: 0; }
 </style>
 {% endblock %}
 
@@ -50,27 +160,42 @@
 <div class="notif-wrap">
     <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
         <div>
-            <h4 class="mb-0">Notifications</h4>
-            {% if unread_notification_count > 0 %}
-            <small class="text-muted">{{ unread_notification_count }} unread</small>
-            {% else %}
-            <small class="text-muted">All caught up</small>
-            {% endif %}
+            <h4 class="mb-0 notif-page-title">
+                Notifications
+                {% if unread_notification_count > 0 %}
+                <span class="notif-count-chip">{{ unread_notification_count }} new</span>
+                {% endif %}
+            </h4>
+            <small class="text-muted" style="font-size:.78rem;">
+                {% if unread_notification_count > 0 %}
+                    {{ unread_notification_count }} unread notification{{ unread_notification_count|pluralize }}
+                {% else %}
+                    All caught up
+                {% endif %}
+            </small>
         </div>
         {% if unread_notification_count > 0 %}
         <form method="post" action="{% url 'notifications_mark_all_read' %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Mark all read</button>
+            <button type="submit" class="btn-mark-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+            </button>
         </form>
         {% endif %}
     </div>
 
-    <div class="card" style="overflow:hidden;">
+    <div class="notif-card">
         {% if notifs %}
         {% for n in notifs %}
         <a href="{% url 'notification_mark_read' n.pk %}"
-           class="notif-item {% if not n.is_read %}unread{% endif %}">
-            <div class="notif-dot {% if n.is_read %}read{% endif %}"></div>
+           class="notif-item {% if not n.is_read %}unread{% else %}read{% endif %}">
+
+            {% if not n.is_read %}
+            <div class="notif-unread-dot"></div>
+            {% else %}
+            <div style="width:7px;flex-shrink:0;"></div>
+            {% endif %}
+
             <div class="notif-icon icon-{{ n.type }}">
                 {% if n.type == 'lead_created' %}<i class="bi bi-funnel"></i>
                 {% elif n.type == 'quotation_approved' %}<i class="bi bi-check-circle"></i>
@@ -82,7 +207,8 @@
                 {% elif n.type == 'market_completed' %}<i class="bi bi-check2-all"></i>
                 {% else %}<i class="bi bi-bell"></i>{% endif %}
             </div>
-            <div style="flex:1;min-width:0;">
+
+            <div class="notif-content">
                 <div class="notif-title">{{ n.title }}</div>
                 {% if n.message %}
                 <div class="notif-msg">{{ n.message }}</div>
@@ -92,9 +218,9 @@
         </a>
         {% endfor %}
         {% else %}
-        <div class="empty-state">
-            <i class="bi bi-bell" style="font-size:2rem;color:#CBD5E1;"></i>
-            <p class="text-muted mt-3 mb-0">No notifications yet.</p>
+        <div class="notif-empty">
+            <div class="notif-empty-icon">🔔</div>
+            <p>No notifications yet.</p>
         </div>
         {% endif %}
     </div>

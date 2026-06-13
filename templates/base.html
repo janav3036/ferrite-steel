@@ -576,8 +576,8 @@
         {% endif %}
 
         <!-- Collapse toggle -->
-        <button class="fs-collapse-btn" id="fs-collapse-btn" title="Toggle sidebar">
-            <i class="bi bi-chevrons-left" id="fs-collapse-icon"></i>
+        <button class="fs-collapse-btn" id="fs-collapse-btn" title="Collapse sidebar">
+            <span id="fs-collapse-icon" style="line-height:1;font-size:.9rem;font-weight:500;">«</span>
         </button>
     </nav>
 
@@ -644,7 +644,7 @@
 
     function syncCollapseIcon() {
         const collapsed = document.documentElement.classList.contains('sb-collapsed');
-        collapseIcon.className = collapsed ? 'bi bi-chevrons-right' : 'bi bi-chevrons-left';
+        collapseIcon.textContent = collapsed ? '»' : '«';
         collapseBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
     }
 
