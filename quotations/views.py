@@ -25,7 +25,7 @@ from .forms import (
     MarketOrderAssignForm, MarketOrderDOForm, QuotationEditForm, LineItemFormSet,
 )
 from database.models import Customer, Product
-from .models import Lead, MarketOrder, Quotation, QuotationLineItem, TeamEmailConfig
+from .models import Lead, MarketOrder, Quotation, QuotationLineItem, TeamEmailConfig, ProductKeyword
 from .services.llm import generate_quotation_draft
 
 
