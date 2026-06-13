@@ -5,7 +5,8 @@
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
         <h2 class="mb-0">Edit {{ quotation.quotation_number }}</h2>
-        {% if lead.customer_name %}<span class="text-muted fs-6">{{ lead.customer_name }}{% if lead.company %} — {{ lead.company }}{% endif %}</span>{% endif %}
+        {% if lead.customer_name %}<span class="text-muted fs-6">{{ lead.customer_name }}{% if lead.company %} — {{
+            lead.company }}{% endif %}</span>{% endif %}
     </div>
     <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">← Cancel</a>
 </div>
@@ -84,12 +85,14 @@
                     </thead>
                     <tbody id="formset-body">
                         {% for item_form in formset %}
-                        <tr class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
+                        <tr
+                            class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
                             <td class="text-muted row-num">{{ forloop.counter }}</td>
                             <td>{{ item_form.hsn_code }}</td>
                             <td>
                                 {{ item_form.product_name }}
-                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary" title="Pick from catalog">⌕ pick</button>
+                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary"
+                                    title="Pick from catalog">⌕ pick</button>
                             </td>
                             <td>{{ item_form.make }}</td>
                             <td>{{ item_form.length }}</td>
@@ -100,13 +103,17 @@
                             </td>
                             <td>{{ item_form.pcs }}</td>
                             <td>
-                                <input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00">
-                                <button type="button" class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary" style="font-size:0.75em;line-height:1">⊞ add-ons</button>
+                                <input type="number" class="form-control form-control-sm purchase-rate-field"
+                                    step="0.01" placeholder="0.00">
+                                <button type="button"
+                                    class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary"
+                                    style="font-size:0.75em;line-height:1">⊞ add-ons</button>
                             </td>
                             <td>{{ item_form.unit_price }}</td>
                             <td>{{ item_form.total_price }}</td>
                             <td>{{ item_form.discount_pct }}</td>
-                            <td><input type="number" class="form-control form-control-sm final-price-display" readonly tabindex="-1" step="0.01" placeholder="0.00"></td>
+                            <td><input type="number" class="form-control form-control-sm final-price-display" readonly
+                                    tabindex="-1" step="0.01" placeholder="0.00"></td>
                             <td>{{ item_form.notes }}</td>
                             <td class="text-center">
                                 {{ item_form.DELETE }}
@@ -117,13 +124,34 @@
                         <tr class="addon-row" style="display:none">
                             <td colspan="12" class="p-2 bg-light">
                                 <div class="row g-2">
-                                    <div class="col"><label class="form-label small mb-1">Parity</label><input type="number" data-addon="parity" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Cutting</label><input type="number" data-addon="cutting" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Loading</label><input type="number" data-addon="loading" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Transport</label><input type="number" data-addon="transport" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Margin</label><input type="number" data-addon="margin" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Interest</label><input type="number" data-addon="interest" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                                    <div class="col"><label class="form-label small mb-1">Commission</label><input type="number" data-addon="commission" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Parity</label><input
+                                            type="number" data-addon="parity"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Cutting</label><input
+                                            type="number" data-addon="cutting"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Loading</label><input
+                                            type="number" data-addon="loading"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Transport</label><input
+                                            type="number" data-addon="transport"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Margin</label><input
+                                            type="number" data-addon="margin"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Interest</label><input
+                                            type="number" data-addon="interest"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
+                                    <div class="col"><label class="form-label small mb-1">Commission</label><input
+                                            type="number" data-addon="commission"
+                                            class="form-control form-control-sm addon-field" step="0.01"
+                                            placeholder="0"></div>
                                 </div>
                             </td>
                         </tr>
@@ -162,6 +190,18 @@
             </table>
         </div>
     </div>
+    {% if customer_notes %}
+    <div class="card mt-3">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2">
+            <i class="bi bi-person-lines-fill text-muted"></i> Customer Notes
+            <span class="badge bg-light text-muted fw-normal ms-1" style="font-size:.72rem;">from SAP record</span>
+        </div>
+        <div class="card-body">
+            <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{
+                customer_notes }}</p>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="d-flex gap-2 justify-content-end">
         <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
@@ -177,7 +217,8 @@
             <td>{{ formset.empty_form.hsn_code }}</td>
             <td>
                 {{ formset.empty_form.product_name }}
-                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary" title="Pick from catalog">⌕ pick</button>
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 pick-btn text-secondary"
+                    title="Pick from catalog">⌕ pick</button>
             </td>
             <td>{{ formset.empty_form.make }}</td>
             <td>{{ formset.empty_form.length }}</td>
@@ -188,13 +229,16 @@
             </td>
             <td>{{ formset.empty_form.pcs }}</td>
             <td>
-                <input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01" placeholder="0.00">
-                <button type="button" class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary" style="font-size:0.75em;line-height:1">⊞ add-ons</button>
+                <input type="number" class="form-control form-control-sm purchase-rate-field" step="0.01"
+                    placeholder="0.00">
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 toggle-addon-btn text-secondary"
+                    style="font-size:0.75em;line-height:1">⊞ add-ons</button>
             </td>
             <td>{{ formset.empty_form.unit_price }}</td>
             <td>{{ formset.empty_form.total_price }}</td>
             <td>{{ formset.empty_form.discount_pct }}</td>
-            <td><input type="number" class="form-control form-control-sm final-price-display" readonly tabindex="-1" step="0.01" placeholder="0.00"></td>
+            <td><input type="number" class="form-control form-control-sm final-price-display" readonly tabindex="-1"
+                    step="0.01" placeholder="0.00"></td>
             <td>{{ formset.empty_form.notes }}</td>
             <td class="text-center">
                 {{ formset.empty_form.DELETE }}
@@ -205,13 +249,27 @@
         <tr class="addon-row" style="display:none">
             <td colspan="12" class="p-2 bg-light">
                 <div class="row g-2">
-                    <div class="col"><label class="form-label small mb-1">Parity</label><input type="number" data-addon="parity" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Cutting</label><input type="number" data-addon="cutting" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Loading</label><input type="number" data-addon="loading" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Transport</label><input type="number" data-addon="transport" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Margin</label><input type="number" data-addon="margin" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Interest</label><input type="number" data-addon="interest" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
-                    <div class="col"><label class="form-label small mb-1">Commission</label><input type="number" data-addon="commission" class="form-control form-control-sm addon-field" step="0.01" placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Parity</label><input type="number"
+                            data-addon="parity" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Cutting</label><input type="number"
+                            data-addon="cutting" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Loading</label><input type="number"
+                            data-addon="loading" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Transport</label><input type="number"
+                            data-addon="transport" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Margin</label><input type="number"
+                            data-addon="margin" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Interest</label><input type="number"
+                            data-addon="interest" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
+                    <div class="col"><label class="form-label small mb-1">Commission</label><input type="number"
+                            data-addon="commission" class="form-control form-control-sm addon-field" step="0.01"
+                            placeholder="0"></div>
                 </div>
             </td>
         </tr>
@@ -228,7 +286,7 @@
             </div>
             <div class="modal-body">
                 <input type="text" id="picker-search" class="form-control form-control-sm mb-3"
-                       placeholder="Search by size or sub-type…">
+                    placeholder="Search by size or sub-type…">
                 <div id="picker-loading" class="text-center text-muted py-4">Loading catalog…</div>
                 <div class="table-responsive" id="picker-table-wrap" style="display:none">
                     <table class="table table-sm table-bordered align-middle">
@@ -255,243 +313,243 @@
 </div>
 
 <script>
-const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
-const loadingInput    = document.getElementById('id_loading_extra');
-const transportInput  = document.getElementById('id_transport_extra');
-const addonDefaults   = {{ addon_defaults_json|safe }};
-const customerNotes   = "{{ customer_notes|escapejs }}";
+    const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
+    const loadingInput = document.getElementById('id_loading_extra');
+    const transportInput = document.getElementById('id_transport_extra');
+    const addonDefaults = {{ addon_defaults_json| safe }};
+    const customerNotes = "{{ customer_notes|escapejs }}";
 
-function getAddonRow(mainRow) {
-    const next = mainRow.nextElementSibling;
-    return (next && next.classList.contains('addon-row')) ? next : null;
-}
+    function getAddonRow(mainRow) {
+        const next = mainRow.nextElementSibling;
+        return (next && next.classList.contains('addon-row')) ? next : null;
+    }
 
-function getRowAddonTotal(mainRow) {
-    const addonRow = getAddonRow(mainRow);
-    if (!addonRow) return 0;
-    let total = 0;
-    addonRow.querySelectorAll('.addon-field').forEach(input => {
-        total += parseFloat(input.value) || 0;
-    });
-    return total;
-}
+    function getRowAddonTotal(mainRow) {
+        const addonRow = getAddonRow(mainRow);
+        if (!addonRow) return 0;
+        let total = 0;
+        addonRow.querySelectorAll('.addon-field').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        return total;
+    }
 
-function fillAddonDefaults(mainRow) {
-    const addonRow = getAddonRow(mainRow);
-    if (!addonRow) return;
-    addonRow.querySelectorAll('.addon-field').forEach(input => {
-        const key = input.dataset.addon;
-        if (addonDefaults[key] && !input.value) input.value = addonDefaults[key];
-    });
-}
+    function fillAddonDefaults(mainRow) {
+        const addonRow = getAddonRow(mainRow);
+        if (!addonRow) return;
+        addonRow.querySelectorAll('.addon-field').forEach(input => {
+            const key = input.dataset.addon;
+            if (addonDefaults[key] && !input.value) input.value = addonDefaults[key];
+        });
+    }
 
-function recalcRow(row) {
-    const purchaseRateInput = row.querySelector('.purchase-rate-field');
-    if (!purchaseRateInput || !purchaseRateInput.value.trim()) return;
-    const purchaseRate = parseFloat(purchaseRateInput.value) || 0;
-    const qty  = parseFloat(row.querySelector('.qty-field').value) || 0;
-    const uom  = row.querySelector('.uom-field')?.value || 'ton';
-    const tons = uom === 'kg' ? qty / 1000 : qty;
-    const finalRate = purchaseRate + getRowAddonTotal(row);
-    const finalRateField = row.querySelector('.final-rate-field');
-    if (finalRateField) finalRateField.value = finalRate.toFixed(2);
-    const amt = finalRate * tons;
-    row.querySelector('.amt-field').value = amt.toFixed(2);
-    const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
-    const finalPrice = amt * (1 - discPct / 100);
-    const finalPriceDisplay = row.querySelector('.final-price-display');
-    if (finalPriceDisplay) finalPriceDisplay.value = finalPrice.toFixed(2);
-}
-
-function updateSummary() {
-    let totalTons = 0;
-    let itemValue = 0;
-    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+    function recalcRow(row) {
+        const purchaseRateInput = row.querySelector('.purchase-rate-field');
+        if (!purchaseRateInput || !purchaseRateInput.value.trim()) return;
+        const purchaseRate = parseFloat(purchaseRateInput.value) || 0;
         const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
         const uom = row.querySelector('.uom-field')?.value || 'ton';
-        totalTons += uom === 'kg' ? qty / 1000 : qty;
-        itemValue += parseFloat(row.querySelector('.final-price-display')?.value) || parseFloat(row.querySelector('.amt-field').value) || 0;
-    });
-    const loading   = parseFloat(loadingInput ? loadingInput.value : 0) || 0;
-    const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
-    const taxable   = itemValue + loading + transport;
-
-    document.getElementById('summary-tons').textContent       = totalTons.toFixed(3);
-    document.getElementById('summary-item-value').textContent = itemValue.toFixed(2);
-    document.getElementById('summary-loading').textContent    = loading.toFixed(2);
-    document.getElementById('summary-transport').textContent  = transport.toFixed(2);
-    document.getElementById('summary-taxable').textContent    = taxable.toFixed(2);
-}
-
-function updateRowNumbers() {
-    let n = 1;
-    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
-        row.querySelector('.row-num').textContent = n++;
-    });
-}
-
-document.getElementById('formset-body').addEventListener('input', function(e) {
-    const row = e.target.closest('tr');
-    if (!row) return;
-    if (row.classList.contains('addon-row')) {
-        const mainRow = row.previousElementSibling;
-        if (mainRow && mainRow.classList.contains('line-item-row')) recalcRow(mainRow);
-    } else if (row.classList.contains('line-item-row')) {
-        recalcRow(row);
+        const tons = uom === 'kg' ? qty / 1000 : qty;
+        const finalRate = purchaseRate + getRowAddonTotal(row);
+        const finalRateField = row.querySelector('.final-rate-field');
+        if (finalRateField) finalRateField.value = finalRate.toFixed(2);
+        const amt = finalRate * tons;
+        row.querySelector('.amt-field').value = amt.toFixed(2);
+        const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
+        const finalPrice = amt * (1 - discPct / 100);
+        const finalPriceDisplay = row.querySelector('.final-price-display');
+        if (finalPriceDisplay) finalPriceDisplay.value = finalPrice.toFixed(2);
     }
-    updateSummary();
-});
 
-document.getElementById('formset-body').addEventListener('change', function(e) {
-    if (!e.target.matches('.uom-field')) return;
-    const row = e.target.closest('tr');
-    if (row && row.classList.contains('line-item-row')) recalcRow(row);
-    updateSummary();
-});
+    function updateSummary() {
+        let totalTons = 0;
+        let itemValue = 0;
+        document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
+            const uom = row.querySelector('.uom-field')?.value || 'ton';
+            totalTons += uom === 'kg' ? qty / 1000 : qty;
+            itemValue += parseFloat(row.querySelector('.final-price-display')?.value) || parseFloat(row.querySelector('.amt-field').value) || 0;
+        });
+        const loading = parseFloat(loadingInput ? loadingInput.value : 0) || 0;
+        const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
+        const taxable = itemValue + loading + transport;
 
-if (loadingInput)   loadingInput.addEventListener('input', updateSummary);
-if (transportInput) transportInput.addEventListener('input', updateSummary);
-
-// Toggle per-row add-on panel
-document.getElementById('formset-body').addEventListener('click', function(e) {
-    if (!e.target.matches('.toggle-addon-btn')) return;
-    const mainRow = e.target.closest('tr.line-item-row');
-    const addonRow = getAddonRow(mainRow);
-    if (!addonRow) return;
-    addonRow.style.display = (addonRow.style.display === 'table-row') ? 'none' : 'table-row';
-});
-
-document.getElementById('add-row').addEventListener('click', function() {
-    const formNum = parseInt(totalFormsInput.value);
-    const newHtml = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
-    document.getElementById('formset-body').insertAdjacentHTML('beforeend', newHtml);
-    totalFormsInput.value = formNum + 1;
-    const allMainRows = document.querySelectorAll('#formset-body .line-item-row');
-    const newRow = allMainRows[allMainRows.length - 1];
-    fillAddonDefaults(newRow);
-    const newNotes = newRow.querySelector('[name$="-notes"]');
-    if (newNotes && customerNotes) newNotes.value = customerNotes;
-    const newPcs = newRow.querySelector('[name$="-pcs"]');
-    if (newPcs) { newPcs.setAttribute('readonly', true); newPcs.classList.add('bg-light'); }
-    updateRowNumbers();
-});
-
-document.getElementById('formset-body').addEventListener('click', function(e) {
-    if (!e.target.matches('.remove-row')) return;
-    const row = e.target.closest('tr');
-    const addonRow = getAddonRow(row);
-    const deleteCheckbox = row.querySelector('[name$="-DELETE"]');
-    if (deleteCheckbox) {
-        deleteCheckbox.checked = true;
-        row.classList.add('d-none');
-        if (addonRow) addonRow.style.display = 'none';
-    } else {
-        if (addonRow) addonRow.remove();
-        row.remove();
-        totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
+        document.getElementById('summary-tons').textContent = totalTons.toFixed(3);
+        document.getElementById('summary-item-value').textContent = itemValue.toFixed(2);
+        document.getElementById('summary-loading').textContent = loading.toFixed(2);
+        document.getElementById('summary-transport').textContent = transport.toFixed(2);
+        document.getElementById('summary-taxable').textContent = taxable.toFixed(2);
     }
-    updateRowNumbers();
-    updateSummary();
-});
 
-// Initialise all existing rows
-document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
-    fillAddonDefaults(row);
-    const pcsField = row.querySelector('[name$="-pcs"]');
-    if (pcsField && !pcsField.value.trim()) {
-        pcsField.setAttribute('readonly', true);
-        pcsField.classList.add('bg-light');
+    function updateRowNumbers() {
+        let n = 1;
+        document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+            row.querySelector('.row-num').textContent = n++;
+        });
     }
-    const notesField = row.querySelector('[name$="-notes"]');
-    if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
-    // Pre-populate final-price-display from saved amt and discount
-    const amt = parseFloat(row.querySelector('.amt-field')?.value) || 0;
-    const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
-    const fpDisplay = row.querySelector('.final-price-display');
-    if (fpDisplay && amt) fpDisplay.value = (amt * (1 - discPct / 100)).toFixed(2);
-});
 
-// Seed purchase_rate from saved unit_price for LLM-generated rows
-// (LLM fills unit_price directly; move it to purchase_rate so add-ons layer on top)
-document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
-    const purchRate = row.querySelector('.purchase-rate-field');
-    const finalRate = row.querySelector('.final-rate-field');
-    if (purchRate && finalRate && !purchRate.value) {
-        const saved = parseFloat(finalRate.value);
-        if (saved && saved !== 0) {
-            purchRate.value = saved.toFixed(2);
-            fillAddonDefaults(row);
+    document.getElementById('formset-body').addEventListener('input', function (e) {
+        const row = e.target.closest('tr');
+        if (!row) return;
+        if (row.classList.contains('addon-row')) {
+            const mainRow = row.previousElementSibling;
+            if (mainRow && mainRow.classList.contains('line-item-row')) recalcRow(mainRow);
+        } else if (row.classList.contains('line-item-row')) {
             recalcRow(row);
         }
-    }
-});
-updateRowNumbers();
-updateSummary();
+        updateSummary();
+    });
 
-// ── Product Picker ────────────────────────────────────────────────────────────
+    document.getElementById('formset-body').addEventListener('change', function (e) {
+        if (!e.target.matches('.uom-field')) return;
+        const row = e.target.closest('tr');
+        if (row && row.classList.contains('line-item-row')) recalcRow(row);
+        updateSummary();
+    });
 
-let catalogData = null;
-let pickerTargetRow = null;
+    if (loadingInput) loadingInput.addEventListener('input', updateSummary);
+    if (transportInput) transportInput.addEventListener('input', updateSummary);
 
-const pickerModal    = document.getElementById('productPickerModal');
-const pickerBody     = document.getElementById('picker-body');
-const pickerSearch   = document.getElementById('picker-search');
-const pickerLoading  = document.getElementById('picker-loading');
-const pickerWrap     = document.getElementById('picker-table-wrap');
+    // Toggle per-row add-on panel
+    document.getElementById('formset-body').addEventListener('click', function (e) {
+        if (!e.target.matches('.toggle-addon-btn')) return;
+        const mainRow = e.target.closest('tr.line-item-row');
+        const addonRow = getAddonRow(mainRow);
+        if (!addonRow) return;
+        addonRow.style.display = (addonRow.style.display === 'table-row') ? 'none' : 'table-row';
+    });
 
-// Delegate pick-btn click from both formset-body and the add-row area
-document.addEventListener('click', function(e) {
-    if (!e.target.matches('.pick-btn')) return;
-    pickerTargetRow = e.target.closest('tr');
-    new bootstrap.Modal(pickerModal).show();
-});
+    document.getElementById('add-row').addEventListener('click', function () {
+        const formNum = parseInt(totalFormsInput.value);
+        const newHtml = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
+        document.getElementById('formset-body').insertAdjacentHTML('beforeend', newHtml);
+        totalFormsInput.value = formNum + 1;
+        const allMainRows = document.querySelectorAll('#formset-body .line-item-row');
+        const newRow = allMainRows[allMainRows.length - 1];
+        fillAddonDefaults(newRow);
+        const newNotes = newRow.querySelector('[name$="-notes"]');
+        if (newNotes && customerNotes) newNotes.value = customerNotes;
+        const newPcs = newRow.querySelector('[name$="-pcs"]');
+        if (newPcs) { newPcs.setAttribute('readonly', true); newPcs.classList.add('bg-light'); }
+        updateRowNumbers();
+    });
 
-pickerModal.addEventListener('show.bs.modal', async function() {
-    if (!catalogData) {
-        pickerLoading.style.display = '';
-        pickerWrap.style.display = 'none';
-        try {
-            const resp = await fetch('{% url "product_catalog_json" %}');
-            catalogData = await resp.json();
-        } catch {
-            pickerLoading.textContent = 'Failed to load catalog.';
-            return;
+    document.getElementById('formset-body').addEventListener('click', function (e) {
+        if (!e.target.matches('.remove-row')) return;
+        const row = e.target.closest('tr');
+        const addonRow = getAddonRow(row);
+        const deleteCheckbox = row.querySelector('[name$="-DELETE"]');
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = true;
+            row.classList.add('d-none');
+            if (addonRow) addonRow.style.display = 'none';
+        } else {
+            if (addonRow) addonRow.remove();
+            row.remove();
+            totalFormsInput.value = parseInt(totalFormsInput.value) - 1;
         }
-        pickerLoading.style.display = 'none';
-        pickerWrap.style.display = '';
-    }
-    renderPickerRows(pickerSearch.value);
-});
+        updateRowNumbers();
+        updateSummary();
+    });
 
-pickerSearch.addEventListener('input', function() {
-    if (catalogData) renderPickerRows(this.value);
-});
+    // Initialise all existing rows
+    document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
+        fillAddonDefaults(row);
+        const pcsField = row.querySelector('[name$="-pcs"]');
+        if (pcsField && !pcsField.value.trim()) {
+            pcsField.setAttribute('readonly', true);
+            pcsField.classList.add('bg-light');
+        }
+        const notesField = row.querySelector('[name$="-notes"]');
+        if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
+        // Pre-populate final-price-display from saved amt and discount
+        const amt = parseFloat(row.querySelector('.amt-field')?.value) || 0;
+        const discPct = parseFloat(row.querySelector('.discount-pct-field')?.value) || 0;
+        const fpDisplay = row.querySelector('.final-price-display');
+        if (fpDisplay && amt) fpDisplay.value = (amt * (1 - discPct / 100)).toFixed(2);
+    });
 
-function renderPickerRows(query) {
-    pickerBody.innerHTML = '';
-    const q = query.trim().toLowerCase();
-    Object.entries(catalogData).forEach(([key, g]) => {
-        if (q && !g.type_display.toLowerCase().includes(q) && !g.size.toLowerCase().includes(q)) return;
+    // Seed purchase_rate from saved unit_price for LLM-generated rows
+    // (LLM fills unit_price directly; move it to purchase_rate so add-ons layer on top)
+    document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
+        const purchRate = row.querySelector('.purchase-rate-field');
+        const finalRate = row.querySelector('.final-rate-field');
+        if (purchRate && finalRate && !purchRate.value) {
+            const saved = parseFloat(finalRate.value);
+            if (saved && saved !== 0) {
+                purchRate.value = saved.toFixed(2);
+                fillAddonDefaults(row);
+                recalcRow(row);
+            }
+        }
+    });
+    updateRowNumbers();
+    updateSummary();
 
-        // Header row — always visible, clickable to expand
-        const headerTr = document.createElement('tr');
-        headerTr.className = 'picker-group-header';
-        headerTr.style.cursor = 'pointer';
-        headerTr.dataset.key = key;
-        headerTr.innerHTML = `
+    // ── Product Picker ────────────────────────────────────────────────────────────
+
+    let catalogData = null;
+    let pickerTargetRow = null;
+
+    const pickerModal = document.getElementById('productPickerModal');
+    const pickerBody = document.getElementById('picker-body');
+    const pickerSearch = document.getElementById('picker-search');
+    const pickerLoading = document.getElementById('picker-loading');
+    const pickerWrap = document.getElementById('picker-table-wrap');
+
+    // Delegate pick-btn click from both formset-body and the add-row area
+    document.addEventListener('click', function (e) {
+        if (!e.target.matches('.pick-btn')) return;
+        pickerTargetRow = e.target.closest('tr');
+        new bootstrap.Modal(pickerModal).show();
+    });
+
+    pickerModal.addEventListener('show.bs.modal', async function () {
+        if (!catalogData) {
+            pickerLoading.style.display = '';
+            pickerWrap.style.display = 'none';
+            try {
+                const resp = await fetch('{% url "product_catalog_json" %}');
+                catalogData = await resp.json();
+            } catch {
+                pickerLoading.textContent = 'Failed to load catalog.';
+                return;
+            }
+            pickerLoading.style.display = 'none';
+            pickerWrap.style.display = '';
+        }
+        renderPickerRows(pickerSearch.value);
+    });
+
+    pickerSearch.addEventListener('input', function () {
+        if (catalogData) renderPickerRows(this.value);
+    });
+
+    function renderPickerRows(query) {
+        pickerBody.innerHTML = '';
+        const q = query.trim().toLowerCase();
+        Object.entries(catalogData).forEach(([key, g]) => {
+            if (q && !g.type_display.toLowerCase().includes(q) && !g.size.toLowerCase().includes(q)) return;
+
+            // Header row — always visible, clickable to expand
+            const headerTr = document.createElement('tr');
+            headerTr.className = 'picker-group-header';
+            headerTr.style.cursor = 'pointer';
+            headerTr.dataset.key = key;
+            headerTr.innerHTML = `
             <td class="text-center text-muted small"><span class="expand-icon">▶</span></td>
             <td class="fw-semibold">${g.type_display}</td>
             <td>${g.size}</td>
             <td colspan="7" class="text-muted small fst-italic">click to select variant</td>
         `;
-        pickerBody.appendChild(headerTr);
+            pickerBody.appendChild(headerTr);
 
-        // Detail row — hidden until header clicked
-        const detailTr = document.createElement('tr');
-        detailTr.className = 'picker-group-detail table-light';
-        detailTr.dataset.key = key;
-        detailTr.style.display = 'none';
-        detailTr.innerHTML = `
+            // Detail row — hidden until header clicked
+            const detailTr = document.createElement('tr');
+            detailTr.className = 'picker-group-detail table-light';
+            detailTr.dataset.key = key;
+            detailTr.style.display = 'none';
+            detailTr.innerHTML = `
             <td class="picker-hsn-cell text-muted small text-center">—</td>
             <td></td>
             <td></td>
@@ -509,214 +567,214 @@ function renderPickerRows(query) {
             <td class="qty-cell text-end text-muted small">—</td>
             <td><button type="button" class="btn btn-sm btn-primary picker-add-btn">Add</button></td>
         `;
-        pickerBody.appendChild(detailTr);
-        initPickerRow(detailTr, g);
+            pickerBody.appendChild(detailTr);
+            initPickerRow(detailTr, g);
 
-        headerTr.addEventListener('click', function() {
-            const isOpen = detailTr.style.display !== 'none';
-            // Collapse all
-            pickerBody.querySelectorAll('.picker-group-detail').forEach(r => r.style.display = 'none');
-            pickerBody.querySelectorAll('.expand-icon').forEach(i => i.textContent = '▶');
-            pickerBody.querySelectorAll('.picker-group-header').forEach(r => r.classList.remove('table-primary'));
-            if (!isOpen) {
-                detailTr.style.display = '';
-                headerTr.querySelector('.expand-icon').textContent = '▼';
-                headerTr.classList.add('table-primary');
+            headerTr.addEventListener('click', function () {
+                const isOpen = detailTr.style.display !== 'none';
+                // Collapse all
+                pickerBody.querySelectorAll('.picker-group-detail').forEach(r => r.style.display = 'none');
+                pickerBody.querySelectorAll('.expand-icon').forEach(i => i.textContent = '▶');
+                pickerBody.querySelectorAll('.picker-group-header').forEach(r => r.classList.remove('table-primary'));
+                if (!isOpen) {
+                    detailTr.style.display = '';
+                    headerTr.querySelector('.expand-icon').textContent = '▼';
+                    headerTr.classList.add('table-primary');
+                }
+            });
+        });
+        if (!pickerBody.hasChildNodes()) {
+            pickerBody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No products match.</td></tr>';
+        }
+    }
+
+    function initPickerRow(detailTr, g) {
+        const makeSelect = detailTr.querySelector('.make-select');
+        Object.entries(g.makes).forEach(([mk, mdata]) => {
+            const opt = document.createElement('option');
+            opt.value = mk; opt.textContent = mdata.display;
+            makeSelect.appendChild(opt);
+        });
+        makeSelect.addEventListener('change', () => pickerRefreshLength(detailTr, g));
+        detailTr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(detailTr, g));
+        detailTr.querySelector('.grade-select').addEventListener('change', () => pickerRefreshSite(detailTr, g));
+        detailTr.querySelector('.site-select').addEventListener('change', () => pickerRefreshVariant(detailTr, g));
+        pickerRefreshLength(detailTr, g);
+    }
+
+    function pickerRefreshLength(tr, g) {
+        const mk = tr.querySelector('.make-select').value;
+        const lengthSelect = tr.querySelector('.length-select');
+        lengthSelect.innerHTML = '';
+        Object.keys(g.makes[mk]?.lengths || {}).forEach(lk => {
+            const opt = document.createElement('option');
+            opt.value = lk; opt.textContent = lk || '—';
+            lengthSelect.appendChild(opt);
+        });
+        pickerRefreshGrade(tr, g);
+    }
+
+    function pickerRefreshGrade(tr, g) {
+        const mk = tr.querySelector('.make-select').value;
+        const lk = tr.querySelector('.length-select').value;
+        const grades = g.makes[mk]?.lengths[lk]?.grades || {};
+        const gradeKeys = Object.keys(grades);
+        const gradeSelect = tr.querySelector('.grade-select');
+        const gradeText = tr.querySelector('.grade-text');
+        gradeSelect.innerHTML = '';
+        if (gradeKeys.length > 1) {
+            gradeKeys.forEach(gk => {
+                const opt = document.createElement('option');
+                opt.value = gk; opt.textContent = gk || '—';
+                gradeSelect.appendChild(opt);
+            });
+            gradeSelect.style.display = ''; gradeText.style.display = 'none';
+        } else {
+            gradeSelect.style.display = 'none'; gradeText.style.display = '';
+            gradeText.textContent = gradeKeys[0] || '—';
+            if (gradeKeys.length === 1) {
+                const opt = document.createElement('option');
+                opt.value = gradeKeys[0]; gradeSelect.appendChild(opt);
+            }
+        }
+        pickerRefreshSite(tr, g);
+    }
+
+    function pickerRefreshSite(tr, g) {
+        const mk = tr.querySelector('.make-select').value;
+        const lk = tr.querySelector('.length-select').value;
+        const gk = tr.querySelector('.grade-select').value;
+        const sites = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites || {};
+        const siteKeys = Object.keys(sites);
+        const siteSelect = tr.querySelector('.site-select');
+        const siteText = tr.querySelector('.site-text');
+        siteSelect.innerHTML = '';
+        if (siteKeys.length > 1) {
+            siteKeys.forEach(sk => {
+                const opt = document.createElement('option');
+                opt.value = sk; opt.textContent = sites[sk].site_display || sk || '—';
+                siteSelect.appendChild(opt);
+            });
+            siteSelect.style.display = ''; siteText.style.display = 'none';
+        } else {
+            siteSelect.style.display = 'none'; siteText.style.display = '';
+            siteText.textContent = siteKeys.length === 1 ? (sites[siteKeys[0]].site_display || siteKeys[0]) : '—';
+            if (siteKeys.length === 1) {
+                const opt = document.createElement('option');
+                opt.value = siteKeys[0]; siteSelect.appendChild(opt);
+            }
+        }
+        pickerRefreshVariant(tr, g);
+    }
+
+    function pickerRefreshVariant(tr, g) {
+        const mk = tr.querySelector('.make-select').value;
+        const lk = tr.querySelector('.length-select').value;
+        const gk = tr.querySelector('.grade-select').value;
+        const sk = tr.querySelector('.site-select').value;
+        const v = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites[sk];
+        if (!v) return;
+        tr.querySelector('.picker-hsn-cell').textContent = v.hsn || '—';
+        tr.querySelector('.rate-cell').textContent = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
+        tr.querySelector('.qty-cell').textContent = v.qty || '—';
+        tr.dataset.variantId = v.id;
+        tr.dataset.variantRate = v.rate;
+        tr.dataset.variantHsn = v.hsn;
+        tr.dataset.variantPieces = (v.pieces != null) ? String(v.pieces) : '';
+    }
+
+    // Add button in picker fills the target line item row
+    pickerBody.addEventListener('click', function (e) {
+        if (!e.target.matches('.picker-add-btn')) return;
+        const detailRow = e.target.closest('tr.picker-group-detail');
+        if (!pickerTargetRow || !detailRow) return;
+
+        const makeSelect = detailRow.querySelector('.make-select');
+        const lengthSelect = detailRow.querySelector('.length-select');
+        const gradeSelect = detailRow.querySelector('.grade-select');
+        const gradeText = detailRow.querySelector('.grade-text');
+        const mk = makeSelect.options[makeSelect.selectedIndex]?.text || '';
+        const lk = lengthSelect.value;
+        const g = catalogData[detailRow.dataset.key];
+
+        const productName = `${g.type_display} ${g.size}`;
+        const hsnCode = detailRow.dataset.variantHsn || '';
+        const rate = detailRow.dataset.variantRate || '';
+        const pieces = detailRow.dataset.variantPieces;
+
+        const nameField = pickerTargetRow.querySelector('[name$="-product_name"]');
+        const makeField = pickerTargetRow.querySelector('[name$="-make"]');
+        const lenField = pickerTargetRow.querySelector('[name$="-length"]');
+        const hsnField = pickerTargetRow.querySelector('[name$="-hsn_code"]');
+        const pcsField = pickerTargetRow.querySelector('[name$="-pcs"]');
+        const productField = pickerTargetRow.querySelector('[name$="-product"]');
+        const purchaseRateField = pickerTargetRow.querySelector('.purchase-rate-field');
+
+        if (nameField) nameField.value = productName;
+        if (makeField) makeField.value = mk;
+        if (lenField) lenField.value = lk;
+        if (hsnField) hsnField.value = hsnCode;
+        if (productField) productField.value = detailRow.dataset.variantId || '';
+
+        if (pcsField) {
+            if (pieces !== '') {
+                pcsField.value = pieces;
+                pcsField.removeAttribute('readonly');
+                pcsField.classList.remove('bg-light');
+            } else {
+                pcsField.value = '';
+                pcsField.setAttribute('readonly', true);
+                pcsField.classList.add('bg-light');
+            }
+        }
+
+        if (purchaseRateField) {
+            purchaseRateField.value = rate;
+            purchaseRateField.dataset.originalRate = rate;
+            purchaseRateField.dataset.productId = detailRow.dataset.variantId || '';
+            purchaseRateField.dataset.productName = productName;
+            recalcRow(pickerTargetRow);
+            updateSummary();
+        }
+
+        bootstrap.Modal.getInstance(pickerModal).hide();
+    });
+
+    // ── Purchase rate change detection ────────────────────────────────────────────
+
+    let pendingRateChanges = [];
+
+    document.querySelector('form[method="post"]').addEventListener('submit', function (e) {
+        // If we already handled the modal and are re-submitting, let it through
+        if (this.querySelector('input[name="catalog_updates_applied"]')) return;
+
+        pendingRateChanges = [];
+        document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
+            const pr = row.querySelector('.purchase-rate-field');
+            if (!pr || pr.dataset.originalRate === undefined || pr.dataset.originalRate === '') return;
+            const orig = parseFloat(pr.dataset.originalRate) || 0;
+            const curr = parseFloat(pr.value) || 0;
+            if (Math.abs(curr - orig) > 0.001 && pr.dataset.productId) {
+                pendingRateChanges.push({
+                    productId: pr.dataset.productId,
+                    productName: pr.dataset.productName || 'Product',
+                    originalRate: orig,
+                    newRate: curr,
+                });
             }
         });
-    });
-    if (!pickerBody.hasChildNodes()) {
-        pickerBody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No products match.</td></tr>';
-    }
-}
 
-function initPickerRow(detailTr, g) {
-    const makeSelect = detailTr.querySelector('.make-select');
-    Object.entries(g.makes).forEach(([mk, mdata]) => {
-        const opt = document.createElement('option');
-        opt.value = mk; opt.textContent = mdata.display;
-        makeSelect.appendChild(opt);
-    });
-    makeSelect.addEventListener('change',  () => pickerRefreshLength(detailTr, g));
-    detailTr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(detailTr, g));
-    detailTr.querySelector('.grade-select').addEventListener('change',  () => pickerRefreshSite(detailTr, g));
-    detailTr.querySelector('.site-select').addEventListener('change',   () => pickerRefreshVariant(detailTr, g));
-    pickerRefreshLength(detailTr, g);
-}
-
-function pickerRefreshLength(tr, g) {
-    const mk = tr.querySelector('.make-select').value;
-    const lengthSelect = tr.querySelector('.length-select');
-    lengthSelect.innerHTML = '';
-    Object.keys(g.makes[mk]?.lengths || {}).forEach(lk => {
-        const opt = document.createElement('option');
-        opt.value = lk; opt.textContent = lk || '—';
-        lengthSelect.appendChild(opt);
-    });
-    pickerRefreshGrade(tr, g);
-}
-
-function pickerRefreshGrade(tr, g) {
-    const mk = tr.querySelector('.make-select').value;
-    const lk = tr.querySelector('.length-select').value;
-    const grades = g.makes[mk]?.lengths[lk]?.grades || {};
-    const gradeKeys = Object.keys(grades);
-    const gradeSelect = tr.querySelector('.grade-select');
-    const gradeText   = tr.querySelector('.grade-text');
-    gradeSelect.innerHTML = '';
-    if (gradeKeys.length > 1) {
-        gradeKeys.forEach(gk => {
-            const opt = document.createElement('option');
-            opt.value = gk; opt.textContent = gk || '—';
-            gradeSelect.appendChild(opt);
-        });
-        gradeSelect.style.display = ''; gradeText.style.display = 'none';
-    } else {
-        gradeSelect.style.display = 'none'; gradeText.style.display = '';
-        gradeText.textContent = gradeKeys[0] || '—';
-        if (gradeKeys.length === 1) {
-            const opt = document.createElement('option');
-            opt.value = gradeKeys[0]; gradeSelect.appendChild(opt);
-        }
-    }
-    pickerRefreshSite(tr, g);
-}
-
-function pickerRefreshSite(tr, g) {
-    const mk = tr.querySelector('.make-select').value;
-    const lk = tr.querySelector('.length-select').value;
-    const gk = tr.querySelector('.grade-select').value;
-    const sites = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites || {};
-    const siteKeys = Object.keys(sites);
-    const siteSelect = tr.querySelector('.site-select');
-    const siteText   = tr.querySelector('.site-text');
-    siteSelect.innerHTML = '';
-    if (siteKeys.length > 1) {
-        siteKeys.forEach(sk => {
-            const opt = document.createElement('option');
-            opt.value = sk; opt.textContent = sites[sk].site_display || sk || '—';
-            siteSelect.appendChild(opt);
-        });
-        siteSelect.style.display = ''; siteText.style.display = 'none';
-    } else {
-        siteSelect.style.display = 'none'; siteText.style.display = '';
-        siteText.textContent = siteKeys.length === 1 ? (sites[siteKeys[0]].site_display || siteKeys[0]) : '—';
-        if (siteKeys.length === 1) {
-            const opt = document.createElement('option');
-            opt.value = siteKeys[0]; siteSelect.appendChild(opt);
-        }
-    }
-    pickerRefreshVariant(tr, g);
-}
-
-function pickerRefreshVariant(tr, g) {
-    const mk = tr.querySelector('.make-select').value;
-    const lk = tr.querySelector('.length-select').value;
-    const gk = tr.querySelector('.grade-select').value;
-    const sk = tr.querySelector('.site-select').value;
-    const v  = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites[sk];
-    if (!v) return;
-    tr.querySelector('.picker-hsn-cell').textContent = v.hsn || '—';
-    tr.querySelector('.rate-cell').textContent = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
-    tr.querySelector('.qty-cell').textContent  = v.qty || '—';
-    tr.dataset.variantId     = v.id;
-    tr.dataset.variantRate   = v.rate;
-    tr.dataset.variantHsn    = v.hsn;
-    tr.dataset.variantPieces = (v.pieces != null) ? String(v.pieces) : '';
-}
-
-// Add button in picker fills the target line item row
-pickerBody.addEventListener('click', function(e) {
-    if (!e.target.matches('.picker-add-btn')) return;
-    const detailRow = e.target.closest('tr.picker-group-detail');
-    if (!pickerTargetRow || !detailRow) return;
-
-    const makeSelect   = detailRow.querySelector('.make-select');
-    const lengthSelect = detailRow.querySelector('.length-select');
-    const gradeSelect  = detailRow.querySelector('.grade-select');
-    const gradeText    = detailRow.querySelector('.grade-text');
-    const mk = makeSelect.options[makeSelect.selectedIndex]?.text || '';
-    const lk = lengthSelect.value;
-    const g  = catalogData[detailRow.dataset.key];
-
-    const productName = `${g.type_display} ${g.size}`;
-    const hsnCode     = detailRow.dataset.variantHsn || '';
-    const rate        = detailRow.dataset.variantRate || '';
-    const pieces      = detailRow.dataset.variantPieces;
-
-    const nameField         = pickerTargetRow.querySelector('[name$="-product_name"]');
-    const makeField         = pickerTargetRow.querySelector('[name$="-make"]');
-    const lenField          = pickerTargetRow.querySelector('[name$="-length"]');
-    const hsnField          = pickerTargetRow.querySelector('[name$="-hsn_code"]');
-    const pcsField          = pickerTargetRow.querySelector('[name$="-pcs"]');
-    const productField      = pickerTargetRow.querySelector('[name$="-product"]');
-    const purchaseRateField = pickerTargetRow.querySelector('.purchase-rate-field');
-
-    if (nameField)    nameField.value    = productName;
-    if (makeField)    makeField.value    = mk;
-    if (lenField)     lenField.value     = lk;
-    if (hsnField)     hsnField.value     = hsnCode;
-    if (productField) productField.value = detailRow.dataset.variantId || '';
-
-    if (pcsField) {
-        if (pieces !== '') {
-            pcsField.value = pieces;
-            pcsField.removeAttribute('readonly');
-            pcsField.classList.remove('bg-light');
-        } else {
-            pcsField.value = '';
-            pcsField.setAttribute('readonly', true);
-            pcsField.classList.add('bg-light');
-        }
-    }
-
-    if (purchaseRateField) {
-        purchaseRateField.value = rate;
-        purchaseRateField.dataset.originalRate  = rate;
-        purchaseRateField.dataset.productId     = detailRow.dataset.variantId || '';
-        purchaseRateField.dataset.productName   = productName;
-        recalcRow(pickerTargetRow);
-        updateSummary();
-    }
-
-    bootstrap.Modal.getInstance(pickerModal).hide();
-});
-
-// ── Purchase rate change detection ────────────────────────────────────────────
-
-let pendingRateChanges = [];
-
-document.querySelector('form[method="post"]').addEventListener('submit', function (e) {
-    // If we already handled the modal and are re-submitting, let it through
-    if (this.querySelector('input[name="catalog_updates_applied"]')) return;
-
-    pendingRateChanges = [];
-    document.querySelectorAll('#formset-body .line-item-row:not(.d-none)').forEach(row => {
-        const pr = row.querySelector('.purchase-rate-field');
-        if (!pr || pr.dataset.originalRate === undefined || pr.dataset.originalRate === '') return;
-        const orig = parseFloat(pr.dataset.originalRate) || 0;
-        const curr = parseFloat(pr.value) || 0;
-        if (Math.abs(curr - orig) > 0.001 && pr.dataset.productId) {
-            pendingRateChanges.push({
-                productId:   pr.dataset.productId,
-                productName: pr.dataset.productName || 'Product',
-                originalRate: orig,
-                newRate: curr,
-            });
+        if (pendingRateChanges.length > 0) {
+            e.preventDefault();
+            showRateChangeModal();
         }
     });
 
-    if (pendingRateChanges.length > 0) {
-        e.preventDefault();
-        showRateChangeModal();
-    }
-});
-
-function showRateChangeModal() {
-    const listEl = document.getElementById('rate-change-list');
-    listEl.innerHTML = '<p class="mb-3 text-muted">Check the products whose catalog rate you want to update:</p>';
-    pendingRateChanges.forEach(c => {
-        listEl.insertAdjacentHTML('beforeend', `
+    function showRateChangeModal() {
+        const listEl = document.getElementById('rate-change-list');
+        listEl.innerHTML = '<p class="mb-3 text-muted">Check the products whose catalog rate you want to update:</p>';
+        pendingRateChanges.forEach(c => {
+            listEl.insertAdjacentHTML('beforeend', `
             <div class="mb-3 border rounded p-2">
                 <div class="fw-semibold">${c.productName}</div>
                 <div class="text-muted small mb-1">
@@ -732,37 +790,37 @@ function showRateChangeModal() {
                     </label>
                 </div>
             </div>`);
+        });
+        new bootstrap.Modal(document.getElementById('rateChangeModal')).show();
+    }
+
+    document.getElementById('rate-skip-btn').addEventListener('click', function () {
+        bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
+        submitFormNow();
     });
-    new bootstrap.Modal(document.getElementById('rateChangeModal')).show();
-}
 
-document.getElementById('rate-skip-btn').addEventListener('click', function () {
-    bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
-    submitFormNow();
-});
-
-document.getElementById('rate-update-btn').addEventListener('click', function () {
-    const form = document.querySelector('form[method="post"]');
-    document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
-        const inp = document.createElement('input');
-        inp.type  = 'hidden';
-        inp.name  = `catalog_rate_update_${cb.dataset.productId}`;
-        inp.value = cb.dataset.newRate;
-        form.appendChild(inp);
+    document.getElementById('rate-update-btn').addEventListener('click', function () {
+        const form = document.querySelector('form[method="post"]');
+        document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = `catalog_rate_update_${cb.dataset.productId}`;
+            inp.value = cb.dataset.newRate;
+            form.appendChild(inp);
+        });
+        bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
+        submitFormNow();
     });
-    bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
-    submitFormNow();
-});
 
-function submitFormNow() {
-    const form = document.querySelector('form[method="post"]');
-    const flag = document.createElement('input');
-    flag.type  = 'hidden';
-    flag.name  = 'catalog_updates_applied';
-    flag.value = '1';
-    form.appendChild(flag);
-    form.submit();
-}
+    function submitFormNow() {
+        const form = document.querySelector('form[method="post"]');
+        const flag = document.createElement('input');
+        flag.type = 'hidden';
+        flag.name = 'catalog_updates_applied';
+        flag.value = '1';
+        form.appendChild(flag);
+        form.submit();
+    }
 </script>
 
 <!-- Rate Change Confirm Modal -->

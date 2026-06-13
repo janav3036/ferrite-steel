@@ -85,7 +85,11 @@ def lead_detail(request, pk):
     from .models import ProductKeyword
     lead = get_object_or_404(Lead.objects.prefetch_related('quotations'), pk=pk)
     keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
-    return render(request, 'quotations/lead_detail.html', {'lead': lead, 'voice_keywords': keywords})
+    customer = _find_customer(lead)
+    addon_marker = '--- Pricing Add-ons ---'
+    raw_notes = customer.notes if customer else ''
+    customer_notes_display = raw_notes.split(addon_marker)[0].strip() if raw_notes else ''
+    return render(request, 'quotations/lead_detail.html', {'lead': lead, 'voice_keywords': keywords, 'customer_notes_display': customer_notes_display})
 
 
 @login_required
@@ -116,6 +120,35 @@ def lead_save_notes(request, pk):
         messages.success(request, 'Cleaned notes saved.')
 
     return redirect('lead_detail', pk=pk)
+
+@login_required
+@require_POST
+def quotation_save_notes(request, pk):
+    quotation = get_object_or_404(Quotation, pk=pk)
+    action = request.POST.get('action')
+
+    if action == 'save':
+        quotation.quotation_notes_raw = request.POST.get('quotation_notes_raw', '').strip()
+        quotation.save(update_fields=['quotation_notes_raw'])
+        messages.success(request, 'Notes saved.')
+
+    elif action == 'cleanup':
+        raw = request.POST.get('quotation_notes_raw', '').strip()
+        quotation.quotation_notes_raw = raw
+        if raw:
+            from .services.llm import cleanup_lead_notes
+            quotation.quotation_notes_clean = cleanup_lead_notes(raw)
+            messages.success(request, 'Notes cleaned up by AI.')
+        else:
+            messages.warning(request, 'No notes to clean up.')
+        quotation.save(update_fields=['quotation_notes_raw', 'quotation_notes_clean'])
+
+    elif action == 'save_clean':
+        quotation.quotation_notes_clean = request.POST.get('quotation_notes_clean', '').strip()
+        quotation.save(update_fields=['quotation_notes_clean'])
+        messages.success(request, 'Cleaned notes saved.')
+
+    return redirect('quotation_detail', pk=pk)
 
 
 @login_required
@@ -303,6 +336,8 @@ def _quotation_context(quotation):
         Q(pk=root.pk) | Q(parent_quotation=root)
     ).select_related('created_by').order_by('version')
 
+    voice_keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
+
     return {
         'quotation': quotation,
         'items': items,
@@ -318,6 +353,7 @@ def _quotation_context(quotation):
         'root': root,
         'customer': customer,
         'customer_notes_display': customer_notes_display,
+        'voice_keywords': voice_keywords,
     }
 
 

@@ -24,6 +24,7 @@ urlpatterns = [
     path('database/', include('database.urls')),
     path('training/', include('training.urls')),
     path('chat/', include('chat.urls')),
+    path('guide/', include('guide.urls')),
 ]
 
 

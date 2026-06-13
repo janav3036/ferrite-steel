@@ -5,8 +5,8 @@
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <h2 class="mb-0">Lead #{{ lead.pk }}</h2>
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-danger btn-sm"
-                data-bs-toggle="modal" data-bs-target="#deleteLeadModal">Delete Lead</button>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+            data-bs-target="#deleteLeadModal">Delete Lead</button>
         <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
     </div>
 </div>
@@ -20,11 +20,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>This will permanently delete <strong>Lead #{{ lead.pk }}{% if lead.customer_name %} — {{ lead.customer_name }}{% endif %}</strong>.</p>
+                <p>This will permanently delete <strong>Lead #{{ lead.pk }}{% if lead.customer_name %} — {{
+                        lead.customer_name }}{% endif %}</strong>.</p>
                 {% with q_count=lead.quotations.count %}
                 {% if q_count %}
                 <div class="alert alert-warning mb-0">
-                    This lead has <strong>{{ q_count }} quotation{{ q_count|pluralize }}</strong>. Deleting it will delete all associated quotations too.
+                    This lead has <strong>{{ q_count }} quotation{{ q_count|pluralize }}</strong>. Deleting it will
+                    delete all associated quotations too.
                 </div>
                 {% endif %}
                 {% endwith %}
@@ -41,9 +43,9 @@
 </div>
 
 {% if messages %}
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-    {% endfor %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }}">{{ message }}</div>
+{% endfor %}
 {% endif %}
 
 <div class="row g-4">
@@ -93,7 +95,9 @@
     <div class="col-12">
         <div class="card shadow-sm">
             <div class="card-header fw-semibold">Notes</div>
-            <div class="card-body"><p class="mb-0">{{ lead.notes }}</p></div>
+            <div class="card-body">
+                <p class="mb-0">{{ lead.notes }}</p>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -107,14 +111,18 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-semibold text-muted small mb-0">Raw Notes</label>
-                            <button type="button" id="micBtn" class="btn btn-sm btn-outline-secondary" title="Dictate notes (Chrome/Edge + HTTPS only)">🎤 Dictate</button>
+                            <button type="button" id="micBtn" class="btn btn-sm btn-outline-secondary"
+                                title="Dictate notes (Chrome/Edge + HTTPS only)">🎤 Dictate</button>
                         </div>
-                        <textarea id="leadNotesRaw" name="lead_notes_raw" class="form-control" rows="4" placeholder="Type, paste, or dictate rough notes here…">{{ lead.lead_notes_raw }}</textarea>
+                        <textarea id="leadNotesRaw" name="lead_notes_raw" class="form-control" rows="4"
+                            placeholder="Type, paste, or dictate rough notes here…">{{ lead.lead_notes_raw }}</textarea>
                         <div id="micStatus" class="form-text text-danger d-none"></div>
                     </div>
                     <div class="d-flex gap-2 mb-0">
-                        <button type="submit" name="action" value="save" class="btn btn-sm btn-outline-secondary">Save</button>
-                        <button type="submit" name="action" value="cleanup" class="btn btn-sm btn-primary">✦ Clean up with AI</button>
+                        <button type="submit" name="action" value="save"
+                            class="btn btn-sm btn-outline-secondary">Save</button>
+                        <button type="submit" name="action" value="cleanup" class="btn btn-sm btn-primary">✦ Clean up
+                            with AI</button>
                     </div>
                 </form>
 
@@ -123,16 +131,20 @@
                 <form method="post" action="{% url 'lead_save_notes' lead.pk %}">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-muted small">Cleaned Notes <span class="badge bg-success ms-1">AI</span></label>
-                        <textarea name="lead_notes_clean" class="form-control" rows="4">{{ lead.lead_notes_clean }}</textarea>
+                        <label class="form-label fw-semibold text-muted small">Cleaned Notes <span
+                                class="badge bg-success ms-1">AI</span></label>
+                        <textarea name="lead_notes_clean" class="form-control"
+                            rows="4">{{ lead.lead_notes_clean }}</textarea>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit" name="action" value="save_clean" class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
+                        <button type="submit" name="action" value="save_clean"
+                            class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
                         {% if perms.training.add_case %}
                         <a href="{% url 'case_create' %}?lead={{ lead.pk }}&notes={{ lead.lead_notes_clean|urlencode }}"
-                           class="btn btn-sm btn-success">→ Convert to Case</a>
+                            class="btn btn-sm btn-success">→ Convert to Case</a>
                         {% else %}
-                        <a href="#" class="btn btn-sm btn-success disabled" title="Only team leads and admins can create cases">→ Convert to Case</a>
+                        <a href="#" class="btn btn-sm btn-success disabled"
+                            title="Only team leads and admins can create cases">→ Convert to Case</a>
                         {% endif %}
                     </div>
                 </form>
@@ -140,6 +152,20 @@
             </div>
         </div>
     </div>
+    {% if customer_notes_display %}
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold d-flex align-items-center gap-2">
+                <i class="bi bi-person-lines-fill text-muted"></i> Customer Notes
+                <span class="badge bg-light text-muted fw-normal ms-1" style="font-size:.72rem;">from SAP record</span>
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{
+                    customer_notes_display }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="col-12">
         <div class="card shadow-sm">
@@ -177,32 +203,33 @@
 
 {% block extra_js %}
 <script>
-(function () {
-    const btn = document.getElementById('micBtn');
-    const textarea = document.getElementById('leadNotesRaw');
-    const status = document.getElementById('micStatus');
+    (function () {
+        const btn = document.getElementById('micBtn');
+        const textarea = document.getElementById('leadNotesRaw');
+        const status = document.getElementById('micStatus');
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-        btn.disabled = true;
-        btn.title = 'Voice input requires Chrome or Edge';
-        return;
-    }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            btn.disabled = true;
+            btn.title = 'Voice input requires Chrome or Edge';
+            return;
+        }
 
-    // Punctuation words → symbols (case-insensitive, whole word)
-    const PUNCT = [
-        [/\b(full stop|period)\b/gi, '. '],
-        [/\bcomma\b/gi, ', '],
-        [/\bquestion mark\b/gi, '? '],
-        [/\bexclamation( mark| point)?\b/gi, '! '],
-        [/\bcolon\b/gi, ': '],
-        [/\bsemicolon\b/gi, '; '],
-        [/\bnew line\b/gi, '\n'],
-        [/\bdash\b/gi, ' — '],
-    ];
+        // Punctuation words → symbols (case-insensitive, whole word)
+        const PUNCT = [
+            [/\b(full stop|period)\b/gi, '. '],
+            [/\bcomma\b/gi, ', '],
+            [/\bquestion mark\b/gi, '? '],
+            [/\bexclamation( mark| point)?\b/gi, '! '],
+            [/\bcolon\b/gi, ': '],
+            [/\bsemicolon\b/gi, '; '],
+            [/\bnew line\b/gi, '\n'],
+            [/\bdash\b/gi, ' — '],
+        ];
 
-    // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
-    const KEYWORDS = {{ voice_keywords|safe }};
+        // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
+        const KEYWORDS = {{ voice_keywords| safe
+    }};
     KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 
     function postProcess(text) {
@@ -267,6 +294,6 @@
     btn.addEventListener('click', function () {
         listening ? stopListening() : startListening();
     });
-})();
+}) ();
 </script>
 {% endblock %}

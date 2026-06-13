@@ -98,6 +98,8 @@ class Quotation(models.Model):
     )
     stock_deducted = models.BooleanField(default=False)
     llm_raw_response = models.TextField(blank=True)
+    quotation_notes_raw   = models.TextField(blank=True)
+    quotation_notes_clean = models.TextField(blank=True)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     valid_until = models.DateField(null=True, blank=True)

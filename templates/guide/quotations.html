@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Guide — Quotation Automator · Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "guide/_sb_guide.html" %}
+<style>
+:root {
+    --g-card:    #FFFFFF;
+    --g-border:  #CFD9C7;
+    --g-text:    #0F1A0B;
+    --g-muted:   #536150;
+    --g-accent:  #15803D;
+    --g-serif:   'Cormorant Garamond', Georgia, serif;
+}
+.g-eyebrow { font-size:.69rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--g-accent); margin-bottom:5px; }
+.g-title { font-family:var(--g-serif); font-size:2.2rem; font-weight:600; font-style:italic; color:var(--g-text); letter-spacing:-.02em; line-height:1.1; margin:0 0 6px; }
+.g-subtitle { font-size:.86rem; color:var(--g-muted); margin:0; }
+
+.g-tabs { display:flex; gap:0; border-bottom:1.5px solid var(--g-border); margin:22px 0 28px; }
+.g-tab { display:flex; align-items:center; gap:7px; padding:9px 20px 10px; font-size:.82rem; font-weight:500; color:var(--g-muted); text-decoration:none; border-bottom:2.5px solid transparent; margin-bottom:-1.5px; transition:color .14s, border-color .14s; white-space:nowrap; }
+.g-tab:hover { color:var(--g-text); text-decoration:none; }
+.g-tab.active { color:var(--g-accent); border-bottom-color:var(--g-accent); font-weight:600; }
+.g-tab .bi { font-size:.8rem; }
+
+.g-card { background:var(--g-card); border:1px solid var(--g-border); border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(10,25,10,.05); height:100%; }
+.g-card-head { padding:13px 18px; border-bottom:1px solid var(--g-border); display:flex; align-items:center; gap:10px; }
+.g-card-icon { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:.84rem; flex-shrink:0; }
+.g-card-title { font-family:var(--g-serif); font-size:1.12rem; font-weight:600; font-style:italic; color:var(--g-text); letter-spacing:-.01em; margin:0; }
+.g-card-body { padding:16px 18px; }
+
+.g-tips { display:flex; flex-direction:column; gap:14px; }
+.g-tip { display:grid; grid-template-columns:30px 1fr; gap:11px; align-items:flex-start; }
+.g-tip-ico { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.8rem; flex-shrink:0; margin-top:1px; }
+.g-tip-body strong { display:block; font-size:.84rem; font-weight:600; color:var(--g-text); margin-bottom:2px; }
+.g-tip-body p { font-size:.81rem; color:var(--g-muted); margin:0; line-height:1.52; }
+.g-tip-body code { font-size:.77rem; background:#F0F4EC; border:1px solid var(--g-border); border-radius:4px; padding:0 5px; color:var(--g-accent); font-family:'SF Mono','Fira Code',monospace; }
+
+.g-links { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--g-border); }
+.g-link { font-size:.77rem; font-weight:500; color:var(--g-accent); padding:4px 10px; border:1px solid rgba(21,128,61,.2); border-radius:5px; background:rgba(21,128,61,.04); text-decoration:none; transition:background .1s; }
+.g-link:hover { background:rgba(21,128,61,.09); text-decoration:none; }
+
+.ico-blue   { background:#EFF6FF; color:#2563EB; }
+.ico-green  { background:#F0FDF4; color:#16A34A; }
+.ico-amber  { background:#FFFBEB; color:#D97706; }
+.ico-purple { background:#F5F3FF; color:#7C3AED; }
+.ico-red    { background:#FEF2F2; color:#DC2626; }
+.ico-teal   { background:#F0FDFA; color:#0F766E; }
+.ico-slate  { background:#F1F5F9; color:#475569; }
+
+.flow-steps { display:flex; align-items:center; gap:3px; flex-wrap:wrap; margin-top:5px; }
+.flow-step { font-size:.71rem; font-weight:600; padding:2px 7px; background:#F0F4EC; border:1px solid var(--g-border); border-radius:4px; color:var(--g-text); }
+.flow-arrow { font-size:.68rem; color:var(--g-muted); padding:0 2px; }
+
+/* Card variants */
+.g-card.g-lead { border-color:#BFDBFE; }
+.g-card.g-lead .g-card-head { background:#EFF6FF; border-bottom-color:#BFDBFE; }
+.g-card.g-lead .g-card-title { color:#1D4ED8; }
+
+.g-card.g-market { border-color:#BBF7D0; }
+.g-card.g-market .g-card-head { background:#F0FDF4; border-bottom-color:#BBF7D0; }
+.g-card.g-market .g-card-title { color:#065F46; }
+
+.g-card.g-admin { border-color:#FDE68A; }
+.g-card.g-admin .g-card-head { background:#FFFBEB; border-bottom-color:#FDE68A; }
+.g-card.g-admin .g-card-title { color:#92400E; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="g-eyebrow"><i class="bi bi-question-circle me-1"></i> Help & Reference</div>
+<h2 class="g-title">User Guide</h2>
+<p class="g-subtitle">Quick reference for using Ferrite Steel CRM. Pick a module below.</p>
+
+<nav class="g-tabs">
+    <a href="{% url 'guide_core' %}" class="g-tab"><i class="bi bi-house"></i> Core & CRM</a>
+    <a href="{% url 'guide_quotations' %}" class="g-tab active"><i class="bi bi-file-earmark-text"></i> Quotation Automator</a>
+    <a href="{% url 'guide_training' %}" class="g-tab"><i class="bi bi-book"></i> Training</a>
+</nav>
+
+<div class="row g-3">
+
+  <!-- Leads -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-blue"><i class="bi bi-funnel"></i></div>
+        <h3 class="g-card-title">Working with Leads</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-plus-circle"></i></div>
+            <div class="g-tip-body"><strong>Creating a lead</strong><p>Click "New Lead" from the Leads list. Fill in the customer's name, company, and contact. Source indicates how the inquiry arrived.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-building"></i></div>
+            <div class="g-tip-body"><strong>Customer auto-link</strong><p>When a quotation is saved, the customer record is automatically created or updated from the lead — no separate entry needed.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-person-badge"></i></div>
+            <div class="g-tip-body"><strong>Broker-sourced leads</strong><p>Attach a broker in the lead form if the inquiry came through one. Broker leads use an internal quotation format and send rate-only emails.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-journal-text"></i></div>
+            <div class="g-tip-body"><strong>Case notes & voice dictation</strong><p>Open a lead → Case Notes card. Dictate with the microphone button (Chrome/Edge only), clean up with AI, then convert to a formal Case.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'lead_list' %}" class="g-link">Leads →</a>
+          <a href="{% url 'lead_create' %}" class="g-link">New Lead →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quotation Editor -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-teal"><i class="bi bi-file-earmark-text"></i></div>
+        <h3 class="g-card-title">Quotation Editor</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-play-circle"></i></div>
+            <div class="g-tip-body"><strong>Starting a quotation</strong><p>From a lead's detail page, click "New Quotation". The AI attempts to pre-fill line items from the lead text — review everything before saving.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-search"></i></div>
+            <div class="g-tip-body"><strong>The product picker</strong><p>Click <strong>⌕ pick</strong> on any row to open the product catalogue. This sets the product, make, length, HSN code, and purchase rate automatically. Always use the picker — don't type manually.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-lock"></i></div>
+            <div class="g-tip-body"><strong>Locked fields</strong><p><strong>Make</strong> and <strong>Length</strong> are set only via the picker — they're read-only otherwise. <strong>Pcs</strong> is greyed for products with no piece count.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-calculator"></i></div>
+            <div class="g-tip-body"><strong>Auto-calculation</strong><p>Unit price, totals, taxes, and grand total all update live in the browser as you type. The final values are what gets saved.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'quotation_list' %}" class="g-link">Quotations →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing Add-ons -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-slate"><i class="bi bi-sliders"></i></div>
+        <h3 class="g-card-title">Pricing Add-ons</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-plus-square"></i></div>
+            <div class="g-tip-body"><strong>Opening add-ons</strong><p>Click <strong>⊞ add-ons</strong> on any line item row to expand 7 per-row cost inputs: Parity, Cutting, Loading, Transport, Margin, Interest, Commission.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-arrow-down-circle"></i></div>
+            <div class="g-tip-body"><strong>Defaults from customer notes</strong><p>If the customer record has pricing defaults saved, those values load automatically when you open the quotation editor.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="g-tip-body"><strong>Add-ons are not saved</strong><p>These inputs live only in your browser session. Only the final <strong>unit price</strong> is stored in the database — if you reload, re-enter them.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-percent"></i></div>
+            <div class="g-tip-body"><strong>Discount per row</strong><p>Each line item has a <strong>Discount %</strong> field. The discounted total (final price) is used for tax and grand total calculations.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approving & Sending -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card g-lead">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-blue"><i class="bi bi-send-check"></i></div>
+        <h3 class="g-card-title">Approving & Sending</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-check-circle"></i></div>
+            <div class="g-tip-body"><strong>Who can approve</strong><p>Only Team Leads and Admins can approve a quotation. Members create and edit drafts, then request approval.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-envelope"></i></div>
+            <div class="g-tip-body"><strong>Sending to customer</strong><p>After approval, click "Send". A confirmation screen lets you review the email and PDF before it goes out.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-file-pdf"></i></div>
+            <div class="g-tip-body"><strong>PDF attachment</strong><p>PDF is generated automatically and attached to the customer email. Broker leads get a text-only rate email — no PDF sent externally.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-info-circle"></i></div>
+            <div class="g-tip-body"><strong>Status flow</strong>
+              <div class="flow-steps">
+                <span class="flow-step">Draft</span><span class="flow-arrow">→</span>
+                <span class="flow-step">Approved</span><span class="flow-arrow">→</span>
+                <span class="flow-step">Sent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revisions & Outcomes -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-slate"><i class="bi bi-arrow-counterclockwise"></i></div>
+        <h3 class="g-card-title">Revisions & Outcomes</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-files"></i></div>
+            <div class="g-tip-body"><strong>Revising a quotation</strong><p>Click "Revise" on a sent quotation to create a new version (v2, v3…). The original is preserved. All versions are linked to the same lead.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-share"></i></div>
+            <div class="g-tip-body"><strong>Shared outcome</strong><p>Win/Loss/Not Updated applies to the entire deal — all versions share it. You pick which specific version closed the deal when marking as Won.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-trophy"></i></div>
+            <div class="g-tip-body"><strong>Marking as Won</strong><p>Stock is deducted exactly once on the first Win. If you change outcome and mark Won again, stock is <strong>not</strong> deducted a second time.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-red"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="g-tip-body"><strong>Stock deduction is irreversible</strong><p>Changing outcome to Loss or Not Updated after a Win does not restore stock — the physical goods have already moved.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Orders -->
+  {% if request.user.team == 'market' or request.user.role == 'admin' %}
+  <div class="col-12 col-lg-6">
+    <div class="g-card g-market">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-green"><i class="bi bi-arrow-left-right"></i></div>
+        <h3 class="g-card-title">Market Orders</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-diagram-3"></i></div>
+            <div class="g-tip-body"><strong>What is a Market Order?</strong><p>Tracks the logistics of a broker-sourced deal — from rate negotiation through to delivery order issuance. Separate from the Quotation flow.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-arrow-right-circle"></i></div>
+            <div class="g-tip-body"><strong>Status pipeline</strong>
+              <div class="flow-steps">
+                <span class="flow-step">New</span><span class="flow-arrow">→</span>
+                <span class="flow-step">Rate Sent</span><span class="flow-arrow">→</span>
+                <span class="flow-step">Confirmed</span><span class="flow-arrow">→</span>
+                <span class="flow-step">DO Pending</span><span class="flow-arrow">→</span>
+                <span class="flow-step">Completed</span>
+              </div>
+            </div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-person-gear"></i></div>
+            <div class="g-tip-body"><strong>Loading dock assignment</strong><p>Team Leads assign a loading dock member after broker confirmation. That member receives an email notification automatically.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-file-earmark-check"></i></div>
+            <div class="g-tip-body"><strong>Delivery Order (DO)</strong><p>Enter the DO number on the order detail page to complete the order and send the DO confirmation to the broker's email.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'market_order_list' %}" class="g-link">Market Orders →</a>
+          <a href="{% url 'market_order_create' %}" class="g-link">New Order →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Admin: Email Polling -->
+  {% if request.user.role == 'admin' or request.user.role == 'lead' %}
+  <div class="col-12">
+    <div class="g-card g-admin">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-amber"><i class="bi bi-envelope-arrow-down"></i></div>
+        <h3 class="g-card-title">Lead / Admin — Email Inbox Polling</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-inbox"></i></div>
+                <div class="g-tip-body"><strong>What polling does</strong><p>Checks each team's inbox for new inquiries. Valid emails become Leads automatically. Broker replies update the relevant Market Order status.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-hand-index"></i></div>
+                <div class="g-tip-body"><strong>Manual poll</strong><p>Click "Poll Inbox" on the Leads list page for an immediate check — useful when waiting for a specific reply to come through.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-clock"></i></div>
+                <div class="g-tip-body"><strong>Automatic schedule</strong><p>The system polls automatically every 30 minutes via a background cron job. No manual trigger needed in normal operation.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-funnel"></i></div>
+                <div class="g-tip-body"><strong>Spam filter</strong><p>Emails are pre-filtered before hitting the AI. Marketing mailers, delivery receipts, and non-inquiries are discarded silently.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'lead_list' %}" class="g-link">Leads (Poll Inbox button) →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

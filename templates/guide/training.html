@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Guide — Training · Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "guide/_sb_guide.html" %}
+<style>
+:root {
+    --g-card:    #FFFFFF;
+    --g-border:  #CFD9C7;
+    --g-text:    #0F1A0B;
+    --g-muted:   #536150;
+    --g-accent:  #15803D;
+    --g-serif:   'Cormorant Garamond', Georgia, serif;
+}
+.g-eyebrow { font-size:.69rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--g-accent); margin-bottom:5px; }
+.g-title { font-family:var(--g-serif); font-size:2.2rem; font-weight:600; font-style:italic; color:var(--g-text); letter-spacing:-.02em; line-height:1.1; margin:0 0 6px; }
+.g-subtitle { font-size:.86rem; color:var(--g-muted); margin:0; }
+
+.g-tabs { display:flex; gap:0; border-bottom:1.5px solid var(--g-border); margin:22px 0 28px; }
+.g-tab { display:flex; align-items:center; gap:7px; padding:9px 20px 10px; font-size:.82rem; font-weight:500; color:var(--g-muted); text-decoration:none; border-bottom:2.5px solid transparent; margin-bottom:-1.5px; transition:color .14s, border-color .14s; white-space:nowrap; }
+.g-tab:hover { color:var(--g-text); text-decoration:none; }
+.g-tab.active { color:var(--g-accent); border-bottom-color:var(--g-accent); font-weight:600; }
+.g-tab .bi { font-size:.8rem; }
+
+.g-card { background:var(--g-card); border:1px solid var(--g-border); border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(10,25,10,.05); height:100%; }
+.g-card-head { padding:13px 18px; border-bottom:1px solid var(--g-border); display:flex; align-items:center; gap:10px; }
+.g-card-icon { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:.84rem; flex-shrink:0; }
+.g-card-title { font-family:var(--g-serif); font-size:1.12rem; font-weight:600; font-style:italic; color:var(--g-text); letter-spacing:-.01em; margin:0; }
+.g-card-body { padding:16px 18px; }
+
+.g-tips { display:flex; flex-direction:column; gap:14px; }
+.g-tip { display:grid; grid-template-columns:30px 1fr; gap:11px; align-items:flex-start; }
+.g-tip-ico { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.8rem; flex-shrink:0; margin-top:1px; }
+.g-tip-body strong { display:block; font-size:.84rem; font-weight:600; color:var(--g-text); margin-bottom:2px; }
+.g-tip-body p { font-size:.81rem; color:var(--g-muted); margin:0; line-height:1.52; }
+
+.g-links { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--g-border); }
+.g-link { font-size:.77rem; font-weight:500; color:var(--g-accent); padding:4px 10px; border:1px solid rgba(21,128,61,.2); border-radius:5px; background:rgba(21,128,61,.04); text-decoration:none; transition:background .1s; }
+.g-link:hover { background:rgba(21,128,61,.09); text-decoration:none; }
+
+.ico-blue   { background:#EFF6FF; color:#2563EB; }
+.ico-green  { background:#F0FDF4; color:#16A34A; }
+.ico-amber  { background:#FFFBEB; color:#D97706; }
+.ico-purple { background:#F5F3FF; color:#7C3AED; }
+.ico-red    { background:#FEF2F2; color:#DC2626; }
+.ico-teal   { background:#F0FDFA; color:#0F766E; }
+.ico-slate  { background:#F1F5F9; color:#475569; }
+
+.score-pass { display:inline-flex; align-items:center; font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:100px; background:#D1FAE5; color:#065F46; }
+.score-fail { display:inline-flex; align-items:center; font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:100px; background:#FEE2E2; color:#991B1B; }
+
+/* Admin card */
+.g-card.g-admin { border-color:#FDE68A; }
+.g-card.g-admin .g-card-head { background:#FFFBEB; border-bottom-color:#FDE68A; }
+.g-card.g-admin .g-card-title { color:#92400E; }
+
+.g-subsection-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--g-muted); margin-bottom:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="g-eyebrow"><i class="bi bi-question-circle me-1"></i> Help & Reference</div>
+<h2 class="g-title">User Guide</h2>
+<p class="g-subtitle">Quick reference for using Ferrite Steel CRM. Pick a module below.</p>
+
+<nav class="g-tabs">
+    <a href="{% url 'guide_core' %}" class="g-tab"><i class="bi bi-house"></i> Core & CRM</a>
+    <a href="{% url 'guide_quotations' %}" class="g-tab"><i class="bi bi-file-earmark-text"></i> Quotation Automator</a>
+    <a href="{% url 'guide_training' %}" class="g-tab active"><i class="bi bi-book"></i> Training</a>
+</nav>
+
+<div class="row g-3">
+
+  <!-- Cases -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-blue"><i class="bi bi-journal-richtext"></i></div>
+        <h3 class="g-card-title">Case Management</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-info-circle"></i></div>
+            <div class="g-tip-body"><strong>What is a Case?</strong><p>A structured record of a real business problem — what happened, the context, and how it was resolved. Cases build the team's collective knowledge over time.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-pencil-square"></i></div>
+            <div class="g-tip-body"><strong>Creating a case</strong><p>Training → Cases → New Case. Fill in the title, problem description, context (what triggered it), and resolution. Tag it to one or more departments.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-arrow-up-right-circle"></i></div>
+            <div class="g-tip-body"><strong>Convert from a lead</strong><p>On a lead's detail page, write notes in the Case Notes card. Once AI-cleaned, click "Convert to Case" — the form pre-fills automatically from your notes.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-building"></i></div>
+            <div class="g-tip-body"><strong>Customer link</strong><p>Cases can be optionally linked to a customer record. Useful when searching for past issues with a specific account.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'case_list' %}" class="g-link">Cases →</a>
+          <a href="{% url 'case_create' %}" class="g-link">New Case →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz System -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-purple"><i class="bi bi-patch-question"></i></div>
+        <h3 class="g-card-title">Quiz System</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-list-check"></i></div>
+            <div class="g-tip-body"><strong>Taking a quiz</strong><p>Training → Quizzes. You'll see quiz sets relevant to your department. Click one and answer each question in your own words — no need to match exact phrasing.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-robot"></i></div>
+            <div class="g-tip-body"><strong>AI-judged answers</strong><p>The AI compares your answer against the correct answer for meaning, not exact text. If you're wrong, it explains why and shows what was expected.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-trophy"></i></div>
+            <div class="g-tip-body"><strong>Pass threshold</strong><p>Score <strong>70% or above</strong> to pass. Results show <span class="score-pass">Pass</span> or <span class="score-fail">Fail</span> alongside your score and explanations.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-graph-up"></i></div>
+            <div class="g-tip-body"><strong>Best score tracked</strong><p>Your highest score per quiz set is recorded. Retaking and scoring higher updates your best — it doesn't reset it.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'quiz_list' %}" class="g-link">Quizzes →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Knowledge Q&A -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-teal"><i class="bi bi-chat-square-text"></i></div>
+        <h3 class="g-card-title">Knowledge Q&amp;A</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-teal"><i class="bi bi-search"></i></div>
+            <div class="g-tip-body"><strong>What it does</strong><p>Ask a question in plain language and get an answer sourced from uploaded company documents — catalogues, SOPs, policies, past case resolutions, steel technical references, and more.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-slate"><i class="bi bi-chat-dots"></i></div>
+            <div class="g-tip-body"><strong>Not a chatbot</strong><p>This is a single question-and-answer lookup, not a conversation. Each question is independent — there is no chat history or follow-up context carried between questions.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-file-earmark-text"></i></div>
+            <div class="g-tip-body"><strong>Source documents</strong><p>Answers come from documents uploaded and processed by an admin. If a topic isn't covered, the AI will say so rather than guess.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-tags"></i></div>
+            <div class="g-tip-body"><strong>Department filtering</strong><p>Documents are tagged by department. You'll only receive answers from documents relevant to your team's work.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'document_list' %}" class="g-link">Knowledge Base →</a>
+          <a href="{% url 'document_ask' %}" class="g-link">Ask a Question →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- What's in the knowledge base -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-slate"><i class="bi bi-files"></i></div>
+        <h3 class="g-card-title">What's in the Knowledge Base</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-red"><i class="bi bi-file-pdf"></i></div>
+            <div class="g-tip-body"><strong>Supported document types</strong><p>PDF files, Word documents (.docx), and plain text. Excel files are not directly supported — convert relevant tables to text before uploading.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-card-list"></i></div>
+            <div class="g-tip-body"><strong>What gets indexed</strong><p>Product catalogues, pricing guidelines, company SOPs, steel technical references, competitor notes, past case resolutions, and FAQ documents.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-clock"></i></div>
+            <div class="g-tip-body"><strong>Processing time</strong><p>After upload, a document needs to be "processed" before it's searchable. This extracts text and builds the search index — an admin triggers this step.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: Managing Content -->
+  {% if request.user.role == 'admin' %}
+  <div class="col-12">
+    <div class="g-card g-admin">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-amber"><i class="bi bi-shield-lock"></i></div>
+        <h3 class="g-card-title">Admin — Managing Training Content</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="row g-4">
+          <div class="col-12 col-md-4">
+            <div class="g-subsection-label">Documents</div>
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-upload"></i></div>
+                <div class="g-tip-body"><strong>Uploading</strong><p>Training → Knowledge Base → Upload Document. Choose a file or paste text directly. Tag with departments and keywords.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-cpu"></i></div>
+                <div class="g-tip-body"><strong>Processing</strong><p>Open the document detail and click <strong>Process</strong>. This indexes the document for Q&A. Required before it becomes searchable.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="g-subsection-label">Quiz Sets & Questions</div>
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-collection"></i></div>
+                <div class="g-tip-body"><strong>Creating a quiz set</strong><p>Training → Quizzes → New Quiz Set. Give it a title, description, and department tags. Then add questions to it.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-question-circle"></i></div>
+                <div class="g-tip-body"><strong>Writing questions</strong><p>Questions need a clear <strong>correct answer</strong> — this is what the AI judges user responses against. Write it as a complete, readable answer, not a keyword list.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="g-subsection-label">Cases</div>
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-journal-plus"></i></div>
+                <div class="g-tip-body"><strong>Adding cases</strong><p>Admins and Team Leads can create, edit, and delete cases. All users can view them. Cases are also a source for Q&A answers.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-tags"></i></div>
+                <div class="g-tip-body"><strong>Department tags</strong><p>Tag each case to the relevant departments. This controls which team members see it in filtered views and Q&A results.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'document_list' %}" class="g-link">Documents →</a>
+          <a href="{% url 'quiz_list' %}" class="g-link">Quiz Sets →</a>
+          <a href="{% url 'case_list' %}" class="g-link">Cases →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

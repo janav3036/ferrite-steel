@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Guide — Core & CRM · Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "guide/_sb_guide.html" %}
+<style>
+/* ── Guide design tokens ── */
+:root {
+    --g-card:    #FFFFFF;
+    --g-border:  #CFD9C7;
+    --g-text:    #0F1A0B;
+    --g-muted:   #536150;
+    --g-accent:  #15803D;
+    --g-serif:   'Cormorant Garamond', Georgia, serif;
+}
+
+/* ── Page header ── */
+.g-eyebrow {
+    font-size: .69rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .14em;
+    color: var(--g-accent); margin-bottom: 5px;
+}
+.g-title {
+    font-family: var(--g-serif);
+    font-size: 2.2rem; font-weight: 600; font-style: italic;
+    color: var(--g-text); letter-spacing: -.02em;
+    line-height: 1.1; margin: 0 0 6px;
+}
+.g-subtitle { font-size: .86rem; color: var(--g-muted); margin: 0; }
+
+/* ── Module tabs ── */
+.g-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1.5px solid var(--g-border);
+    margin: 22px 0 28px;
+}
+.g-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 20px 10px;
+    font-size: .82rem; font-weight: 500;
+    color: var(--g-muted); text-decoration: none;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -1.5px;
+    transition: color .14s, border-color .14s;
+    white-space: nowrap;
+}
+.g-tab:hover { color: var(--g-text); text-decoration: none; }
+.g-tab.active { color: var(--g-accent); border-bottom-color: var(--g-accent); font-weight: 600; }
+.g-tab .bi { font-size: .8rem; }
+
+/* ── Cards ── */
+.g-card {
+    background: var(--g-card); border: 1px solid var(--g-border);
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(10,25,10,.05);
+    height: 100%;
+}
+.g-card-head {
+    padding: 13px 18px; border-bottom: 1px solid var(--g-border);
+    display: flex; align-items: center; gap: 10px;
+}
+.g-card-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .84rem; flex-shrink: 0;
+}
+.g-card-title {
+    font-family: var(--g-serif);
+    font-size: 1.12rem; font-weight: 600; font-style: italic;
+    color: var(--g-text); letter-spacing: -.01em; margin: 0;
+}
+.g-card-body { padding: 16px 18px; }
+
+/* ── Tips ── */
+.g-tips { display: flex; flex-direction: column; gap: 14px; }
+.g-tip { display: grid; grid-template-columns: 30px 1fr; gap: 11px; align-items: flex-start; }
+.g-tip-ico {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; flex-shrink: 0; margin-top: 1px;
+}
+.g-tip-body strong { display: block; font-size: .84rem; font-weight: 600; color: var(--g-text); margin-bottom: 2px; }
+.g-tip-body p { font-size: .81rem; color: var(--g-muted); margin: 0; line-height: 1.52; }
+
+/* ── Quick links ── */
+.g-links {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--g-border);
+}
+.g-link {
+    font-size: .77rem; font-weight: 500; color: var(--g-accent);
+    padding: 4px 10px; border: 1px solid rgba(21,128,61,.2);
+    border-radius: 5px; background: rgba(21,128,61,.04);
+    text-decoration: none; transition: background .1s;
+}
+.g-link:hover { background: rgba(21,128,61,.09); text-decoration: none; }
+
+/* ── Icon colour presets ── */
+.ico-blue   { background:#EFF6FF; color:#2563EB; }
+.ico-green  { background:#F0FDF4; color:#16A34A; }
+.ico-amber  { background:#FFFBEB; color:#D97706; }
+.ico-purple { background:#F5F3FF; color:#7C3AED; }
+.ico-red    { background:#FEF2F2; color:#DC2626; }
+.ico-teal   { background:#F0FDFA; color:#0F766E; }
+.ico-slate  { background:#F1F5F9; color:#475569; }
+
+/* ── Admin card variant ── */
+.g-card.g-admin { border-color: #FDE68A; }
+.g-card.g-admin .g-card-head { background: #FFFBEB; border-bottom-color: #FDE68A; }
+.g-card.g-admin .g-card-title { color: #92400E; }
+.g-card.g-admin .g-card-icon { background: #FEF3C7; color: #B45309; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="g-eyebrow"><i class="bi bi-question-circle me-1"></i> Help & Reference</div>
+<h2 class="g-title">User Guide</h2>
+<p class="g-subtitle">Quick reference for using Ferrite Steel CRM. Pick a module below.</p>
+
+<nav class="g-tabs">
+    <a href="{% url 'guide_core' %}" class="g-tab active"><i class="bi bi-house"></i> Core & CRM</a>
+    <a href="{% url 'guide_quotations' %}" class="g-tab"><i class="bi bi-file-earmark-text"></i> Quotation Automator</a>
+    <a href="{% url 'guide_training' %}" class="g-tab"><i class="bi bi-book"></i> Training</a>
+</nav>
+
+<div class="row g-3">
+
+  <!-- Getting Started -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-blue"><i class="bi bi-door-open"></i></div>
+        <h3 class="g-card-title">Getting Started</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-key"></i></div>
+            <div class="g-tip-body"><strong>Logging in</strong><p>Use your username and password on the login screen. Contact your admin if you haven't received credentials yet.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-purple"><i class="bi bi-unlock"></i></div>
+            <div class="g-tip-body"><strong>Forgot password?</strong><p>Click "Forgot password?" on the login page — a reset link will be sent to your registered email address.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-speedometer2"></i></div>
+            <div class="g-tip-body"><strong>Dashboard</strong><p>After login you land on the Dashboard. It shows leads, quotations, and recent activity — automatically scoped to your team.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-person-badge"></i></div>
+            <div class="g-tip-body"><strong>Your role</strong><p>Member, Lead, or Admin — your role controls what you can see and do. Admins see everything; Leads approve quotations; Members create and manage records.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="/dashboard/" class="g-link">Dashboard →</a>
+          <a href="{% url 'profile' %}" class="g-link">My Profile →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-teal"><i class="bi bi-person-circle"></i></div>
+        <h3 class="g-card-title">Your Profile</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-pencil"></i></div>
+            <div class="g-tip-body"><strong>What you can update</strong><p>Your display name, phone number, and branch. These appear in the sidebar footer and on records you create.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-slate"><i class="bi bi-shield-lock"></i></div>
+            <div class="g-tip-body"><strong>What only admins can change</strong><p>Your username, role, and team assignment. If any of these are wrong, ask your admin to correct them.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-lock"></i></div>
+            <div class="g-tip-body"><strong>Changing your password</strong><p>Use the "Change password" link on your profile page. You'll need to enter your current password first.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'profile' %}" class="g-link">Profile →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-red"><i class="bi bi-bell"></i></div>
+        <h3 class="g-card-title">Notifications</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-red"><i class="bi bi-circle-fill" style="font-size:.55rem;"></i></div>
+            <div class="g-tip-body"><strong>Red badge in sidebar</strong><p>That's your unread count. Click Notifications in the sidebar to see them all.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-bell-fill"></i></div>
+            <div class="g-tip-body"><strong>When you're notified</strong><p>New lead assigned, quotation approved, quotation won/lost, market order confirmed, new case created, or a new email inquiry received for your team.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-check2-all"></i></div>
+            <div class="g-tip-body"><strong>Mark all as read</strong><p>Use the "Mark all read" button on the Notifications page to clear the badge in one click.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'notifications_list' %}" class="g-link">Notifications →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Chat -->
+  <div class="col-12 col-lg-6">
+    <div class="g-card">
+      <div class="g-card-head">
+        <div class="g-card-icon ico-purple"><i class="bi bi-chat-dots"></i></div>
+        <h3 class="g-card-title">Team Chat</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="g-tips">
+          <div class="g-tip">
+            <div class="g-tip-ico ico-blue"><i class="bi bi-layout-sidebar"></i></div>
+            <div class="g-tip-body"><strong>Channels</strong><p>You see <strong>All Staff</strong> plus your own team's channel. Admins can see all team channels.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-green"><i class="bi bi-send"></i></div>
+            <div class="g-tip-body"><strong>Sending messages</strong><p>Press <strong>Enter</strong> to send. Press <strong>Shift + Enter</strong> to add a new line within your message.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-amber"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="g-tip-body"><strong>Auto-refresh</strong><p>Chat polls every 4 seconds — new messages appear automatically without refreshing the page.</p></div>
+          </div>
+          <div class="g-tip">
+            <div class="g-tip-ico ico-slate"><i class="bi bi-clock-history"></i></div>
+            <div class="g-tip-body"><strong>Message history</strong><p>The last 100 messages per channel are visible. Older messages are not retained in the UI.</p></div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'chat_home' %}" class="g-link">Team Chat →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: User Management -->
+  {% if request.user.role == 'admin' %}
+  <div class="col-12">
+    <div class="g-card g-admin">
+      <div class="g-card-head">
+        <div class="g-card-icon"><i class="bi bi-shield-lock"></i></div>
+        <h3 class="g-card-title">Admin — User Management</h3>
+      </div>
+      <div class="g-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-person-plus"></i></div>
+                <div class="g-tip-body"><strong>Adding a user</strong><p>Go to Add User in the sidebar. Select the team first — the role dropdown filters to only valid roles for that team automatically.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-pencil-square"></i></div>
+                <div class="g-tip-body"><strong>Editing roles</strong><p>From the Users directory, click a user's row → Edit. Role and permission changes take effect immediately — no logout required.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="g-tips">
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-person-check"></i></div>
+                <div class="g-tip-body"><strong>Approving new accounts</strong><p>Self-registered users are inactive by default. Activate them from the Users directory or the Admin Panel → Users.</p></div>
+              </div>
+              <div class="g-tip">
+                <div class="g-tip-ico ico-amber"><i class="bi bi-gear"></i></div>
+                <div class="g-tip-body"><strong>Admin Panel</strong><p>The Django Admin at <code>/admin/</code> gives full raw database access — ProductKeywords, TeamEmailConfig, and all model records. Use carefully.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="g-links">
+          <a href="{% url 'user_directory' %}" class="g-link">Users →</a>
+          <a href="{% url 'add_user' %}" class="g-link">Add User →</a>
+          <a href="/admin/" class="g-link">Admin Panel →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

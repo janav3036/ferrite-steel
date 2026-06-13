@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 13 Jun 2026 (session 19 — Hetzner migration, product/broker pagination, GitHub SSH auth on server)
+**Last updated:** 14 Jun 2026 (session 20 — guide app, quotation notes, customer notes in leads/editor, cron on Hetzner)
 
 ---
 
@@ -101,7 +101,7 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management), 3B (Quiz System), and 3C (RAG Q&A pipeline) all built — 3C needs end-to-end test with live credentials.**
-**Current work: Session 19 complete — Hetzner CX23 server set up as permanent host (ferritesteel.janavshah.com), product list and broker list pagination added, GitHub SSH auth configured on server. Next session: test 3C end-to-end (comment out OneDrive lines first), intcomma, transaction.atomic() on quotation_outcome. Eventually: switch crm.ferrite.in DNS to Hetzner and delete GCP VM.**
+**Current work: Session 20 complete — guide app (3-page user manual), quotation notes fields (raw/clean) with voice dictation + AI cleanup, customer notes surfaced on lead detail and quotation editor, cron for poll_emails configured on Hetzner. Next: test 3C end-to-end (comment out OneDrive lines first). Eventually: switch crm.ferrite.in DNS to Hetzner and delete GCP VM.**
 
 ### What is built
 
@@ -143,7 +143,11 @@ to a non-technical client.
 
 **Frontend redesign (session 15):** All pages redesigned with DM Sans font, blue accent (`#2563EB`), CSS variable theming. Multi-panel pages use bento/card grid layouts. Table pages use dark headers, `.9rem` font, click-to-navigate rows. Role chips (admin=blue, lead=green, member=grey), dept-tag chips (team_9=blue, cs=green, market=orange, corporate=purple), status pills per entity type. Pages redesigned: directory, profile, case_list, case_detail, case_create, case_edit, case_confirm_delete, quiz_list, quiz_take, broker_list, broker_create, market_order_list, market_order_create, quotation_select_lead, quotation_send_confirm, add_user, edit_user_role, dashboard.
 
-**Quotation detail — customer notes (read-only):** `_quotation_context` now calls `_find_customer(quotation.lead)` and passes `customer_notes_display` (raw notes stripped of `--- Pricing Add-ons ---` section). Shown as a read-only card below the Details panel — only visible when customer record exists and has notes.
+**Customer notes surfaced across views:** `_quotation_context` passes `customer_notes_display` (raw notes stripped of `--- Pricing Add-ons ---` section) — shown as a read-only card on quotation detail. `lead_detail` view also fetches and passes `customer_notes_display` — shown as a card above the Quotations section. Quotation editor (`quotation_edit`) shows `customer_notes` (raw, unstripped — also used by JS for add-on defaults) as a visible card between Cost Summary and Save.
+
+**Quotation notes:** `quotation_notes_raw` + `quotation_notes_clean` fields on `Quotation` (migration 0028). Quotation Notes card on quotation detail page — raw textarea with 🎤 Dictate button (same Web Speech API engine as lead notes — punctuation substitution + ProductKeyword substitution, `en-IN`, continuous), Save + AI Cleanup buttons; cleaned notes section (conditional) with Save + "Convert to Case" button. `quotation_save_notes` view at `/<pk>/notes/` handles `save`/`cleanup`/`save_clean` actions using `cleanup_lead_notes()` from `quotations/services/llm.py`. `_quotation_context` now includes `voice_keywords` for the dictation JS.
+
+**Guide app:** `guide` Django app at `/guide/`. Three pages: `guide_core` (`/guide/core/`), `guide_quotations` (`/guide/quotations/`), `guide_training` (`/guide/training/`). "Codex" theme — deep forest green sidebar (`#071910`, active `#34D399`), warm sage page background (`#EAF0E4`), Cormorant Garamond serif section titles. Shared `templates/guide/_sb_guide.html` overrides `--sb-*` and `--accent`/`--accent-h` variables. Editorial bottom-border tab nav. Role-gated sections: admin-only User Management on core, market-team Market Orders on quotations, admin-only Managing Content on training. "User Guide" link added to sidebar under Tools.
 
 **Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
 
@@ -155,21 +159,15 @@ to a non-technical client.
 
 ### What is NOT yet built (planned for next sessions)
 - **3C end-to-end test** — comment out OneDrive upload in `processor.py` before running; needs live MSAL credentials for OneDrive integration in production
-- **Pagination** (urgent) — customer (6,400+), lead, quotation lists need `Paginator` before go-live
-- **`django.contrib.humanize` `intcomma`** — ₹ values should display as ₹50,00,000 not ₹5000000
-- **`transaction.atomic()`** on `quotation_outcome` — stock deduction + outcome save must be atomic
-- **Customer handover view** (`customer_handover`) — `handling_team` field exists, view not built
 - Email ingestion live test — needs dummy Gmail App Password in `TeamEmailConfig` admin (Janav to provide; delete post-demo)
 - WhatsApp ingestion — deferred until Meta approval confirmed
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
-- `from datetime import timedelta` in `poll_emails.py` should be moved to top-level imports (currently inside `handle`)
 - **Existing role checks in views** — gradually replace `request.user.role == 'x'` with `request.user.has_perm()` as views are touched (Architecture Decision 18)
 
 ### Pending before Phase 2 is fully live
 - WhatsApp Business API Meta approval
 - Dummy Gmail credentials in `TeamEmailConfig`
-- Cron setup on GCP VM for `poll_emails --scheduled` (VM deployed but cron not yet configured)
 
 ---
 
@@ -186,7 +184,7 @@ to a non-technical client.
 ### Server (On-Premise)
 Windows Server 2016 — Intel Xeon Bronze 3106, 32 GB RAM, 4 TB HDD, **no GPU**
 
-### Hosting (TEMPORARY — GCP e2-small, client testing only — see Section 8)
+### Hosting (Hetzner CX23 — permanent — see Section 8)
 
 ### AI / LLM
 - **Provider:** together.ai only. No local models, no Ollama.
@@ -238,9 +236,7 @@ Fields: `customer_code`, `name`, `company`, `phone`, `email`, `gst_number`, `pan
 `customer_name`, `customer_phone`, `customer_email`, `company`, `industry`, `location`, `broker` FK (nullable), `raw_text`, `notes`, `source`, `status`, `created_by`, `created_at`.
 
 ### Quotation (quotations)
-`quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`.
-
-**Planned additions (next session):** `quotation_notes_raw` (TextField, blank=True) — salesperson raw voice/text input. `quotation_notes_clean` (TextField, blank=True) — LLM-cleaned version, user-editable. "Clean up" button sends raw → LLM → populates clean. "Convert to Case" button (shown only when clean is not empty) pre-fills Case creation form.
+`quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`, `quotation_notes_raw` (TextField, blank=True), `quotation_notes_clean` (TextField, blank=True — LLM-cleaned version, user-editable; migration 0028).
 
 **Custom permissions:** `can_approve_quotation`.
 
@@ -308,7 +304,7 @@ Client receives 3 Excel files daily via WhatsApp:
 - Static files: WhiteNoise
 - PDF: WeasyPrint — installed and working
 - GitHub: SSH auth configured — `www-data` key at `/var/www/.ssh/id_ed25519`; remote set to `git@github.com:janav3036/ferrite-steel.git`
-- Scheduled tasks: cron for `poll_emails --scheduled` **not yet set up**
+- Scheduled tasks: cron for `poll_emails --scheduled` — **configured** on `www-data` crontab (`* * * * *`), logs to `/var/log/poll_emails.log`
 - Deploy scripts: `deploy/setup.sh`, `deploy/nginx.conf`, `deploy/gunicorn.service`
 
 **GCP e2-small (still running — to be decommissioned):**
@@ -384,7 +380,7 @@ Do not proceed with affected modules until resolved.
 - **Django logging config:** Must write errors to file before production — currently silent on 500
 - **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
 - **3C RAG end-to-end test:** Pipeline is built. Before testing locally, comment out OneDrive lines in `training/services/processor.py` (line 5: `from training.services.onedrive import upload_file`, lines 11–12: `web_url = upload_file(...)` + `document.file_url = web_url`). OneDrive integration needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env` before production use.
-- **Web Speech API browser compatibility:** Voice notes on quotation form require Chrome/Edge + HTTPS. Confirm team browser (client question 16) before building the UI button.
+- **Web Speech API browser compatibility:** Voice dictation on both lead detail and quotation detail require Chrome/Edge + HTTPS. Confirm team browser (client question 16) — Safari/Firefox not supported.
 
 ---
 
@@ -524,12 +520,17 @@ ferite_steel/                      ← project root
 │   ├── database/                  ← product_list/add/edit, customer_list/detail/add/edit, broker_list/create
 │   ├── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
 │   │                                 market_order_list/create/detail, quotation_send_confirm
-│   └── training/                  ← 21 templates; all include _sb_amber.html for amber sidebar theme
-│       ├── _sb_amber.html         ← shared include: Syne font + amber --sb-* CSS variable overrides
-│       ├── home.html, case_list/detail/create/edit/confirm_delete.html
-│       ├── document_list/detail/create/ask/confirm_delete.html
-│       ├── quiz_list/detail/take/results.html, quiz_set_create/edit/confirm_delete.html
-│       └── question_create/edit/confirm_delete.html
+│   ├── training/                  ← 21 templates; all include _sb_amber.html for amber sidebar theme
+│   │   ├── _sb_amber.html         ← shared include: Syne font + amber --sb-* + --accent overrides
+│   │   ├── home.html, case_list/detail/create/edit/confirm_delete.html
+│   │   ├── document_list/detail/create/ask/confirm_delete.html
+│   │   ├── quiz_list/detail/take/results.html, quiz_set_create/edit/confirm_delete.html
+│   │   └── question_create/edit/confirm_delete.html
+│   └── guide/                     ← 3 templates; all include _sb_guide.html for forest-green Codex theme
+│       ├── _sb_guide.html         ← shared include: Cormorant Garamond + forest --sb-* + --accent overrides
+│       ├── core.html              ← /guide/core/ — auth, profile, notifications, chat; admin: user mgmt
+│       ├── quotations.html        ← /guide/quotations/ — leads, editor, add-ons, approve/send, outcomes; market: market orders
+│       └── training.html          ← /guide/training/ — cases, quizzes, Q&A; admin: managing content
 ├── .claude/settings.json, commands/md-write.md
 ├── CLAUDE.md, manage.py, requirements.txt
 ```
@@ -546,6 +547,7 @@ Shell context: working directory is the project root. Use `python manage.py` not
 | `database` | Product, Customer, Broker — CRUD views |
 | `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service |
 | `training` | Module 3 — Case, KnowledgeDocument, DocumentChunk, QuizSet, Question, QuizAttempt — all created and migrated |
+| `guide` | User manual — 3 static pages (core, quotations, training); no models; Codex forest-green theme |
 | `ares`, `athena`, `hephaestus`, `hermes`, `themis` | Not yet created |
 
 Future apps per module: `credit_risk`, `leads`.

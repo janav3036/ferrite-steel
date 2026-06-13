@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'database',
     'quotations',
     'training',
+    'guide',
     'chat',
 ]
 

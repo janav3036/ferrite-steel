@@ -536,6 +536,12 @@
             <i class="bi bi-chat-dots"></i>
             <span class="fs-link-text">Chat</span>
         </a>
+        <a href="{% url 'guide_core' %}"
+           class="fs-link {% if 'guide' in url %}active{% endif %}"
+           title="User Guide">
+            <i class="bi bi-question-circle"></i>
+            <span class="fs-link-text">User Guide</span>
+        </a>
         <a href="{% url 'notifications_list' %}"
            class="fs-link {% if url == 'notifications_list' %}active{% endif %}"
            title="Notifications">
