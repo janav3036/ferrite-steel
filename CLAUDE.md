@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 13 Jun 2026 (session 18 — 3C RAG pipeline, quiz/question CRUD, admin-only quiz permissions, per-page amber sidebar theme)
+**Last updated:** 13 Jun 2026 (session 19 — Hetzner migration, product/broker pagination, GitHub SSH auth on server)
 
 ---
 
@@ -101,7 +101,7 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management), 3B (Quiz System), and 3C (RAG Q&A pipeline) all built — 3C needs end-to-end test with live credentials.**
-**Current work: Session 18 complete — 3C RAG pipeline (models, services, views, templates), quiz/question CRUD, admin-only quiz permissions, per-page amber sidebar theme across all 21 training templates. Next session: test 3C end-to-end (comment out OneDrive lines first), pagination, intcomma.**
+**Current work: Session 19 complete — Hetzner CX23 server set up as permanent host (ferritesteel.janavshah.com), product list and broker list pagination added, GitHub SSH auth configured on server. Next session: test 3C end-to-end (comment out OneDrive lines first), intcomma, transaction.atomic() on quotation_outcome. Eventually: switch crm.ferrite.in DNS to Hetzner and delete GCP VM.**
 
 ### What is built
 
@@ -295,29 +295,39 @@ Client receives 3 Excel files daily via WhatsApp:
 
 ## 8. Hosting Decision
 
-**Status: TEMPORARY — GCP e2-small for client testing only. Will migrate to a proper production service before go-live. Decision on final host is pending.**
+**Status: PERMANENT — Hetzner CX23 (ferritesteel.janavshah.com). GCP e2-small still running — cut over crm.ferrite.in DNS and delete GCP before go-live.**
 
-**Infrastructure (temporary — client testing):**
-- Server: GCP e2-small VM, us-central1-a, Ubuntu 24.04, IP: `35.225.244.81`
-- VM name: `ferite-steel`, VM username: `janavdshah30` (same GCP project as Realm; using existing free credits)
-- Domain: `crm.ferrite.in` — A record in ferrite.in Cloudflare account, **must be grey cloud (DNS only)**. Orange cloud causes HTTP→HTTPS redirect loop.
-- WSGI: Gunicorn — running (`systemctl status gunicorn` shows active)
+**Infrastructure (Hetzner CX23 — permanent):**
+- Server: Hetzner CX23, Nuremberg, Ubuntu 24.04, IP: `178.105.54.223`
+- SSH user: `root` (Hetzner default)
+- Domain: `ferritesteel.janavshah.com` — A record in janavshah.com DNS, grey cloud
+- WSGI: Gunicorn — running at `/var/www/ferite_steel`
 - Reverse proxy: Nginx — running, certbot-modified config at `/etc/nginx/sites-enabled/ferite_steel`
-- SSL: Let's Encrypt via Certbot — issued, auto-renews, expires 2026-09-08
+- SSL: Let's Encrypt via Certbot — issued, auto-renews, expires 2026-09-11
 - Database: PostgreSQL 16 on the same VM (`ferite_steel_db`, user `ferite_user`)
-- Static files: WhiteNoise; `staticfiles/` owned by `janavdshah30` (fix to `www-data` before production)
+- Static files: WhiteNoise
 - PDF: WeasyPrint — installed and working
+- GitHub: SSH auth configured — `www-data` key at `/var/www/.ssh/id_ed25519`; remote set to `git@github.com:janav3036/ferrite-steel.git`
 - Scheduled tasks: cron for `poll_emails --scheduled` **not yet set up**
 - Deploy scripts: `deploy/setup.sh`, `deploy/nginx.conf`, `deploy/gunicorn.service`
-- GitHub repo: `https://github.com/janav3036/ferrite-steel.git` (public; dummy client account added as collaborator — transfer ownership at handover)
 
-**Known setup gotcha:** `deploy/setup.sh` PostgreSQL GRANT must run inside `ferite_steel_db` — already fixed in the script. If the schema grant was missed, run: `sudo -u postgres psql -d ferite_steel_db -c "GRANT ALL ON SCHEMA public TO ferite_user;"`
+**GCP e2-small (still running — to be decommissioned):**
+- IP: `35.225.244.81`, domain: `crm.ferrite.in` (ferrite.in Cloudflare — must be grey cloud)
+- SSL expires 2026-09-08. Delete after crm.ferrite.in DNS cutover to Hetzner.
+
+**Known setup gotchas (already fixed in setup.sh):**
+- PostgreSQL GRANT must run inside `ferite_steel_db`: `sudo -u postgres psql -d ferite_steel_db -c "GRANT ALL ON SCHEMA public TO ferite_user;"`
+- pgvector must be installed at OS level before migrate: `apt install postgresql-16-pgvector`
+- Create pgvector extension before migrate: `sudo -u postgres psql -d ferite_steel_db -c "CREATE EXTENSION IF NOT EXISTS vector;"`
+- gunicorn is in requirements.txt but must also be `pip install gunicorn` in venv before systemd service starts
 
 **Future deploys:**
 ```bash
-gcloud compute ssh ferite-steel --zone us-central1-a
-cd /var/www/ferite_steel && git pull && source .venv/bin/activate
-python manage.py migrate && python manage.py collectstatic --noinput
+ssh root@178.105.54.223
+sudo -u www-data git -C /var/www/ferite_steel pull
+source /var/www/ferite_steel/.venv/bin/activate
+python /var/www/ferite_steel/manage.py migrate
+python /var/www/ferite_steel/manage.py collectstatic --noinput
 sudo systemctl restart gunicorn
 ```
 
@@ -360,8 +370,8 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 
 Do not proceed with affected modules until resolved.
 
-- **Hosting:** PARTIALLY RESOLVED — GCP e2-small deployed and running (35.225.244.81, crm.ferrite.in). Temporary for client testing. Final production host TBD — decide before go-live.
-- **Cloudflare DNS for crm.ferrite.in:** A record exists but may still be orange cloud (proxied) — ferrite.in admin needs to switch to grey cloud (DNS only). Orange cloud causes HTTP→HTTPS redirect loop with our nginx config.
+- **Hosting:** RESOLVED — Hetzner CX23 (178.105.54.223) is permanent host at ferritesteel.janavshah.com. SSL active. GitHub SSH auth configured. GCP e2-small (35.225.244.81, crm.ferrite.in) still running — switch crm.ferrite.in DNS to Hetzner and delete GCP VM before go-live.
+- **Cloudflare DNS for crm.ferrite.in:** When ready to cut over, update A record to 178.105.54.223, grey cloud (DNS only). Orange cloud causes HTTP→HTTPS redirect loop.
 - **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
 - **WhatsApp API approval:** Do not build ingestion until Meta confirms
 - **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
@@ -455,7 +465,7 @@ Do not suggest alternatives unless Janav explicitly asks to reconsider.
 4. **No MCP server.** Django-native tool use.
 5. **No separate vector database.** pgvector in PostgreSQL only.
 6. **Bootstrap 5 + Django templates.** No JavaScript framework.
-7. **Deployment:** GCP e2-small VM, Ubuntu 24.04. Gunicorn + Nginx. Let's Encrypt SSL. PostgreSQL on same VM. (Switched from Hetzner 10 Jun 2026 — temporary for client testing, final host TBD.)
+7. **Deployment:** Hetzner CX23 VM (178.105.54.223), Ubuntu 24.04. Gunicorn + Nginx. Let's Encrypt SSL. PostgreSQL on same VM. GitHub SSH auth configured (www-data key). (Migrated from GCP e2-small 13 Jun 2026 — GCP still running pending DNS cutover.)
 8. **Stock data:** Excel is transport only. PostgreSQL is destination. No live SAP calls.
 9. **Two-step LLM ingestion flow:** Every inbound message goes through `classify_message(text)` first. If not an inquiry, discard silently — do not create a lead. Only then call `generate_quotation_draft`. Email also pre-filtered by headers before hitting the LLM.
 10. **ProductKeyword model:** Company-specific client terms stored in PostgreSQL, admin-editable. Fetched at call time and injected into the LLM system prompt — not hardcoded in code.
