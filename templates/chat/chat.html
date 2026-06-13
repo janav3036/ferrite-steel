@@ -33,7 +33,7 @@
         color: #6D9B8A;
         border-bottom: 1px solid #D6E4DE;
     }
-    .channel-link {
+    .chat-sidebar .channel-link {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -42,15 +42,16 @@
         color: #4A7A6A;
         text-decoration: none;
         transition: background .1s, color .1s;
+        font-weight: 400;
     }
-    .channel-link:hover { background: #DDF0E8; color: #1A4A3A; text-decoration: none; }
-    .channel-link.active {
+    .chat-sidebar .channel-link:hover { background: #DDF0E8; color: #1A4A3A; text-decoration: none; }
+    .chat-sidebar .channel-link.active {
         background: #C8EEE2;
         color: #0D6B5A;
         font-weight: 600;
         border-left: 3px solid #0D9488;
     }
-    .channel-link:not(.active) { border-left: 3px solid transparent; }
+    .chat-sidebar .channel-link:not(.active) { border-left: 3px solid transparent; }
     .channel-hash { font-size: 1rem; line-height: 1; opacity: .45; font-weight: 700; }
 
     /* ── Main chat area ── */
