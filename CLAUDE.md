@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 14 Jun 2026 (session 20 — guide app, quotation notes, customer notes in leads/editor, cron on Hetzner)
+**Last updated:** 14 Jun 2026 (session 21 — 11-bug audit fix, 3C RAG pipeline tested end-to-end and working)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): Sub-modules 3A (Case Management), 3B (Quiz System), and 3C (RAG Q&A pipeline) all built — 3C needs end-to-end test with live credentials.**
-**Current work: Session 20 complete — guide app (3-page user manual), quotation notes fields (raw/clean) with voice dictation + AI cleanup, customer notes surfaced on lead detail and quotation editor, cron for poll_emails configured on Hetzner. Next: test 3C end-to-end (comment out OneDrive lines first). Eventually: switch crm.ferrite.in DNS to Hetzner and delete GCP VM.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
+**Current work: Session 21 complete — 11-bug audit fix, 3C RAG pipeline tested end-to-end (embedding model: intfloat/multilingual-e5-large-instruct, chunk_size 300, filename field on KnowledgeDocument). Next: DNS cutover (crm.ferrite.in → Hetzner), then delete GCP VM. Phase 4 (Credit Risk AI) when client is ready.**
 
 ### What is built
 
@@ -158,12 +158,12 @@ to a non-technical client.
 **Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created session 14.
 
 ### What is NOT yet built (planned for next sessions)
-- **3C end-to-end test** — comment out OneDrive upload in `processor.py` before running; needs live MSAL credentials for OneDrive integration in production
 - Email ingestion live test — needs dummy Gmail App Password in `TeamEmailConfig` admin (Janav to provide; delete post-demo)
 - WhatsApp ingestion — deferred until Meta approval confirmed
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
 - **Existing role checks in views** — gradually replace `request.user.role == 'x'` with `request.user.has_perm()` as views are touched (Architecture Decision 18)
+- OneDrive integration for 3C — needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env`; lines already commented out in `processor.py`
 
 ### Pending before Phase 2 is fully live
 - WhatsApp Business API Meta approval
@@ -265,7 +265,7 @@ IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host
 
 **Case (created, migrated):** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`. Permissions: `view_case` (all), `add/change/delete_case` (lead+admin).
 
-**KnowledgeDocument (created, migrated — migration 0005):** `source_type` (file/text), `file_url` (URLField — OneDrive link after upload), `direct_text` (TextField — for paste-in text input), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. No `file` field — original file not stored on Django server; text is extracted at upload time and file optionally uploaded to OneDrive. Processing: "Process" button on document detail page triggers `processor.py`.
+**KnowledgeDocument (created, migrated — migration 0006):** `source_type` (file/text), `file_url` (URLField — OneDrive link after upload), `filename` (CharField — original filename, saved at upload time; migration 0006), `direct_text` (TextField — extracted text for files; paste-in for text type; populated by `processor.py` for both types), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. No `file` field — original file not stored; text extracted at upload time, file optionally uploaded to OneDrive (OneDrive disabled — creds needed). Processing triggered automatically at upload time in `document_create` view.
 
 **DocumentChunk (created, migrated — migration 0005):** `document` (FK → KnowledgeDocument, CASCADE), `chunk_text` (TextField), `embedding` (VectorField, 1024 dimensions — pgvector), `chunk_index` (IntegerField). Used for semantic similarity search in RAG Q&A.
 
@@ -379,7 +379,7 @@ Do not proceed with affected modules until resolved.
 - **Model-level validators:** GST (15-char) and PAN (10-char) fields need `RegexValidator`
 - **Django logging config:** Must write errors to file before production — currently silent on 500
 - **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
-- **3C RAG end-to-end test:** Pipeline is built. Before testing locally, comment out OneDrive lines in `training/services/processor.py` (line 5: `from training.services.onedrive import upload_file`, lines 11–12: `web_url = upload_file(...)` + `document.file_url = web_url`). OneDrive integration needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env` before production use.
+- **3C RAG:** TESTED AND WORKING end-to-end on Hetzner. OneDrive lines commented out in `processor.py` — leave commented until live MSAL credentials available. Embedding model: `intfloat/multilingual-e5-large-instruct` (1024-dim, serverless). Chunk size: 300 words.
 - **Web Speech API browser compatibility:** Voice dictation on both lead detail and quotation detail require Chrome/Edge + HTTPS. Confirm team browser (client question 16) — Safari/Firefox not supported.
 
 ---
