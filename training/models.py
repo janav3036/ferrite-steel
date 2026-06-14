@@ -36,6 +36,7 @@ class KnowledgeDocument(models.Model):
 
     source_type = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='file')
     file_url = models.URLField(blank=True)
+    filename = models.CharField(max_length=255, blank=True)
     direct_text = models.TextField(blank=True)
     title = models.CharField(max_length=255)
     keywords = models.JSONField(default=list)

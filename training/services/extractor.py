@@ -39,7 +39,7 @@ def _extract_excel(file_obj):
                 parts.append(row_text)
     return '\n'.join(parts)
 
-def chunk_text(text, chunk_size=500, overlap=50):
+def chunk_text(text, chunk_size=300, overlap=50):
     words = text.split()
     chunks = []
     start = 0

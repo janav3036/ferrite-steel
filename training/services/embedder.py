@@ -1,6 +1,6 @@
 from ferite_steel.ai import together_client
 
-EMBEDDING_MODEL = 'BAAI/bge-large-en-v1.5'
+EMBEDDING_MODEL = 'intfloat/multilingual-e5-large-instruct'
 
 def embed_texts(texts):
     response = together_client.embeddings.create(

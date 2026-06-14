@@ -299,6 +299,11 @@ def document_create(request):
             doc.uploaded_by = request.user
             doc.departments = form.cleaned_data['departments']
             doc.save()
+            if doc.source_type == 'file':
+                file_obj = form.cleaned_data.get('file')
+                if file_obj:
+                    doc.filename = file_obj.name
+                    doc.save(update_fields=['filename'])
             try:
                 file_obj = form.cleaned_data.get('file')
                 if doc.source_type == 'file' and file_obj:

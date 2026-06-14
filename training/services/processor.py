@@ -2,14 +2,14 @@ from django.utils import timezone
 from training.models import DocumentChunk
 from training.services.extractor import extract_text, chunk_text
 from training.services.embedder import embed_texts
-from training.services.onedrive import upload_file
+#from training.services.onedrive import upload_file
 
 def process_document(document, file_obj=None, filename=None):
     if document.source_type == 'file':
         file_bytes = file_obj.read()
         text = extract_text_from_bytes(file_bytes, filename)
-        web_url = upload_file(file_bytes, filename)
-        document.file_url = web_url
+#        web_url = upload_file(file_bytes, filename)
+#        document.file_url = web_url
     else:
         text = document.direct_text
 
