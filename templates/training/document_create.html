@@ -216,7 +216,7 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
+{% block extra_js %}
 <script>
 function setSource(type) {
     document.getElementById('source_type').value = type;
@@ -245,4 +245,4 @@ document.getElementById('docForm').addEventListener('submit', function() {
     document.getElementById('processingState').classList.add('active');
 });
 </script>
-{% endblock %}
+{% endblock extra_js %}
