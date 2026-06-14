@@ -50,6 +50,9 @@
                     <th>Location</th>
                     <th>Status</th>
                     <th>Orders</th>
+                    {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+                    <th></th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -67,6 +70,16 @@
                         {% endif %}
                     </td>
                     <td class="text-muted">{{ broker.orders.count }}</td>
+                    {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+                    <td class="text-end">
+                        <a href="{% url 'broker_edit' broker.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        <form method="post" action="{% url 'broker_delete' broker.pk %}" class="d-inline"
+                              onsubmit="return confirm('Delete broker {{ broker.name }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

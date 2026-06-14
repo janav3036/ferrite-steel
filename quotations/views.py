@@ -82,9 +82,8 @@ def lead_create(request):
 
 @login_required
 def lead_detail(request, pk):
-    from .models import ProductKeyword
     lead = get_object_or_404(Lead.objects.prefetch_related('quotations'), pk=pk)
-    keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
+    keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
     customer = _find_customer(lead)
     addon_marker = '--- Pricing Add-ons ---'
     raw_notes = customer.notes if customer else ''
@@ -314,7 +313,10 @@ def _upsert_customer(lead, transport_extra):
 
 def _quotation_context(quotation):
     items = list(quotation.line_items.all())
-    total_tons = sum(i.quantity for i in items)
+    total_tons = sum(
+        i.quantity / Decimal('1000') if i.uom == 'kg' else i.quantity
+        for i in items
+    )
     item_value = sum(i.final_price for i in items)
     loading_extra = quotation.loading_extra
     transport_extra = quotation.transport_extra
@@ -336,7 +338,7 @@ def _quotation_context(quotation):
         Q(pk=root.pk) | Q(parent_quotation=root)
     ).select_related('created_by').order_by('version')
 
-    voice_keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
+    voice_keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
 
     return {
         'quotation': quotation,
@@ -732,7 +734,12 @@ def market_order_list(request):
         qs = qs.filter(sub_team=request.user.role)
     elif request.user.role == 'loading_dock':
         qs = qs.filter(loading_dock_member=request.user)
-    return render(request, 'quotations/market_order_list.html', {'orders': qs})
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'quotations/market_order_list.html', {
+        'orders': page_obj.object_list,
+        'page_obj': page_obj,
+    })
 
 
 @login_required
@@ -862,19 +869,25 @@ def market_order_do_send(request, pk):
             order.save(update_fields=['do_number', 'do_issued_at', 'status'])
 
         if request.POST.get('confirm_send') and order.broker.email:
-            from django.core.mail import send_mail
-            send_mail(
-                subject=f'Delivery Order — {order.broker.name}',
-                message=(
-                    f'Dear {order.broker.name},\n\n'
-                    f'Your Delivery Order number is: {order.do_number}\n\n'
-                    f'Regards,\nFerrite Steel'
-                ),
-                from_email=None,
-                recipient_list=[order.broker.email],
-                fail_silently=False,
-            )
-            messages.success(request, f'DO number sent to {order.broker.email}.')
+            config = TeamEmailConfig.objects.filter(is_active=True, team='market').first() \
+                     or TeamEmailConfig.objects.filter(is_active=True).first()
+            if config:
+                try:
+                    _send_via_smtp(
+                        config,
+                        to_email=order.broker.email,
+                        subject=f'Delivery Order — {order.broker.name}',
+                        body=(
+                            f'Dear {order.broker.name},\n\n'
+                            f'Your Delivery Order number is: {order.do_number}\n\n'
+                            f'Regards,\nFerrite Steel'
+                        ),
+                    )
+                    messages.success(request, f'DO number sent to {order.broker.email}.')
+                except Exception as exc:
+                    messages.error(request, f'Email failed: {exc}')
+            else:
+                messages.warning(request, 'No active email config — DO number saved but email not sent.')
             return redirect('market_order_detail', pk=order.pk)
 
         return render(request, 'quotations/market_order_do_send.html', {'order': order})

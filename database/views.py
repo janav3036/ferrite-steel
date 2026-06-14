@@ -250,6 +250,37 @@ def broker_create(request):
 
 
 @login_required
+def broker_edit(request, pk):
+    if not (request.user.role in ('lead', 'admin') and
+            (request.user.team == 'market' or request.user.role == 'admin')):
+        return redirect('dashboard')
+    broker = get_object_or_404(Broker, pk=pk)
+    if request.method == 'POST':
+        form = BrokerForm(request.POST, instance=broker)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Broker "{broker.name}" updated.')
+            return redirect('broker_list')
+    else:
+        form = BrokerForm(instance=broker)
+    return render(request, 'database/broker_create.html', {'form': form, 'broker': broker})
+
+
+@login_required
+def broker_delete(request, pk):
+    if not (request.user.role in ('lead', 'admin') and
+            (request.user.team == 'market' or request.user.role == 'admin')):
+        return redirect('dashboard')
+    if request.method != 'POST':
+        return redirect('broker_list')
+    broker = get_object_or_404(Broker, pk=pk)
+    name = broker.name
+    broker.delete()
+    messages.success(request, f'Broker "{name}" deleted.')
+    return redirect('broker_list')
+
+
+@login_required
 def product_edit(request, pk):
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':

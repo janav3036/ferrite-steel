@@ -133,7 +133,7 @@
                             <th>HSN Code</th>
                             <th>Product</th>
                             <th>Length</th>
-                            <th>TON</th>
+                            <th>Qty</th>
                             <th>PCS</th>
                             <th>Rate (₹)</th>
                             <th>Amount (₹)</th>
@@ -148,7 +148,7 @@
                             <td class="text-muted small">{{ item.hsn_code|default:"—" }}</td>
                             <td>{{ item.product_name }}</td>
                             <td>{{ item.length|default:"—" }}</td>
-                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.quantity }} <span class="text-muted small">{{ item.get_uom_display }}</span></td>
                             <td>{{ item.pcs|default:"—" }}</td>
                             <td>{{ item.unit_price|inr }}</td>
                             <td>{{ item.total_price|inr }}</td>
@@ -224,7 +224,7 @@
                         <button type="submit" name="action" value="save_clean"
                             class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
                         {% if perms.training.add_case %}
-                        <a href="{% url 'case_create' %}?notes={{ quotation.quotation_notes_clean|urlencode }}"
+                        <a href="{% url 'case_create' %}?lead={{ quotation.lead.pk }}&notes={{ quotation.quotation_notes_clean|urlencode }}"
                             class="btn btn-sm btn-success">→ Convert to Case</a>
                         {% else %}
                         <span class="btn btn-sm btn-success disabled"

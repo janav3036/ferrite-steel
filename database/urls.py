@@ -21,4 +21,6 @@ urlpatterns = [
     # Brokers
     path('brokers/', views.broker_list, name='broker_list'),
     path('brokers/add/', views.broker_create, name='broker_create'),
+    path('brokers/<int:pk>/edit/', views.broker_edit, name='broker_edit'),
+    path('brokers/<int:pk>/delete/', views.broker_delete, name='broker_delete'),
 ]

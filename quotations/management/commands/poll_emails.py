@@ -285,9 +285,36 @@ class Command(BaseCommand):
                             imap.store(msg_id, '+FLAGS', '\\Seen')
                         continue
 
-                    # Broker email but no matching open order — skip, don't classify as lead
-                    self.stdout.write(f'  [BROKER-SKIP]  {broker.name} — no open rate_sent order')
+                    # Broker email but no open rate_sent order — treat as a new inquiry
+                    self.stdout.write(self.style.SUCCESS(
+                        f'  [BROKER-NEW]   {broker.name} — new inquiry, creating lead + market order'
+                    ))
                     if not dry_run:
+                        new_lead = Lead.objects.create(
+                            source='email',
+                            raw_text=f"Subject: {subject}\n\n{body}",
+                            customer_name=broker.name,
+                            customer_email=sender_email,
+                            status='new',
+                            broker=broker,
+                            received_via=config,
+                        )
+                        MarketOrder.objects.create(
+                            broker=broker,
+                            lead=new_lead,
+                            product_details=body,
+                            sub_team='primary',
+                            status='new',
+                            created_by=None,
+                        )
+                        recipients = _get_recipients(config.team)
+                        notify(
+                            recipients,
+                            f'New broker inquiry: {broker.name}',
+                            message=f'Subject: {subject[:80]}',
+                            link=f'/quotations/leads/{new_lead.pk}/',
+                            notif_type='lead_created',
+                        )
                         imap.store(msg_id, '+FLAGS', '\\Seen')
                     continue
 
@@ -336,29 +363,14 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'  [INQUIRY]      From: {sender_email} | Subject: {subject[:60]}')
                 )
                 if not dry_run:
-                    broker = _find_broker(sender_email)
                     lead = Lead.objects.create(
                         source='email',
                         raw_text=text,
                         customer_name=sender_name,
                         customer_email=sender_email,
                         status='new',
-                        broker=broker,
                         received_via=config,
                     )
-                    if broker:
-                        MarketOrder.objects.create(
-                            broker=broker,
-                            lead=lead,
-                            product_details=body,
-                            sub_team='primary',
-                            status='new',
-                            created_by=None
-                        )
-                        self.stdout.write(self.style.SUCCESS(
-                            f'   [MARKET-ORDER] Created for broker {broker.name}'
-                        ))
-
                     recipients = _get_recipients(config.team)
                     notify(
                         recipients,
