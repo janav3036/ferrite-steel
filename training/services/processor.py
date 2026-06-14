@@ -14,6 +14,7 @@ def process_document(document, file_obj=None, filename=None):
         text = document.direct_text
 
     chunks = chunk_text(text)
+    document.direct_text = text
     embeddings = embed_texts(chunks)
 
     DocumentChunk.objects.filter(document=document).delete()

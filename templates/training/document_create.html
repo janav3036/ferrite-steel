@@ -166,8 +166,7 @@
                         <span class="upload-label" id="uploadLabel">Click to choose a file</span>
                         <span class="upload-hint">PDF, DOCX, XLSX, TXT</span>
                         <input type="file" name="file" id="fileInput"
-                               accept=".pdf,.docx,.xlsx,.xls,.txt"
-                               onchange="fileSelected(this)">
+                               accept=".pdf,.docx,.xlsx,.xls,.txt">
                     </div>
                 </div>
 
@@ -227,17 +226,17 @@ function setSource(type) {
     document.getElementById('btnText').classList.toggle('active', type === 'text');
 }
 
-function fileSelected(input) {
+document.getElementById('fileInput').addEventListener('change', function() {
     const zone  = document.getElementById('uploadZone');
     const label = document.getElementById('uploadLabel');
-    if (input.files.length > 0) {
-        label.textContent = input.files[0].name;
+    if (this.files.length > 0) {
+        label.textContent = this.files[0].name;
         zone.classList.add('has-file');
     } else {
         label.textContent = 'Click to choose a file';
         zone.classList.remove('has-file');
     }
-}
+});
 
 document.getElementById('docForm').addEventListener('submit', function() {
     const btn = document.getElementById('submitBtn');
