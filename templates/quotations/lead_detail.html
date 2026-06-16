@@ -73,8 +73,16 @@
                             {{ lead.get_status_display }}
                         </span>
                     </dd>
+                    {% if lead.created_by %}
                     <dt class="col-sm-4">Created By</dt>
-                    <dd class="col-sm-8">{{ lead.created_by.username|default:"—" }}</dd>
+                    <dd class="col-sm-8">{{ lead.created_by.username }}</dd>
+                    {% elif lead.received_via %}
+                    <dt class="col-sm-4">Received Via</dt>
+                    <dd class="col-sm-8">{{ lead.received_via.email_address }}</dd>
+                    {% else %}
+                    <dt class="col-sm-4">Created By</dt>
+                    <dd class="col-sm-8">—</dd>
+                    {% endif %}
                     <dt class="col-sm-4">Date</dt>
                     <dd class="col-sm-8">{{ lead.created_at|date:"d M Y, H:i" }}</dd>
                 </dl>

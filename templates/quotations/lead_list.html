@@ -57,7 +57,7 @@
                 <th>Customer</th>
                 <th>Source</th>
                 <th>Status</th>
-                <th class="hide-xs">Created By</th>
+                <th class="hide-xs">Created / Received</th>
                 <th class="hide-xs">Date</th>
                 <th></th>
             </tr>
@@ -78,7 +78,11 @@
                         {{ lead.get_status_display }}
                     </span>
                 </td>
-                <td class="hide-xs">{{ lead.created_by.username|default:"—" }}</td>
+                <td class="hide-xs">
+                    {% if lead.created_by %}{{ lead.created_by.username }}
+                    {% elif lead.received_via %}{{ lead.received_via.email_address }}
+                    {% else %}—{% endif %}
+                </td>
                 <td class="hide-xs">{{ lead.created_at|date:"d M Y" }}</td>
                 <td class="d-flex gap-1">
                     <a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">View</a>

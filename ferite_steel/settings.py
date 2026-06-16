@@ -159,4 +159,7 @@ JAZZMIN_SETTINGS = {
     "site_header": "Ferite Steel",
     "site_brand": "Ferite Steel",
     "show_ui_builder": False,
+    "topmenu_links": [
+        {"name": "← Back to CRM", "url": "/dashboard/", "new_window": False},
+    ],
 }

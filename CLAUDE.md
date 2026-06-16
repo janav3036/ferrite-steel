@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 14 Jun 2026 (session 21 — 11-bug audit fix, 3C RAG pipeline tested end-to-end and working)
+**Last updated:** 16 Jun 2026 (session 22 — DNS cutover complete, email pipeline live, SMTP tested, lead list/detail received-via display, Jazzmin back-to-CRM link)
 
 ---
 
@@ -100,8 +100,8 @@ to a non-technical client.
 
 ## 3. Current State
 
-**Phase 1 complete. Phase 2 (Quotation Automator): complete except live credentials + Meta approval. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
-**Current work: Session 21 complete — 11-bug audit fix, 3C RAG pipeline tested end-to-end (embedding model: intfloat/multilingual-e5-large-instruct, chunk_size 300, filename field on KnowledgeDocument). Next: DNS cutover (crm.ferrite.in → Hetzner), then delete GCP VM. Phase 4 (Credit Risk AI) when client is ready.**
+**Phase 1 complete. Phase 2 (Quotation Automator): complete — email pipeline is LIVE. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
+**Current work: Session 22 complete — DNS cutover done (crm.ferrite.in → Hetzner), email pipeline live (polling sales@ferrite.in + fcc@ferrite.in, classifying real inquiries, creating leads + notifications), SMTP tested. Next: delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
 
 ### What is built
 
@@ -123,7 +123,7 @@ to a non-technical client.
 
 **LLM / AI:** `generate_quotation_draft(lead, entity_notes)` in `quotations/services/llm.py` — tool-use loop with `lookup_pricing`, ProductKeyword injection, UOM context, reply-chain focus in system prompt. Graceful fallback to blank editor. `classify_message(text)` — YES/NO classifier for inbound messages. `classify_broker_response(text)` — returns `'confirmation'`/`'counter'`/`'other'` for broker replies. Shared `together_client` in `ferite_steel/ai.py`.
 
-**Email pipeline:** `poll_emails` management command — IMAP per TeamEmailConfig, spam pre-filter, broker reply detection (`_find_broker`), classify_message, Lead + MarketOrder creation for broker senders, marks Seen. `--dry-run` flag. `--scheduled` flag throttles by `TeamEmailConfig.poll_interval_minutes`; stamps `last_polled_at` after each real run. "Poll Inbox" button on lead list (admin/lead only) hits `poll_emails_now` view. Cron: `* * * * * manage.py poll_emails --scheduled`. `_strip_reply_chain()` handles Gmail/Outlook/forwarded formats. `quotation_send` — compose/confirm form, SMTP send, PDF attach (non-broker), text-only rate email for broker leads. SMTP host = `imap_host.replace("imap.", "smtp.")`.
+**Email pipeline:** `poll_emails` management command — IMAP per TeamEmailConfig, spam pre-filter, broker reply detection (`_find_broker`), classify_message, Lead + MarketOrder creation for broker senders, marks Seen. `--dry-run` flag. `--scheduled` flag throttles by `TeamEmailConfig.poll_interval_minutes`; stamps `last_polled_at` after each real run. "Poll Inbox" button on lead list (admin/lead only) hits `poll_emails_now` view. Cron: `* * * * * manage.py poll_emails --scheduled` (running on www-data crontab; logs to `/var/log/poll_emails.log` — must be owned by www-data). `_strip_reply_chain()` handles Gmail/Outlook/forwarded formats. `quotation_send` — compose/confirm form, SMTP send, PDF attach (non-broker), text-only rate email for broker leads. SMTP uses dedicated `smtp_host`/`smtp_username`/`smtp_password` fields on `TeamEmailConfig` (falls back to imap equivalents if blank). **LIVE: polling sales@ferrite.in + fcc@ferrite.in; poll intervals set to prime numbers (2, 3, 5, 7, 11 min) to avoid simultaneous polls.**
 
 **Broker-to-DO pipeline:** `_find_broker(email_addr)` matches inbound sender to active Broker. Broker email → Lead (with broker FK) + MarketOrder auto-created. Broker reply → `classify_broker_response()` → if confirmation: MarketOrder status → `broker_confirmed`, `broker_confirmed_at` stamped; if counter: reply appended to Lead notes. `notify_loading_dock` signal on `MarketOrder` post_save — fires only when `status` field transitions to `broker_confirmed`, emails `loading_dock_member`. DO send: `market_order_do_send` view + template — user enters DO number, gets compose/confirm UI, sends text to broker email. MarketOrder status → `completed` on send. `lead` FK added to `MarketOrder`.
 
@@ -158,16 +158,15 @@ to a non-technical client.
 **Docs:** `docs/module3_plan.md`, `docs/module3_plan.docx` (professional Word doc with diagrams), `docs/user_manual_quotation_automator.md`, `docs/developer_manual.md` all created session 14.
 
 ### What is NOT yet built (planned for next sessions)
-- Email ingestion live test — needs dummy Gmail App Password in `TeamEmailConfig` admin (Janav to provide; delete post-demo)
 - WhatsApp ingestion — deferred until Meta approval confirmed
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
 - **Existing role checks in views** — gradually replace `request.user.role == 'x'` with `request.user.has_perm()` as views are touched (Architecture Decision 18)
 - OneDrive integration for 3C — needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env`; lines already commented out in `processor.py`
+- GCP e2-small VM — DNS cutover done; VM still running, delete when confirmed stable on Hetzner
 
 ### Pending before Phase 2 is fully live
-- WhatsApp Business API Meta approval
-- Dummy Gmail credentials in `TeamEmailConfig`
+- WhatsApp Business API Meta approval (email pipeline already live)
 
 ---
 
@@ -256,7 +255,7 @@ Broker-sourced (`lead.broker ≠ null`): PDF = "INTERNAL — RATES ONLY".
 Maps client trade terms (e.g. "sariya") → canonical product names. `keyword`, `maps_to`, `notes`, `is_active`. `_build_keyword_context()` fetches active keywords and injects them into the LLM system prompt on every draft generation call.
 
 ### TeamEmailConfig (quotations)
-IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`, `poll_interval_minutes` (default 30), `last_polled_at` (stamped after each real poll run). SMTP host derived at send time: `imap_host.replace("imap.", "smtp.")`.
+IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host` (default imap.gmail.com), `imap_username`, `imap_password`, `imap_port` (993), `use_ssl`, `is_active`, `poll_interval_minutes` (default 30), `last_polled_at` (stamped after each real poll run). SMTP fields: `smtp_host` (blank = derive from imap_host), `smtp_port` (default 587), `smtp_use_ssl` (False = STARTTLS), `smtp_username` (blank = use imap_username), `smtp_password` (blank = use imap_password). Outgoing email uses dedicated SMTP fields; falls back to IMAP equivalents if blank.
 
 ### Customer (database) — permissions
 **Custom permissions:** `can_reassign_customer`.
@@ -291,7 +290,7 @@ Client receives 3 Excel files daily via WhatsApp:
 
 ## 8. Hosting Decision
 
-**Status: PERMANENT — Hetzner CX23 (ferritesteel.janavshah.com). GCP e2-small still running — cut over crm.ferrite.in DNS and delete GCP before go-live.**
+**Status: PERMANENT — Hetzner CX23 (ferritesteel.janavshah.com + crm.ferrite.in). DNS cutover complete as of 16 Jun 2026. GCP e2-small still running — delete when Hetzner confirmed stable.**
 
 **Infrastructure (Hetzner CX23 — permanent):**
 - Server: Hetzner CX23, Nuremberg, Ubuntu 24.04, IP: `178.105.54.223`
@@ -307,9 +306,8 @@ Client receives 3 Excel files daily via WhatsApp:
 - Scheduled tasks: cron for `poll_emails --scheduled` — **configured** on `www-data` crontab (`* * * * *`), logs to `/var/log/poll_emails.log`
 - Deploy scripts: `deploy/setup.sh`, `deploy/nginx.conf`, `deploy/gunicorn.service`
 
-**GCP e2-small (still running — to be decommissioned):**
-- IP: `35.225.244.81`, domain: `crm.ferrite.in` (ferrite.in Cloudflare — must be grey cloud)
-- SSL expires 2026-09-08. Delete after crm.ferrite.in DNS cutover to Hetzner.
+**GCP e2-small (to be decommissioned):**
+- IP: `35.225.244.81`. crm.ferrite.in DNS already switched to Hetzner (178.105.54.223). Delete GCP VM once Hetzner confirmed stable.
 
 **Known setup gotchas (already fixed in setup.sh):**
 - PostgreSQL GRANT must run inside `ferite_steel_db`: `sudo -u postgres psql -d ferite_steel_db -c "GRANT ALL ON SCHEMA public TO ferite_user;"`
@@ -366,8 +364,7 @@ convogenie.ai — no-code AI chatbot platform (FAQs, basic support, no business 
 
 Do not proceed with affected modules until resolved.
 
-- **Hosting:** RESOLVED — Hetzner CX23 (178.105.54.223) is permanent host at ferritesteel.janavshah.com. SSL active. GitHub SSH auth configured. GCP e2-small (35.225.244.81, crm.ferrite.in) still running — switch crm.ferrite.in DNS to Hetzner and delete GCP VM before go-live.
-- **Cloudflare DNS for crm.ferrite.in:** When ready to cut over, update A record to 178.105.54.223, grey cloud (DNS only). Orange cloud causes HTTP→HTTPS redirect loop.
+- **Hosting:** RESOLVED — Hetzner CX23 (178.105.54.223) is permanent host. Both ferritesteel.janavshah.com and crm.ferrite.in now point to Hetzner. DNS cutover complete 16 Jun 2026. Delete GCP e2-small (35.225.244.81) when confirmed stable.
 - **ConvoGenie integration:** API feasibility and scope unknown (see Section 9)
 - **WhatsApp API approval:** Do not build ingestion until Meta confirms
 - **Module 6 (Chatbot) tier:** Not confirmed. Do not finalize scope or fee
@@ -562,8 +559,8 @@ Future apps per module: `credit_risk`, `leads`.
 | WhatsApp Business API | Pending Meta approval | Client must initiate — do NOT assume live |
 | ConvoGenie | Client has account — reviewing | Integration scope TBD (see Section 9) |
 | SAP | Deprioritised | Daily Excel replaces direct integration |
-| Email (IMAP/SMTP) | Built — awaiting live credentials | Needs dummy Gmail App Password in `TeamEmailConfig` admin; delete post-demo |
-| GCP e2-small VM | Deployed — gunicorn + nginx + SSL running | crm.ferrite.in; pending Cloudflare grey cloud switch |
+| Email (IMAP/SMTP) | **LIVE** | Polling sales@ferrite.in + fcc@ferrite.in; cron running; leads + notifications firing |
+| GCP e2-small VM | DNS cut over — pending deletion | crm.ferrite.in now points to Hetzner; delete GCP VM when stable |
 | Twilio/Deepgram/ElevenLabs | Not started | Only if Voice Stand-in greenlit |
 
 ---
