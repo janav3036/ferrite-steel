@@ -129,6 +129,9 @@
         <small class="text-muted">Test your knowledge — AI evaluates your answers</small>
     </div>
     <div class="d-flex gap-2">
+        {% if perms.training.add_question %}
+        <a href="{% url 'question_list' %}" class="btn btn-outline-secondary btn-sm">Questions</a>
+        {% endif %}
         {% if perms.training.add_quizset %}
         <a href="{% url 'quiz_set_create' %}" class="btn-amber">+ New Quiz Set</a>
         {% endif %}

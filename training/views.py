@@ -359,6 +359,15 @@ def document_ask(request):
         'answer': answer,
     })
 @login_required
+def question_list(request):
+    if not request.user.has_perm('training.change_question'):
+        messages.error(request, 'You do not have permission to manage questions.')
+        return redirect('quiz_list')
+    questions = Question.objects.select_related('quiz_set', 'created_by').order_by('quiz_set__title', 'created_at')
+    return render(request, 'training/question_list.html', {'questions': questions})
+
+
+@login_required
 def quiz_set_create(request):
     if not request.user.has_perm('training.add_quizset'):
         messages.error(request, 'You do not have permission to create quiz sets.')

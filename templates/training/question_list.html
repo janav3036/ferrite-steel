@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Questions — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .q-table-wrap {
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 14px; overflow: hidden;
+        animation: fadeUp .25s ease both;
+    }
+
+    .q-table-hdr {
+        padding: 13px 20px; background: #F5F1EA;
+        border-bottom: 1px solid #E8E2D8;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .q-table-hdr-title {
+        font-family: 'Syne', sans-serif; font-size: .63rem; font-weight: 700;
+        letter-spacing: .11em; text-transform: uppercase; color: #78716C;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead th {
+        padding: 10px 16px; font-size: .68rem; font-weight: 700;
+        letter-spacing: .09em; text-transform: uppercase; color: #A8A29E;
+        background: #FDFCFA; border-bottom: 1px solid #E8E2D8;
+        white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #F5F1EA; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #FDFCFA; }
+    td { padding: 13px 16px; vertical-align: middle; color: #1C1917; }
+
+    .q-text-cell { max-width: 420px; }
+    .q-text-main { font-weight: 600; color: #1C1917; margin-bottom: 2px; line-height: 1.4; }
+    .q-answer-preview { font-size: .76rem; color: #A8A29E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+
+    .badge-set {
+        background: #FEF0D3; color: #92400E;
+        font-size: .67rem; font-weight: 700; padding: 2px 9px;
+        border-radius: 100px; white-space: nowrap;
+    }
+    .badge-standalone {
+        background: #F5F1EA; color: #A8A29E;
+        font-size: .67rem; font-weight: 700; padding: 2px 9px;
+        border-radius: 100px; white-space: nowrap;
+    }
+
+    .dept-chip {
+        display: inline-block; font-size: .63rem; font-weight: 700;
+        padding: 1px 7px; border-radius: 100px;
+        background: #F5F1EA; color: #78716C; margin: 1px 2px 1px 0;
+        white-space: nowrap;
+    }
+
+    .btn-xs {
+        font-size: .71rem; padding: 3px 10px; border-radius: 6px; border: 1px solid;
+        text-decoration: none; white-space: nowrap; transition: background .12s;
+    }
+    .btn-xs-sec { border-color: #E8E2D8; color: #78716C; background: #FDFCFA; }
+    .btn-xs-sec:hover { background: #F5F1EA; color: #1C1917; }
+    .btn-xs-danger { border-color: #FECACA; color: #DC2626; background: #FFF8F8; }
+    .btn-xs-danger:hover { background: #FEE2E2; }
+
+    .btn-amber {
+        background: #C2670B; color: #fff; border: none;
+        padding: 7px 16px; border-radius: 8px; font-size: .82rem;
+        font-weight: 600; text-decoration: none; transition: background .15s;
+        display: inline-block;
+    }
+    .btn-amber:hover { background: #A3520A; color: #fff; }
+
+    .empty-state {
+        padding: 56px 20px; text-align: center; color: #A8A29E;
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 10px; display: block; opacity: .3; }
+
+    .filter-tabs {
+        display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .filter-tab {
+        padding: 5px 14px; border-radius: 100px; font-size: .78rem;
+        font-weight: 600; border: 1px solid #E8E2D8;
+        background: #FDFCFA; color: #78716C;
+        cursor: pointer; text-decoration: none; transition: all .12s;
+    }
+    .filter-tab.active, .filter-tab:hover {
+        background: #C2670B; border-color: #C2670B; color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+    <div>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Questions</h4>
+        <small class="text-muted">{{ questions|length }} question{{ questions|length|pluralize }} total</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'question_create' %}" class="btn-amber">+ New Question</a>
+        <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">← Quizzes</a>
+    </div>
+</div>
+
+<div class="filter-tabs" id="filterTabs">
+    <a class="filter-tab active" data-filter="all" href="#">All ({{ questions|length }})</a>
+    <a class="filter-tab" data-filter="standalone" href="#">Standalone</a>
+    <a class="filter-tab" data-filter="in-set" href="#">In a Quiz Set</a>
+</div>
+
+{% if questions %}
+<div class="q-table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Question</th>
+                <th>Quiz Set</th>
+                <th>Departments</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="questionTable">
+            {% for q in questions %}
+            <tr data-type="{% if q.quiz_set %}in-set{% else %}standalone{% endif %}">
+                <td class="q-text-cell">
+                    <div class="q-text-main">{{ q.question_text }}</div>
+                    <div class="q-answer-preview">{{ q.correct_answer|truncatechars:90 }}</div>
+                </td>
+                <td>
+                    {% if q.quiz_set %}
+                    <span class="badge-set">{{ q.quiz_set.title }}</span>
+                    {% else %}
+                    <span class="badge-standalone">Standalone</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for dept in q.departments %}
+                    <span class="dept-chip">{{ dept }}</span>
+                    {% empty %}
+                    <span style="color:#D6D3CE;font-size:.75rem;">—</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'question_edit' q.pk %}" class="btn-xs btn-xs-sec">Edit</a>
+                        <a href="{% url 'question_delete' q.pk %}" class="btn-xs btn-xs-danger">Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="q-table-wrap">
+    <div class="empty-state">
+        <span class="empty-icon"><i class="bi bi-patch-question"></i></span>
+        <div style="font-family:'Syne',sans-serif;font-size:.96rem;font-weight:700;color:#1C1917;margin-bottom:6px;">No questions yet</div>
+        <p style="font-size:.83rem;margin-bottom:18px;">Create standalone questions for the pool, or add questions directly inside a quiz set.</p>
+        <a href="{% url 'question_create' %}" class="btn-amber">Add the first question</a>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.querySelectorAll('#filterTabs .filter-tab').forEach(tab => {
+    tab.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('#filterTabs .filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const filter = tab.dataset.filter;
+        document.querySelectorAll('#questionTable tr').forEach(row => {
+            row.style.display = (filter === 'all' || row.dataset.type === filter) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

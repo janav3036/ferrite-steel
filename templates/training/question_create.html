@@ -84,7 +84,7 @@
     {% if quiz_pk %}
     <a href="{% url 'quiz_detail' quiz_pk %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
     {% else %}
-    <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
+    <a href="{% url 'question_list' %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
     {% endif %}
 </div>
 
@@ -162,7 +162,7 @@
             {% if quiz_pk %}
             <a href="{% url 'quiz_detail' quiz_pk %}" class="btn btn-outline-secondary">Cancel</a>
             {% else %}
-            <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <a href="{% url 'question_list' %}" class="btn btn-outline-secondary">Cancel</a>
             {% endif %}
         </div>
     </form>
