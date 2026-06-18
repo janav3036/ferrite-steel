@@ -19,7 +19,13 @@ BASE = lambda: [
     _perm('quotations', 'change_lead'),
     _perm('database', 'view_customer'),
     _perm('database', 'add_customer'),
+    _perm('database', 'change_customer'),
     _perm('database', 'view_product'),
+    _perm('database', 'add_product'),
+    _perm('database', 'change_product'),
+    _perm('database', 'view_broker'),
+    _perm('database', 'add_broker'),
+    _perm('database', 'change_broker'),
     _perm('training', 'view_case')
 ]
 
