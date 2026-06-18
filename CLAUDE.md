@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 16 Jun 2026 (session 22 — DNS cutover complete, email pipeline live, SMTP tested, lead list/detail received-via display, Jazzmin back-to-CRM link)
+**Last updated:** 18 Jun 2026 (session 24 — PDF redesign, edit-PDF midpoint, team filter for admin, sidebar fixes, sales_order_no field)
 
 ---
 
@@ -101,7 +101,7 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete — email pipeline is LIVE. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
-**Current work: Session 22 complete — DNS cutover done (crm.ferrite.in → Hetzner), email pipeline live (polling sales@ferrite.in + fcc@ferrite.in, classifying real inquiries, creating leads + notifications), SMTP tested. Next: delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
+**Current work: Session 24 complete — quotation PDF fully redesigned to match Ferrite example (10-column table, logo, E.&O.E banks, inr_words filter), edit-PDF midpoint added (preview all fields in-browser before downloading), team-wise admin filter for leads/quotations/dashboard, sidebar behaviour fixed (FS logo opens drawer, squeeze on small screens), sales_order_no field added to Quotation. Next: delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
 
 ### What is built
 
@@ -147,7 +147,13 @@ to a non-technical client.
 
 **Quotation notes:** `quotation_notes_raw` + `quotation_notes_clean` fields on `Quotation` (migration 0028). Quotation Notes card on quotation detail page — raw textarea with 🎤 Dictate button (same Web Speech API engine as lead notes — punctuation substitution + ProductKeyword substitution, `en-IN`, continuous), Save + AI Cleanup buttons; cleaned notes section (conditional) with Save + "Convert to Case" button. `quotation_save_notes` view at `/<pk>/notes/` handles `save`/`cleanup`/`save_clean` actions using `cleanup_lead_notes()` from `quotations/services/llm.py`. `_quotation_context` now includes `voice_keywords` for the dictation JS.
 
-**Guide app:** `guide` Django app at `/guide/`. Three pages: `guide_core` (`/guide/core/`), `guide_quotations` (`/guide/quotations/`), `guide_training` (`/guide/training/`). "Codex" theme — deep forest green sidebar (`#071910`, active `#34D399`), warm sage page background (`#EAF0E4`), Cormorant Garamond serif section titles. Shared `templates/guide/_sb_guide.html` overrides `--sb-*` and `--accent`/`--accent-h` variables. Editorial bottom-border tab nav. Role-gated sections: admin-only User Management on core, market-team Market Orders on quotations, admin-only Managing Content on training. "User Guide" link added to sidebar under Tools.
+**Guide app:** `guide` Django app at `/guide/`. Three pages: `guide_core` (`/guide/core/`), `guide_quotations` (`/guide/quotations/`), `guide_training` (`/guide/training/`). "Codex" theme — deep forest green sidebar (`#071910`, active `#34D399`), warm sage page background (`#EAF0E4`), Cormorant Garamond serif section titles. Shared `templates/guide/_sb_guide.html` overrides `--sb-*` and `--accent`/`--accent-h` variables. Editorial bottom-border tab nav. Role-gated sections: admin-only User Management on core, market-team Market Orders on quotations (non-admin users see market order flow only, not admin flow), admin-only Managing Content on training. "User Guide" link added to sidebar under Tools.
+
+**Quotation PDF redesign (session 24):** `quotation_pdf.html` fully rewritten to match Ferrite Structural Steels example document. 10-column item table: # | HSN | Description (Size) | Length | Make | Grade | Pcs | Qty(Nos) | INR per(Nos) | Amount (INR). Integrated `<tfoot>` with Total Item Value / Loading Extra / Transport Extra / CGST % / SGST % rows, then a bold TOTAL row showing total tons + grand total. Discount shown inline in Description cell (not a separate column). E.&O.E section with 3 banks (Standard Chartered/YES Bank/Saraswat Bank) matching example exactly. Ferrite logo embedded as base64 (`static/images/ferrite_logo.png` — source: `docs/` screenshot). `inr_words` template filter added to `quotations/templatetags/fs_filters.py` — converts Decimal to Indian-English words (Crore/Lakh/Thousand). `_logo_b64()` helper in `views.py` reads logo from disk and returns base64 string. Metadata row 1 col 1 label changed to "Sales Order No." (editable per-quotation via `sales_order_no` field; falls back to quotation_number).
+
+**Edit-PDF midpoint (session 24):** `quotation_pdf_edit` view + `quotation_pdf_edit.html` template at `/<pk>/pdf-edit/`. GET: renders full A4 paper preview on dark grey background with fixed dark toolbar (title, "Click any field to edit" subtitle, ⬇ Download PDF button, Cancel link). Every field in the PDF layout is an `<input class="e">` or `<textarea class="e">` — styled borderless/transparent, highlights on hover/focus. Qty/rate inputs auto-recalculate amount; changing any amount/tax/loading/transport recalculates all footer totals live in JS. POST: `_build_pdf_context_from_post(post, original)` builds a flat context using `SimpleNamespace` objects mimicking ORM structure → renders `quotation_pdf.html` → WeasyPrint → file download. Broker status (INTERNAL vs QUOTATION title) preserved from original — not changeable via edit form. `sales_order_no` saved to DB on POST if changed. "Download PDF" button on quotation detail now links to `quotation_pdf_edit` instead of `quotation_pdf`.
+
+**Admin team filter (session 24):** Lead list, quotation list, and dashboard now have a team-scope filter for admin users. Filtering works by `lead.received_via` email → matching `TeamEmailConfig.email_address` → team slug. Avoids querying user→team directly (leads aren't always linked to users via team). Non-admin users see only their own team's data as before.**
 
 **Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
 
@@ -235,7 +241,7 @@ Fields: `customer_code`, `name`, `company`, `phone`, `email`, `gst_number`, `pan
 `customer_name`, `customer_phone`, `customer_email`, `company`, `industry`, `location`, `broker` FK (nullable), `raw_text`, `notes`, `source`, `status`, `created_by`, `created_at`.
 
 ### Quotation (quotations)
-`quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`, `quotation_notes_raw` (TextField, blank=True), `quotation_notes_clean` (TextField, blank=True — LLM-cleaned version, user-editable; migration 0028).
+`quotation_number` (auto: `QT-00001`, `QT-00001-v2`), `sales_order_no` (CharField, blank=True — editable per-quotation via edit-PDF form; shown as "Sales Order No." in PDF col 1; falls back to quotation_number if blank; migration 0029), `lead` FK, `version`, `parent_quotation` self-FK (null = root), `status` (draft/approved/sent), `outcome` (win/loss/not_updated — root only, shared across versions), `winning_quotation` self-FK (records exact version that won — see Architecture Decision 14), `stock_deducted` (guards one-time deduction — see Architecture Decision 15), `payment_terms`, `delivery_address`, `transport_extra`, `sgst_percent`, `cgst_percent`, `total_amount`, `valid_until`, `llm_raw_response`, `quotation_notes_raw` (TextField, blank=True), `quotation_notes_clean` (TextField, blank=True — LLM-cleaned version, user-editable; migration 0028).
 
 **Custom permissions:** `can_approve_quotation`.
 
@@ -507,6 +513,7 @@ ferite_steel/                      ← project root
 │       ├── embedder.py            ← text → 1024-dim vectors via together.ai
 │       ├── onedrive.py            ← MSAL upload to OneDrive (needs live credentials)
 │       └── processor.py           ← orchestrates extract → chunk → embed → upload → mark processed
+├── static/images/ferrite_logo.png ← Ferrite triangular logo; embedded as base64 in PDF via _logo_b64()
 ├── import_products.py             ← one-time; ProductList_updated.xlsx → database.Product (523 rows)
 ├── import_business_partners.py    ← one-time; Business Partner ALL.xlsx → database.Customer (6,414 rows)
 ├── docs/urls.md                   ← full URL reference for all apps
@@ -516,7 +523,8 @@ ferite_steel/                      ← project root
 │   ├── registration/              ← login, password reset
 │   ├── database/                  ← product_list/add/edit, customer_list/detail/add/edit, broker_list/create
 │   ├── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
-│   │                                 market_order_list/create/detail, quotation_send_confirm
+│   │                                 market_order_list/create/detail, quotation_send_confirm,
+│   │                                 quotation_pdf_edit (A4 editable preview → WeasyPrint download)
 │   ├── training/                  ← 21 templates; all include _sb_amber.html for amber sidebar theme
 │   │   ├── _sb_amber.html         ← shared include: Syne font + amber --sb-* + --accent overrides
 │   │   ├── home.html, case_list/detail/create/edit/confirm_delete.html
