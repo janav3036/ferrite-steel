@@ -15,16 +15,30 @@ from .models import CustomUser, Notification
 
 @login_required
 def dashboard(request):
+    from .models import CustomUser
     today = timezone.now()
     week_start = today - timedelta(days=today.weekday())
+    team_f = request.GET.get('team', '') if request.user.role == 'admin' else ''
 
-    if request.user.role in ('admin', 'lead'):
+    if request.user.role == 'admin':
         leads = Lead.objects.filter(created_at__gte=week_start)
         quotations = Quotation.objects.filter(created_at__gte=week_start)
+        if team_f:
+            from django.db.models import Q as _Q
+            leads = leads.filter(_Q(received_via__team=team_f) | _Q(created_by__team=team_f))
+            quotations = quotations.filter(_Q(lead__received_via__team=team_f) | _Q(created_by__team=team_f))
+    elif request.user.role == 'lead':
+        leads = Lead.objects.filter(created_at__gte=week_start)
+        quotations = Quotation.objects.filter(created_at__gte=week_start)
+        if request.user.team:
+            from django.db.models import Q as _Q
+            t = request.user.team
+            leads = leads.filter(_Q(received_via__team=t) | _Q(created_by__team=t))
+            quotations = quotations.filter(_Q(lead__received_via__team=t) | _Q(created_by__team=t))
     else:
         leads = Lead.objects.filter(created_at__gte=week_start, created_by=request.user)
         quotations = Quotation.objects.filter(created_at__gte=week_start, created_by=request.user)
-        
+
     recent_notifs = request.user.notifications.all()[:12]
 
     context = {
@@ -37,6 +51,8 @@ def dashboard(request):
         'quotations_approved': quotations.filter(status='approved').count(),
         'quotations_sent': quotations.filter(status='sent').count(),
         'recent_notifs': recent_notifs,
+        'team_f': team_f,
+        'team_choices': CustomUser.TEAM_CHOICES,
     }
 
     return render(request, 'dashboard.html', context)

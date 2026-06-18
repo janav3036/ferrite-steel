@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:pk>/', views.quotation_detail, name='quotation_detail'),
     path('<int:pk>/edit/', views.quotation_edit, name='quotation_edit'),
     path('<int:pk>/pdf/', views.quotation_pdf, name='quotation_pdf'),
+    path('<int:pk>/pdf-edit/', views.quotation_pdf_edit, name='quotation_pdf_edit'),
     path('<int:pk>/outcome/', views.quotation_outcome, name='quotation_outcome'),
     path('<int:pk>/revise/', views.quotation_revise, name='quotation_revise'),
     path('<int:pk>/send/', views.quotation_send, name='quotation_send'),

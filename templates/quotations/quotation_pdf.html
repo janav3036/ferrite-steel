@@ -3,134 +3,286 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @page { size: A4; margin: 15mm 12mm; }
-  body { font-family: Arial, sans-serif; font-size: 10px; color: #000; }
-  h1 { font-size: 14px; margin: 0; }
-  .company-name { font-size: 16px; font-weight: bold; text-align: center; }
-  .company-address { font-size: 9px; text-align: center; color: #333; }
-  .title { font-size: 18px; font-weight: bold; letter-spacing: 6px; text-align: center; margin: 8px 0 4px; }
+  @page { size: A4; margin: 12mm 12mm 15mm; }
+  body { font-family: Arial, sans-serif; font-size: 9.5px; color: #000; margin: 0; padding: 0; }
+
+  /* ── All bordered tables share this base ── */
   table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid #000; padding: 3px 5px; }
-  th { background: #d9d9d9; font-weight: bold; text-align: center; }
-  td.num { text-align: right; }
-  td.center { text-align: center; }
-  .totals-table td { border: none; }
-  .totals-table td:first-child { text-align: right; padding-right: 10px; font-weight: bold; width: 60%; }
-  .totals-table td:last-child { text-align: right; border-bottom: 1px solid #ccc; min-width: 100px; }
-  .bank-box { border: 1px solid #000; padding: 5px 8px; font-size: 9px; }
-  .footer-note { font-size: 9px; font-style: italic; color: #555; }
-  .bold { font-weight: bold; }
-  .grand-total td { font-size: 12px; font-weight: bold; background: #d9d9d9; }
+  td, th { padding: 3px 5px; font-size: 9.5px; }
+
+  /* ── Header ── */
+  .co-title { font-size: 20px; font-weight: bold; }
+
+  /* ── Document title ── */
+  .doc-title {
+    font-size: 14px; font-weight: bold; letter-spacing: 4px;
+    text-align: center; border: 1.5px solid #000; padding: 4px 0; margin: 5px 0 4px;
+  }
+  .doc-title.internal { color: #b00; border-color: #b00; }
+
+  /* ── Metadata + info tables ── */
+  .bordered td { border: 1px solid #555; }
+  .col-hdr { background: #e6e6e6; font-weight: bold; }
+  .lbl { font-weight: bold; }
+
+  /* ── Line items ── */
+  .items th { border: 1px solid #000; background: #d9d9d9; font-weight: bold; text-align: center; padding: 3px; }
+  .items td { border: 1px solid #000; padding: 2.5px 3px; }
+  .items tfoot td { border: 1px solid #000; }
+  .num  { text-align: right; }
+  .ctr  { text-align: center; }
+  .grand-row td { background: #d9d9d9; font-weight: bold; font-size: 10px; }
+
+  /* ── Remarks + E.&.O.E + bank ── */
+  .remarks-box  { border: 1px solid #555; padding: 3px 5px; min-height: 24px; font-size: 9px; margin-top: 4px; }
+  .eoe-table td { border: 1px solid #555; padding: 3px 5px; vertical-align: top; }
+  .bank-inner td { border: none; vertical-align: top; font-size: 8.5px; padding: 1px 4px; }
+  .bank-inner td + td { border-left: 1px solid #ccc; }
+
+  /* ── Terms ── */
+  .terms { font-size: 8px; color: #333; margin-top: 5px; line-height: 1.5; }
+  .terms ol { margin: 2px 0; padding-left: 20px; }
+  .terms li { margin-bottom: 1px; }
+
+  /* ── Footer bar ── */
+  .footer-bar { margin-top: 8px; border-top: 1.5px solid #000; padding-top: 3px; text-align: center; font-size: 8px; color: #333; }
+  .footer-bar .co { font-weight: bold; font-size: 9px; }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="company-name">FERRITE STRUCTURAL STEEL PVT. LTD.</div>
-<div class="company-address">803 Excel Plaza, B-wing, 90feet road, near Ganesh Mandir, Ghatkopar-East 400075</div>
-<div class="company-address">GSTIN/UIN : 27AACCF4875H1ZE &nbsp;&nbsp;&nbsp; CIN : U27200MH2014PTC259228</div>
-
-{% if quotation.lead.broker %}
-<div class="title" style="color:#c00;">INTERNAL — RATES ONLY</div>
-{% else %}
-<div class="title">Q U O T A T I O N</div>
-{% endif %}
-
-<!-- Meta row -->
-<table style="margin-bottom:6px;">
+<!-- ════ HEADER ════ -->
+<table style="margin-bottom:3px;">
   <tr>
-    <td style="border:none; width:60%;">
-      <strong>To:</strong> {{ quotation.lead.customer_name|default:"—" }}<br>
-      {% if quotation.lead.company %}<strong>Company:</strong> {{ quotation.lead.company }}<br>{% endif %}
-      {% if quotation.lead.customer_phone %}{{ quotation.lead.customer_phone }}<br>{% endif %}
-      {% if quotation.delivery_address %}<strong>Delivery:</strong> {{ quotation.delivery_address }}{% endif %}
+    <td style="border:none; width:65%; vertical-align:middle; padding:0;">
+      <div class="co-title">Ferrite Structural Steels Pvt Ltd</div>
     </td>
-    <td style="border:none; width:40%; vertical-align:top; text-align:right;">
-      <strong>Quotation No:</strong> {{ quotation.quotation_number }}<br>
-      <strong>Date:</strong> {{ quotation.created_at|date:"d M Y" }}<br>
-      <strong>Payment:</strong> {{ quotation.payment_terms }}
+    <td style="border:none; width:35%; text-align:right; vertical-align:middle; padding:0;">
+      {% if logo_b64 %}
+      <img src="data:image/png;base64,{{ logo_b64 }}" style="height:58px; max-width:190px;" alt="Ferrite">
+      {% endif %}
     </td>
   </tr>
 </table>
 
-<!-- Line items -->
-<table>
+{% if quotation.lead.broker %}
+<div class="doc-title internal">I N T E R N A L &nbsp;—&nbsp; R A T E S &nbsp; O N L Y</div>
+{% else %}
+<div class="doc-title">Q U O T A T I O N</div>
+{% endif %}
+
+<!-- ════ METADATA — 3 columns × 3 rows ════ -->
+<table class="bordered" style="margin-bottom:4px;">
+  <tr>
+    <td style="width:34%;"><span class="lbl">Sales Order No.</span> : {{ quotation.sales_order_no|default:quotation.quotation_number }}</td>
+    <td style="width:33%;"><span class="lbl">Quote No.</span> : {{ quotation.quotation_number }}</td>
+    <td style="width:33%;"><span class="lbl">Payment</span> : {{ quotation.payment_terms }}</td>
+  </tr>
+  <tr>
+    <td><span class="lbl">Date</span> : {{ quotation.created_at|date:"d-M-Y" }}</td>
+    <td><span class="lbl">Date</span> : {{ quotation.created_at|date:"d-M-Y" }}</td>
+    <td><span class="lbl">Delivery</span> : {{ quotation.delivery_address|default:"—" }}</td>
+  </tr>
+  <tr>
+    <td><span class="lbl">Time</span> : {{ quotation.created_at|date:"g:i A" }}</td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
+
+<!-- ════ BUYER / CONSIGNEE / SALES DETAILS ════ -->
+<table class="bordered" style="margin-bottom:4px;">
+  <tr>
+    <td class="col-hdr" style="width:33%;">Buyer</td>
+    <td class="col-hdr" style="width:33%;">Consignee</td>
+    <td class="col-hdr" style="width:34%;">&nbsp;</td>
+  </tr>
+  <tr>
+    <!-- Buyer -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <strong>{{ quotation.lead.customer_name|default:"—" }}</strong>
+      {% if quotation.lead.company %}<br>{{ quotation.lead.company }}{% endif %}
+      {% if customer and customer.billing_address %}<br>{{ customer.billing_address }}{% elif quotation.lead.location %}<br>{{ quotation.lead.location }}{% endif %}
+      {% if customer and customer.city %}<br>{{ customer.city }}{% if customer.pincode %}-{{ customer.pincode }}{% endif %}{% endif %}
+      <br>IN
+      {% if customer and customer.pan_number %}<br><span class="lbl">PAN No.</span> : {{ customer.pan_number }}{% endif %}
+      {% if customer and customer.gst_number %}<br><span class="lbl">GST NO.</span> : {{ customer.gst_number }}{% endif %}
+      {% if quotation.lead.customer_phone %}<br><span class="lbl">Mobile No.</span> : {{ quotation.lead.customer_phone }}{% endif %}
+      {% if quotation.lead.customer_email %}<br><span class="lbl">Email</span> : {{ quotation.lead.customer_email }}{% endif %}
+    </td>
+    <!-- Consignee -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <strong>{{ quotation.lead.customer_name|default:"—" }}</strong>
+      {% if quotation.lead.company %}<br>{{ quotation.lead.company }}{% endif %}
+      {% if quotation.delivery_address %}<br>{{ quotation.delivery_address }}{% elif customer and customer.shipping_address %}<br>{{ customer.shipping_address }}{% elif quotation.lead.location %}<br>{{ quotation.lead.location }}{% endif %}
+      {% if customer and customer.city %}<br>{{ customer.city }}{% if customer.pincode %}-{{ customer.pincode }}{% endif %}{% endif %}
+      <br>IN
+      {% if customer and customer.pan_number %}<br><span class="lbl">PAN No.</span> : {{ customer.pan_number }}{% endif %}
+      {% if customer and customer.gst_number %}<br><span class="lbl">GST NO.</span> : {{ customer.gst_number }}{% endif %}
+      {% if quotation.lead.customer_phone %}<br><span class="lbl">Mobile No.</span> : {{ quotation.lead.customer_phone }}{% endif %}
+      {% if quotation.lead.customer_email %}<br><span class="lbl">Email</span> : {{ quotation.lead.customer_email }}{% endif %}
+    </td>
+    <!-- Sales Details -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <span class="lbl">Broker Name</span> : {% if quotation.lead.broker %}{{ quotation.lead.broker.name }}{% endif %}<br>
+      <span class="lbl">Mobile</span> : {% if quotation.lead.broker and quotation.lead.broker.phone %}{{ quotation.lead.broker.phone }}{% elif quotation.lead.customer_phone %}{{ quotation.lead.customer_phone }}{% endif %}<br>
+      <span class="lbl">Email</span> : {% if quotation.lead.broker and quotation.lead.broker.email %}{{ quotation.lead.broker.email }}{% elif quotation.lead.customer_email %}{{ quotation.lead.customer_email }}{% endif %}<br>
+      <span class="lbl">Sales Executive</span> : {% if quotation.created_by %}{{ quotation.created_by.get_full_name|default:quotation.created_by.username }}{% endif %}<br>
+      <span class="lbl">Mobile No.</span> : {% if quotation.created_by and quotation.created_by.phone %}{{ quotation.created_by.phone }}{% endif %}<br>
+      <span class="lbl">Email</span> : &nbsp;<br>
+      <span class="lbl">Prepared by</span> : {% if quotation.created_by %}{{ quotation.created_by.get_full_name|default:quotation.created_by.username }}{% endif %}<br>
+      <span class="lbl">Customer Code</span> : {% if customer %}{{ customer.customer_code }}{% endif %}<br>
+      <span class="lbl">Version</span> : v{{ quotation.version }}
+    </td>
+  </tr>
+</table>
+
+<!-- ════ GREETING ════ -->
+<p style="font-size:9px; margin:4px 0 3px;">Dear Sir/Madam ,<br>
+we have received your enquiry and are pleased to offer you our best rates as per the details below</p>
+
+<!-- ════ LINE ITEMS ════ -->
+<table class="items">
   <thead>
     <tr>
-      <th style="width:25px">SN</th>
-      <th style="width:75px">HSN Code</th>
-      <th>Description</th>
-      <th style="width:55px">Length</th>
-      <th style="width:55px">TON</th>
-      <th style="width:40px">PCS</th>
-      <th style="width:60px">Rate (₹)</th>
-      <th style="width:70px">Amount (₹)</th>
-      <th style="width:40px">Disc %</th>
-      <th style="width:75px">Final (₹)</th>
+      <th style="width:18px;">#</th>
+      <th style="width:64px;">HSN</th>
+      <th>Description (Size)</th>
+      <th style="width:46px;">Length</th>
+      <th style="width:52px;">Make</th>
+      <th style="width:38px;">Grade</th>
+      <th style="width:28px;">Pcs</th>
+      <th style="width:55px;">Qty(Nos)</th>
+      <th style="width:68px;">INR per(Nos)</th>
+      <th style="width:72px;">Amount (INR)</th>
     </tr>
   </thead>
   <tbody>
     {% for item in items %}
     <tr>
-      <td class="center">{{ forloop.counter }}</td>
-      <td class="center">{{ item.hsn_code|default:"—" }}</td>
-      <td>{{ item.product_name }}</td>
-      <td class="num">{{ item.length|default:"—" }}</td>
-      <td class="num">{{ item.quantity }}</td>
-      <td class="num">{{ item.pcs|default:"—" }}</td>
+      <td class="ctr">{{ forloop.counter }}</td>
+      <td class="ctr">{{ item.hsn_code|default:"" }}</td>
+      <td>{{ item.product_name }}{% if item.discount_pct %} <em style="font-size:8px;">({{ item.discount_pct|floatformat:2 }}% disc.)</em>{% endif %}</td>
+      <td class="ctr">{{ item.length|default:"" }}</td>
+      <td class="ctr">{{ item.make|default:"" }}</td>
+      <td class="ctr">{% if item.product %}{{ item.product.grade|default:"" }}{% endif %}</td>
+      <td class="num">{{ item.pcs|default:"" }}</td>
+      <td class="num">{{ item.quantity }} {{ item.uom }}</td>
       <td class="num">{{ item.unit_price|inr }}</td>
-      <td class="num">{{ item.total_price|inr }}</td>
-      <td class="num">{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
       <td class="num">{{ item.final_price|inr }}</td>
     </tr>
     {% endfor %}
-    <!-- Padding rows -->
+    <!-- Padding rows (minimum 5 visible rows) -->
     {% with pad=items|length %}
-    {% if pad < 8 %}{% for i in "12345678"|make_list %}{% if forloop.counter > pad %}<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endif %}{% endfor %}{% endif %}
+    {% if pad < 5 %}{% for i in "12345"|make_list %}{% if forloop.counter > pad %}
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    {% endif %}{% endfor %}{% endif %}
     {% endwith %}
   </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none; background:#f9f9f9;">Total Item Value</td>
+      <td class="num" style="font-weight:bold; background:#f9f9f9;">{{ item_value|inr }}</td>
+    </tr>
+    {% if loading_extra %}
+    <tr>
+      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Loading Extra (₹)</td>
+      <td class="num">{{ loading_extra|inr }}</td>
+    </tr>
+    {% endif %}
+    {% if transport_extra %}
+    <tr>
+      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Transport Extra (₹)</td>
+      <td class="num">{{ transport_extra|inr }}</td>
+    </tr>
+    {% endif %}
+    {% if quotation.cgst_percent %}
+    <tr>
+      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">CGST {{ quotation.cgst_percent }} %</td>
+      <td class="num">{{ cgst|inr }}</td>
+    </tr>
+    {% endif %}
+    {% if quotation.sgst_percent %}
+    <tr>
+      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">SGST {{ quotation.sgst_percent }} %</td>
+      <td class="num">{{ sgst|inr }}</td>
+    </tr>
+    {% endif %}
+    <tr class="grand-row">
+      <td colspan="6" style="font-weight:bold; font-size:10px;">TOTAL</td>
+      <td class="num" style="font-size:10px;">—</td>
+      <td class="num" style="font-size:10px;">{{ total_tons|floatformat:2 }} T</td>
+      <td></td>
+      <td class="num" style="font-size:10px;">{{ grand_total|inr }}</td>
+    </tr>
+  </tfoot>
 </table>
 
-<p class="footer-note">* This is an estimate weight. Billing will be done on actual weight.</p>
+<!-- ════ REMARKS ════ -->
+<div class="remarks-box">
+  <strong>Remarks :</strong>
+  {% if quotation.quotation_notes_clean %}{{ quotation.quotation_notes_clean }}{% elif quotation.quotation_notes_raw %}{{ quotation.quotation_notes_raw }}{% endif %}
+</div>
 
-<!-- Totals + Bank side by side -->
-<table style="margin-top:6px; border:none;">
-  <tr style="border:none;">
-    <!-- Bank details -->
-    <td style="border:none; width:48%; vertical-align:top;">
-      <div class="bank-box">
-        <strong>RTGS Details</strong><br>
-        Ferrite Structural Steels Pvt Ltd.<br>
-        Standard Chartered Bank<br>
-        A/c : 24505076473<br>
-        IFSC Code : SCBL0036066<br>
-        Branch : CHEMBUR
-      </div>
+<!-- ════ E.&.O.E + BANK ════ -->
+<table class="eoe-table" style="margin-top:4px;">
+  <tr>
+    <!-- E.&.O.E + amount in words -->
+    <td style="width:40%; vertical-align:top;">
+      <strong>E.&amp;O.E</strong><br><br>
+      {{ grand_total|inr_words }}
     </td>
-    <!-- Totals -->
-    <td style="border:none; width:52%; vertical-align:top; padding-left:10px;">
-      <table class="totals-table">
-        <tr><td>Total TON</td><td>{{ total_tons|floatformat:2 }}</td></tr>
-        <tr><td>Total Item Value (₹)</td><td>{{ item_value|inr }}</td></tr>
-        <tr><td>Loading Extra (₹)</td><td>{{ loading_extra|inr }}</td></tr>
-        <tr><td>Transport Extra (₹)</td><td>{{ transport_extra|inr }}</td></tr>
-        <tr><td>Total Taxable Value (₹)</td><td>{{ taxable_value|inr }}</td></tr>
-        <tr><td>SGST {{ quotation.sgst_percent }}%</td><td>{{ sgst|inr }}</td></tr>
-        <tr><td>CGST {{ quotation.cgst_percent }}%</td><td>{{ cgst|inr }}</td></tr>
-        <tr class="grand-total">
-          <td style="text-align:right; padding-right:10px; border:1px solid #000;">Total Amount (₹)</td>
-          <td style="text-align:right; border:1px solid #000;">{{ grand_total|inr }}</td>
+    <!-- Bank details -->
+    <td style="width:60%; vertical-align:top; padding:3px 5px;">
+      <table class="bank-inner">
+        <tr>
+          <td style="white-space:nowrap; font-weight:bold; font-size:9px;">Our Bank :</td>
+          <td><strong>Standard Chattered Bank</strong><br>Chembur</td>
+          <td><strong>YES Bank Ghatkopar East</strong></td>
+          <td><strong>Saraswat Bank, SME Vikhroll(E)</strong></td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;"># Ac No :</td>
+          <td>24505076473</td>
+          <td>021381300000265</td>
+          <td>281500100000175</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;"># IFSC :</td>
+          <td>SCBL0036066</td>
+          <td>YESB0000213</td>
+          <td>SRCB0000281</td>
         </tr>
       </table>
     </td>
   </tr>
 </table>
 
-{% if quotation.notes %}
-<p style="margin-top:8px; font-size:9px;"><strong>Notes:</strong> {{ quotation.notes }}</p>
-{% endif %}
+<!-- ════ TERMS ════ -->
+<div class="terms">
+  <ol>
+    <li>Delivery will be made within 15 days following receipt of payment.</li>
+    <li>Validity of the Quotation — 15 Days.</li>
+    <li>The Work Shall Commence ONLY After The Written Confirmation Via E-Mail.</li>
+    <li>Kindly Mention The Quotation Number in The Subject Line of All of Your E-Mail Communications Related to This Order.</li>
+    <li>Material would be dispatched ONLY after the receipt of the technically &amp; commercially confirmed Purchase Order and/or on receipt of the mentioned Advance Amount.</li>
+    <li>Billing will be done on actual weight at time of dispatch. The quantities mentioned above are indicative estimates only.</li>
+    <li>Any Discrepancy in The Material Should Be Communicated Back To us Within a Period of 3 Days of its Delivery.</li>
+    <li>This is a Computer Generated Quotation And Does Not Require a Signature.</li>
+    <li>Rates are subject to market fluctuation. Please reconfirm before placing the order.</li>
+    <li>All disputes subject to Mumbai jurisdiction only.</li>
+  </ol>
+</div>
 
-<p style="margin-top:6px; font-size:9px; font-weight:bold;">RATE VALID FOR TODAY ONLY</p>
+<p style="font-size:9px; margin:8px 0 2px;">Yours Faithfully,</p>
+<p style="font-size:10px; font-weight:bold; margin:0;">Ferrite Structural Steels Pvt Ltd</p>
+
+<!-- ════ FOOTER BAR ════ -->
+<div class="footer-bar">
+  <div class="co">Ferrite Structural Steels Pvt. Ltd.</div>
+  <div>H.O.: 803, Excel Plaza, B-Wing, Bldg No.7, 90 Feet Road, Pantnagar, Ghatkopar (E), Mumbai — 400075 &nbsp;|&nbsp; Mobile: +91 9920777335 / 022-21022818 &nbsp;|&nbsp; Email: accounts@ferrite.in &nbsp;|&nbsp; sales@ferrite.in</div>
+  <div>Sales / Godown: Plot 18, KWC Kalamboli, Navi Mumbai — 410218, Dist. Raigad &nbsp;|&nbsp; www.ferrite.in &nbsp;|&nbsp; CIN U27200MH2014PTC259228 &nbsp;|&nbsp; GST NO.: 27AACCF4875H1ZE</div>
+</div>
 
 </body>
 </html>

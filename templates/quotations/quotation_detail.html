@@ -7,7 +7,7 @@
     <h2 class="mb-0">{{ quotation }}</h2>
     <div class="d-flex gap-2 wrap-actions">
         <a href="{% url 'quotation_edit' quotation.pk %}" class="btn btn-outline-primary">Edit</a>
-        <a href="{% url 'quotation_pdf' quotation.pk %}" class="btn btn-outline-secondary" target="_blank">Download PDF</a>
+        <a href="{% url 'quotation_pdf_edit' quotation.pk %}" class="btn btn-outline-secondary">Edit &amp; Download PDF</a>
         <form method="post" action="{% url 'quotation_revise' quotation.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-warning">Revise</button>

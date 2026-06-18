@@ -141,24 +141,7 @@
         .fs-link-text { transition: opacity .15s; }
         .fs-link-dim { opacity: .32; pointer-events: none; cursor: default; }
 
-        /* ── Collapse toggle ── */
-        .fs-collapse-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px; height: 28px;
-            background: var(--sb-btn-bg);
-            border: 1px solid var(--sb-btn-border);
-            border-radius: 6px;
-            color: var(--sb-btn-color);
-            cursor: pointer;
-            margin: 8px auto 4px;
-            font-size: .75rem;
-            transition: background .12s, color .12s;
-        }
-        .fs-collapse-btn:hover { background: var(--sb-btn-bg2); color: var(--sb-btn-color2); }
-
-        /* ── Footer ── */
+/* ── Footer ── */
         .fs-footer {
             padding: 11px 10px;
             border-top: 1px solid var(--sb-border);
@@ -344,29 +327,64 @@
         /* ── List groups ── */
         .list-group-item { font-size: .84rem; }
 
-        /* ── Mobile bar ── */
-        .fs-mob-bar {
-            display: none;
-            position: fixed; top: 0; left: 0; right: 0;
-            height: 52px;
-            background: var(--sb-bg);
-            align-items: center;
-            padding: 0 16px;
-            gap: 12px;
-            z-index: 199;
-        }
-        .fs-mob-toggle {
-            background: none; border: none;
-            color: var(--sb-mob-text);
-            font-size: 1.25rem; cursor: pointer; padding: 2px;
+
+        /* ── Medium screens: auto-collapse sidebar to icon-only ── */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .fs-sidebar { width: var(--sb-w-col); }
+            .fs-main    { margin-left: var(--sb-w-col); }
+
+            .fs-brand   { padding: 18px 0 16px; justify-content: center; cursor: pointer; }
+            .fs-brand-name { opacity: 0; width: 0; overflow: hidden; }
+
+            .fs-nav     { padding: 10px 6px; }
+            .fs-section-label { opacity: 0; height: 0; padding: 0; margin: 0; }
+
+            .fs-link    { padding: 7px; justify-content: center; }
+            .fs-link-text { opacity: 0; width: 0; overflow: hidden; }
+
+            .fs-footer  { padding: 11px 6px; }
+            .fs-user-row { justify-content: center; }
+            .fs-user-name, .fs-user-meta { display: none; }
+
+            /* When drawer is open on medium screens — restore full sidebar */
+            html .fs-sidebar.fs-open { width: var(--sb-w); }
+            .fs-sidebar.fs-open .fs-brand   { padding: 18px 14px 16px; justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-brand-name { opacity: 1; width: auto; }
+            .fs-sidebar.fs-open .fs-nav     { padding: 10px 8px; }
+            .fs-sidebar.fs-open .fs-section-label { opacity: 1; height: auto; padding: 12px 8px 4px; }
+            .fs-sidebar.fs-open .fs-link    { padding: 6px 10px; justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-link-text { opacity: 1; width: auto; }
+            .fs-sidebar.fs-open .fs-footer  { padding: 11px 10px; }
+            .fs-sidebar.fs-open .fs-user-row { justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-user-name,
+            .fs-sidebar.fs-open .fs-user-meta { display: block; }
         }
 
         @media (max-width: 767.98px) {
-            .fs-sidebar { transform: translateX(-100%); transition: transform .22s ease, width .2s ease; }
-            .fs-sidebar.fs-open { transform: translateX(0); }
-            .fs-main { margin-left: 0 !important; padding: 14px; margin-top: 52px; }
-            .fs-mob-bar { display: flex; }
-            .fs-collapse-btn { display: none; }
+            .fs-sidebar { width: var(--sb-w-col); }
+            .fs-main { margin-left: var(--sb-w-col) !important; padding: 14px; margin-top: 0; }
+
+            .fs-brand   { padding: 18px 0 16px; justify-content: center; cursor: pointer; }
+            .fs-brand-name { opacity: 0; width: 0; overflow: hidden; }
+            .fs-nav     { padding: 10px 6px; }
+            .fs-section-label { opacity: 0; height: 0; padding: 0; margin: 0; }
+            .fs-link    { padding: 7px; justify-content: center; }
+            .fs-link-text { opacity: 0; width: 0; overflow: hidden; }
+            .fs-footer  { padding: 11px 6px; }
+            .fs-user-row { justify-content: center; }
+            .fs-user-name, .fs-user-meta { display: none; }
+
+            html .fs-sidebar.fs-open { width: var(--sb-w); }
+            .fs-sidebar.fs-open .fs-brand   { padding: 18px 14px 16px; justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-brand-name { opacity: 1; width: auto; }
+            .fs-sidebar.fs-open .fs-nav     { padding: 10px 8px; }
+            .fs-sidebar.fs-open .fs-section-label { opacity: 1; height: auto; padding: 12px 8px 4px; }
+            .fs-sidebar.fs-open .fs-link    { padding: 6px 10px; justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-link-text { opacity: 1; width: auto; }
+            .fs-sidebar.fs-open .fs-footer  { padding: 11px 10px; }
+            .fs-sidebar.fs-open .fs-user-row { justify-content: flex-start; }
+            .fs-sidebar.fs-open .fs-user-name,
+            .fs-sidebar.fs-open .fs-user-meta { display: block; }
 
             /* ── Typography ── */
             h2 { font-size: 1.2rem; }
@@ -454,16 +472,9 @@
 </head>
 <body>
 
-<div class="fs-mob-bar">
-    <button class="fs-mob-toggle" id="fs-mob-toggle" aria-label="Toggle navigation">
-        <i class="bi bi-list"></i>
-    </button>
-    <span style="color:rgba(255,255,255,.85);font-size:.88rem;font-weight:600;">Ferrite Steel</span>
-</div>
-
 {% with url=request.resolver_match.url_name %}
 <aside class="fs-sidebar" id="fs-sidebar">
-    <a href="/dashboard/" class="fs-brand">
+    <a href="/dashboard/" class="fs-brand" id="fs-brand">
         <div class="fs-brand-mark">FS</div>
         <span class="fs-brand-name">Ferrite Steel</span>
     </a>
@@ -581,10 +592,6 @@
         </a>
         {% endif %}
 
-        <!-- Collapse toggle -->
-        <button class="fs-collapse-btn" id="fs-collapse-btn" title="Collapse sidebar">
-            <span id="fs-collapse-icon" style="line-height:1;font-size:.9rem;font-weight:500;">«</span>
-        </button>
     </nav>
 
     <div class="fs-footer">
@@ -628,38 +635,29 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 <script>
-    /* ── Mobile drawer ── */
     function closeSidebar() {
         document.getElementById('fs-sidebar').classList.remove('fs-open');
         document.getElementById('fs-overlay').style.display = 'none';
     }
-    document.getElementById('fs-mob-toggle').addEventListener('click', function () {
-        const sb = document.getElementById('fs-sidebar');
-        const ov = document.getElementById('fs-overlay');
-        if (sb.classList.contains('fs-open')) {
-            closeSidebar();
+
+    document.getElementById('fs-brand').addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.innerWidth >= 992) {
+            /* Desktop: toggle collapse via sb-collapsed class */
+            const collapsed = document.documentElement.classList.toggle('sb-collapsed');
+            try { localStorage.setItem('sb', collapsed ? '1' : '0'); } catch(e) {}
         } else {
-            sb.classList.add('fs-open');
-            ov.style.display = '';
+            /* Small/medium: open/close overlay drawer */
+            const sb = document.getElementById('fs-sidebar');
+            const ov = document.getElementById('fs-overlay');
+            if (sb.classList.contains('fs-open')) {
+                closeSidebar();
+            } else {
+                document.documentElement.classList.remove('sb-collapsed');
+                sb.classList.add('fs-open');
+                ov.style.display = '';
+            }
         }
-    });
-
-    /* ── Collapse toggle (desktop) ── */
-    const collapseBtn  = document.getElementById('fs-collapse-btn');
-    const collapseIcon = document.getElementById('fs-collapse-icon');
-
-    function syncCollapseIcon() {
-        const collapsed = document.documentElement.classList.contains('sb-collapsed');
-        collapseIcon.textContent = collapsed ? '»' : '«';
-        collapseBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
-    }
-
-    syncCollapseIcon(); /* set correct icon on load */
-
-    collapseBtn.addEventListener('click', function () {
-        const collapsed = document.documentElement.classList.toggle('sb-collapsed');
-        try { localStorage.setItem('sb', collapsed ? '1' : '0'); } catch(e) {}
-        syncCollapseIcon();
     });
 </script>
 {% block extra_js %}{% endblock %}

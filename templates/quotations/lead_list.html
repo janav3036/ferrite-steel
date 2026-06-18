@@ -39,9 +39,19 @@
             {% endfor %}
         </select>
     </div>
+    {% if request.user.role == 'admin' %}
+    <div class="col-auto">
+        <select name="team" class="form-select form-select-sm">
+            <option value="">All Teams</option>
+            {% for val, label in team_choices %}
+            <option value="{{ val }}" {% if team_f == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
     <div class="col-auto">
         <button class="btn btn-sm btn-outline-secondary">Filter</button>
-        {% if q or status_f or source_f %}
+        {% if q or status_f or source_f or team_f %}
         <a href="{% url 'lead_list' %}" class="btn btn-sm btn-outline-danger ms-1">✕ Clear</a>
         {% endif %}
     </div>

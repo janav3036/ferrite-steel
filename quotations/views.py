@@ -1,6 +1,9 @@
+import base64
 import json
+import os
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from types import SimpleNamespace
 from aegis.notifications import notify
 from aegis.models import CustomUser
 
@@ -31,10 +34,19 @@ from .services.llm import generate_quotation_draft
 
 @login_required
 def lead_list(request):
+    from aegis.models import CustomUser as _CU
     q = request.GET.get('q', '').strip()
     status_f = request.GET.get('status', '')
     source_f = request.GET.get('source', '')
+    team_f = request.GET.get('team', '')
     qs = Lead.objects.select_related('created_by').all()
+    if request.user.role == 'admin':
+        if team_f:
+            qs = qs.filter(Q(received_via__team=team_f) | Q(created_by__team=team_f))
+    else:
+        if request.user.team:
+            t = request.user.team
+            qs = qs.filter(Q(received_via__team=t) | Q(created_by__team=t))
     if q:
         qs = qs.filter(Q(company__icontains=q) | Q(customer_name__icontains=q) | Q(customer_email__icontains=q))
     if status_f:
@@ -52,6 +64,8 @@ def lead_list(request):
         'q': q,
         'status_f': status_f,
         'source_f': source_f,
+        'team_f': team_f,
+        'team_choices': _CU.TEAM_CHOICES,
         'query_string': params.urlencode(),
         'lead_statuses': Lead.STATUS_CHOICES,
         'lead_sources': Lead.SOURCE_CHOICES,
@@ -152,10 +166,19 @@ def quotation_save_notes(request, pk):
 
 @login_required
 def quotation_list(request):
+    from aegis.models import CustomUser as _CU
     q = request.GET.get('q', '').strip()
     status_f = request.GET.get('status', '')
     outcome_f = request.GET.get('outcome', '')
+    team_f = request.GET.get('team', '')
     qs = Quotation.objects.select_related('lead', 'created_by').all()
+    if request.user.role == 'admin':
+        if team_f:
+            qs = qs.filter(Q(lead__received_via__team=team_f) | Q(created_by__team=team_f))
+    else:
+        if request.user.team:
+            t = request.user.team
+            qs = qs.filter(Q(lead__received_via__team=t) | Q(created_by__team=t))
     if q:
         qs = qs.filter(Q(quotation_number__icontains=q) | Q(lead__company__icontains=q) | Q(lead__customer_name__icontains=q))
     if status_f:
@@ -168,6 +191,11 @@ def quotation_list(request):
     page_obj = paginator.get_page(request.GET.get('page'))
     elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
     unquoted_leads = Lead.objects.filter(quotations__isnull=True)
+    if request.user.role != 'admin' and request.user.team:
+        t = request.user.team
+        unquoted_leads = unquoted_leads.filter(Q(received_via__team=t) | Q(created_by__team=t))
+    elif request.user.role == 'admin' and team_f:
+        unquoted_leads = unquoted_leads.filter(Q(received_via__team=team_f) | Q(created_by__team=team_f))
     return render(request, 'quotations/quotation_list.html', {
         'page_obj': page_obj,
         'elided_page_range': elided,
@@ -175,6 +203,8 @@ def quotation_list(request):
         'q': q,
         'status_f': status_f,
         'outcome_f': outcome_f,
+        'team_f': team_f,
+        'team_choices': _CU.TEAM_CHOICES,
         'query_string': params.urlencode(),
         'quotation_statuses': Quotation.STATUS_CHOICES,
         'quotation_outcomes': Quotation.OUTCOME_CHOICES,
@@ -311,6 +341,16 @@ def _upsert_customer(lead, transport_extra):
         )
 
 
+def _logo_b64():
+    from django.conf import settings
+    path = os.path.join(settings.BASE_DIR, 'static', 'images', 'ferrite_logo.png')
+    try:
+        with open(path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('ascii')
+    except FileNotFoundError:
+        return ''
+
+
 def _quotation_context(quotation):
     items = list(quotation.line_items.all())
     total_tons = sum(
@@ -339,6 +379,7 @@ def _quotation_context(quotation):
     ).select_related('created_by').order_by('version')
 
     voice_keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
+    valid_until_str = quotation.valid_until.strftime('%d-%b-%Y') if quotation.valid_until else 'Today Only'
 
     return {
         'quotation': quotation,
@@ -356,6 +397,7 @@ def _quotation_context(quotation):
         'customer': customer,
         'customer_notes_display': customer_notes_display,
         'voice_keywords': voice_keywords,
+        'valid_until_str': valid_until_str,
     }
 
 
@@ -366,6 +408,7 @@ def quotation_pdf(request, pk):
         pk=pk,
     )
     ctx = _quotation_context(quotation)
+    ctx['logo_b64'] = _logo_b64()
     html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
     try:
         import weasyprint
@@ -375,6 +418,155 @@ def quotation_pdf(request, pk):
         return response
     except ImportError:
         return HttpResponse('WeasyPrint is not installed. Run: pip install weasyprint', status=500)
+
+
+def _build_pdf_context_from_post(post, original):
+    """Build a PDF context from POST data (edit-PDF form). Returns flat context compatible with quotation_pdf.html."""
+    def _dec(key, default='0'):
+        try:
+            return Decimal(str(post.get(key, default) or default).replace(',', '').strip())
+        except (InvalidOperation, ValueError):
+            return Decimal(default)
+
+    def _s(key, default=''):
+        return (post.get(key) or '').strip() or default
+
+    # Broker — preserve original broker flag; only update display details
+    if original.lead.broker:
+        broker = SimpleNamespace(
+            name=_s('broker_name', original.lead.broker.name),
+            phone=_s('broker_mobile', getattr(original.lead.broker, 'phone', '') or ''),
+            email=_s('broker_email', getattr(original.lead.broker, 'email', '') or ''),
+        )
+    else:
+        broker = None
+
+    lead = SimpleNamespace(
+        broker=broker,
+        customer_name=_s('customer_name'),
+        company=_s('company'),
+        location=_s('billing_address'),
+        customer_phone=_s('mobile'),
+        customer_email=_s('email'),
+        industry='',
+    )
+
+    sales_name = _s('sales_exec')
+    created_by = SimpleNamespace(
+        get_full_name=sales_name,
+        phone=_s('sales_exec_phone'),
+        username=sales_name,
+    )
+
+    quotation = SimpleNamespace(
+        quotation_number=original.quotation_number,
+        sales_order_no=_s('sales_order_no', original.sales_order_no),
+        lead=lead,
+        created_at=original.created_at,
+        version=original.version,
+        valid_until=None,
+        delivery_address=_s('consignee_address') or _s('delivery'),
+        payment_terms=_s('payment_terms'),
+        created_by=created_by,
+        quotation_notes_clean=_s('remarks'),
+        quotation_notes_raw='',
+        cgst_percent=_dec('cgst_pct'),
+        sgst_percent=_dec('sgst_pct'),
+    )
+
+    customer = SimpleNamespace(
+        billing_address=_s('billing_address'),
+        city=_s('city'),
+        pincode=_s('pincode'),
+        pan_number=_s('pan'),
+        gst_number=_s('gst'),
+        customer_code=_s('customer_code'),
+        shipping_address=_s('consignee_address'),
+    )
+
+    valid_until_str = _s('valid_until', 'Today Only')
+
+    # Line items
+    items = []
+    i = 0
+    while f'item_{i}_name' in post:
+        qty  = _dec(f'item_{i}_qty')
+        rate = _dec(f'item_{i}_rate')
+        amount = qty * rate
+        uom   = _s(f'item_{i}_uom', 'ton')
+        grade = _s(f'item_{i}_grade')
+        pcs_raw = _s(f'item_{i}_pcs')
+        item = SimpleNamespace(
+            hsn_code=_s(f'item_{i}_hsn'),
+            product_name=_s(f'item_{i}_name'),
+            length=_s(f'item_{i}_length'),
+            make=_s(f'item_{i}_make'),
+            product=SimpleNamespace(grade=grade) if grade else None,
+            pcs=int(pcs_raw) if pcs_raw.isdigit() else None,
+            quantity=qty,
+            uom=uom,
+            unit_price=rate,
+            total_price=amount,
+            discount_pct=Decimal('0'),
+            final_price=amount,
+        )
+        items.append(item)
+        i += 1
+
+    item_value    = sum(it.final_price for it in items)
+    loading_extra  = _dec('loading')
+    transport_extra = _dec('transport')
+    taxable_value  = item_value + loading_extra + transport_extra
+    cgst = taxable_value * quotation.cgst_percent / 100
+    sgst = taxable_value * quotation.sgst_percent / 100
+    grand_total   = taxable_value + cgst + sgst
+    total_tons    = sum(
+        (it.quantity / 1000 if it.uom == 'kg' else it.quantity) for it in items
+    )
+
+    return {
+        'quotation': quotation,
+        'items': items,
+        'customer': customer,
+        'item_value': item_value,
+        'loading_extra': loading_extra,
+        'transport_extra': transport_extra,
+        'taxable_value': taxable_value,
+        'cgst': cgst,
+        'sgst': sgst,
+        'grand_total': grand_total,
+        'total_tons': total_tons,
+        'valid_until_str': valid_until_str,
+        'logo_b64': _logo_b64(),
+    }
+
+
+@login_required
+def quotation_pdf_edit(request, pk):
+    quotation = get_object_or_404(
+        Quotation.objects.select_related('lead', 'lead__broker', 'created_by')
+                         .prefetch_related('line_items__product'),
+        pk=pk,
+    )
+    if request.method == 'POST':
+        son = request.POST.get('sales_order_no', '').strip()
+        if son and son != quotation.quotation_number:
+            quotation.sales_order_no = son
+            quotation.save(update_fields=['sales_order_no'])
+        ctx = _build_pdf_context_from_post(request.POST, quotation)
+        html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
+        try:
+            import weasyprint
+            pdf = weasyprint.HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{quotation.quotation_number}.pdf"'
+            return response
+        except ImportError:
+            return HttpResponse('WeasyPrint is not installed.', status=500)
+    else:
+        ctx = _quotation_context(quotation)
+        ctx['logo_b64'] = _logo_b64()
+        return render(request, 'quotations/quotation_pdf_edit.html', ctx)
 
 
 @login_required
@@ -525,6 +717,7 @@ def quotation_send(request, pk):
                     if not lead.broker:
                         import weasyprint
                         ctx = _quotation_context(quotation)
+                        ctx['logo_b64'] = _logo_b64()
                         html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
                         pdf_bytes = weasyprint.HTML(
                             string=html, base_url=request.build_absolute_uri('/')

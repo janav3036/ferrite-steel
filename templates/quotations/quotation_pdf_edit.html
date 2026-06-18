@@ -1,0 +1,442 @@
+{% load fs_filters %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit PDF — {{ quotation.quotation_number }}</title>
+<style>
+/* ── Page chrome ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #475569; font-family: Arial, sans-serif; }
+
+/* ── Toolbar ── */
+.tb {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: #1E293B; color: #fff;
+  padding: 10px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.tb-left { display: flex; flex-direction: column; }
+.tb-title { font-size: 13px; font-weight: 700; }
+.tb-sub   { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+.tb-right { display: flex; align-items: center; gap: 10px; }
+.btn-dl {
+  background: #2563EB; color: #fff; border: none;
+  padding: 8px 22px; font-size: 13px; font-weight: 600;
+  border-radius: 6px; cursor: pointer; white-space: nowrap;
+}
+.btn-dl:hover { background: #1D4ED8; }
+.btn-cancel {
+  color: #94A3B8; border: 1px solid #475569; background: transparent;
+  padding: 8px 16px; font-size: 13px; border-radius: 6px;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+.btn-cancel:hover { color: #fff; border-color: #cbd5e1; }
+
+/* ── Paper wrapper ── */
+.paper-wrap {
+  padding: 70px 20px 50px;
+  display: flex; justify-content: center; align-items: flex-start;
+}
+#pdf-page {
+  background: #fff;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  box-shadow: 0 6px 30px rgba(0,0,0,.4);
+}
+
+/* ══════════════════════════════════════
+   PDF STYLES — mirrors quotation_pdf.html
+   ══════════════════════════════════════ */
+#pdf-page table { width: 100%; border-collapse: collapse; }
+#pdf-page td, #pdf-page th { padding: 3px 5px; font-size: 9.5px; }
+.co-title  { font-size: 20px; font-weight: bold; }
+.doc-title {
+  font-size: 14px; font-weight: bold; letter-spacing: 4px;
+  text-align: center; border: 1.5px solid #000;
+  padding: 4px 0; margin: 5px 0 4px;
+}
+.doc-title.internal { color: #b00; border-color: #b00; }
+.bordered td { border: 1px solid #555; }
+.col-hdr { background: #e6e6e6; font-weight: bold; }
+.lbl { font-weight: bold; }
+.items th { border: 1px solid #000; background: #d9d9d9; font-weight: bold; text-align: center; padding: 3px; }
+.items td { border: 1px solid #000; padding: 2px 3px; }
+.items tfoot td { border: 1px solid #000; }
+.num  { text-align: right; }
+.ctr  { text-align: center; }
+.grand-row td { background: #d9d9d9; font-weight: bold; font-size: 10px; }
+.remarks-box  { border: 1px solid #555; padding: 3px 5px; min-height: 24px; font-size: 9px; margin-top: 4px; }
+.eoe-table td { border: 1px solid #555; padding: 3px 5px; vertical-align: top; }
+.bank-inner td { border: none; vertical-align: top; font-size: 8.5px; padding: 1px 4px; }
+.bank-inner td + td { border-left: 1px solid #ccc; }
+.terms { font-size: 8px; color: #333; margin-top: 5px; line-height: 1.5; }
+.terms ol { margin: 2px 0; padding-left: 20px; }
+.terms li { margin-bottom: 1px; }
+.footer-bar { margin-top: 8px; border-top: 1.5px solid #000; padding-top: 3px; text-align: center; font-size: 8px; color: #333; }
+.footer-bar .co { font-weight: bold; font-size: 9px; }
+
+/* ══════════════════════════════════════
+   EDITABLE INPUT STYLES
+   ══════════════════════════════════════ */
+.e {
+  border: none; background: transparent;
+  font-family: Arial, sans-serif; font-size: inherit; font-weight: inherit;
+  color: #000; padding: 0; margin: 0; outline: none;
+  width: 100%; line-height: 1.4;
+}
+.e:hover  { background: rgba(37,99,235,.07); border-radius: 2px; }
+.e:focus  { background: rgba(37,99,235,.13); outline: 1px solid #2563EB; border-radius: 2px; }
+.e.num    { text-align: right; }
+.e.ctr    { text-align: center; }
+.e.bold   { font-weight: bold; font-size: inherit; }
+.e.big    { font-size: 20px; font-weight: bold; }
+.e.ro     { background: #f1f5f9 !important; color: #64748b; cursor: default; }
+.e.ro:hover, .e.ro:focus { background: #f1f5f9 !important; outline: none; }
+textarea.e { resize: none; overflow: hidden; display: block; }
+select.e   { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- ════ TOOLBAR ════ -->
+<div class="tb">
+  <div class="tb-left">
+    <div class="tb-title">Edit PDF — {{ quotation.quotation_number }}</div>
+    <div class="tb-sub">Click any field to edit &nbsp;·&nbsp; Changes are not saved to the database</div>
+  </div>
+  <div class="tb-right">
+    <button class="btn-dl" onclick="downloadPDF()">&#x2913; Download PDF</button>
+    <a href="{% url 'quotation_detail' quotation.pk %}" class="btn-cancel">Cancel</a>
+  </div>
+</div>
+
+<!-- ════ A4 PAPER ════ -->
+<div class="paper-wrap">
+<div id="pdf-page">
+<form id="pdf-form" method="post" action="{% url 'quotation_pdf_edit' quotation.pk %}">
+{% csrf_token %}
+
+<!-- HEADER -->
+<table style="margin-bottom:3px;">
+  <tr>
+    <td style="border:none; width:65%; vertical-align:middle; padding:0;">
+      <div class="co-title">Ferrite Structural Steels Pvt Ltd</div>
+    </td>
+    <td style="border:none; width:35%; text-align:right; vertical-align:middle; padding:0;">
+      {% if logo_b64 %}
+      <img src="data:image/png;base64,{{ logo_b64 }}" style="height:58px; max-width:190px;" alt="Ferrite">
+      {% endif %}
+    </td>
+  </tr>
+</table>
+
+{% if quotation.lead.broker %}
+<div class="doc-title internal">I N T E R N A L &nbsp;—&nbsp; R A T E S &nbsp; O N L Y</div>
+{% else %}
+<div class="doc-title">Q U O T A T I O N</div>
+{% endif %}
+
+<!-- METADATA -->
+<table class="bordered" style="margin-bottom:4px;">
+  <tr>
+    <td style="width:34%;"><span class="lbl">Sales Order No.</span> : <input class="e" name="sales_order_no" value="{{ quotation.sales_order_no|default:quotation.quotation_number }}" style="width:calc(100% - 95px);display:inline-block;"></td>
+    <td style="width:33%;"><span class="lbl">Quote No.</span> : {{ quotation.quotation_number }}</td>
+    <td style="width:33%;"><span class="lbl">Payment</span> : <input class="e" name="payment_terms" value="{{ quotation.payment_terms }}" style="width:calc(100% - 65px);display:inline-block;"></td>
+  </tr>
+  <tr>
+    <td><span class="lbl">Date</span> : {{ quotation.created_at|date:"d-M-Y" }}</td>
+    <td><span class="lbl">Date</span> : {{ quotation.created_at|date:"d-M-Y" }}</td>
+    <td><span class="lbl">Delivery</span> : <input class="e" name="delivery" value="{{ quotation.delivery_address }}" style="width:calc(100% - 65px);display:inline-block;"></td>
+  </tr>
+  <tr>
+    <td><span class="lbl">Time</span> : {{ quotation.created_at|date:"g:i A" }}</td>
+    <td></td>
+    <td><span class="lbl">Valid Until</span> : <input class="e" name="valid_until" value="{{ valid_until_str }}" style="width:calc(100% - 75px);display:inline-block;"></td>
+  </tr>
+</table>
+
+<!-- BUYER / CONSIGNEE / SALES -->
+<table class="bordered" style="margin-bottom:4px;">
+  <tr>
+    <td class="col-hdr" style="width:33%;">Buyer</td>
+    <td class="col-hdr" style="width:33%;">Consignee</td>
+    <td class="col-hdr" style="width:34%;">&nbsp;</td>
+  </tr>
+  <tr>
+    <!-- Buyer -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <input class="e bold" name="customer_name" value="{{ quotation.lead.customer_name }}" placeholder="Customer Name"><br>
+      <input class="e" name="company" value="{{ quotation.lead.company }}" placeholder="Company"><br>
+      <textarea class="e" name="billing_address" rows="2" style="width:100%;">{{ customer.billing_address|default:quotation.lead.location }}</textarea>
+      <input class="e" name="city" value="{{ customer.city }}" placeholder="City" style="width:59%;display:inline-block;">
+      <input class="e" name="pincode" value="{{ customer.pincode }}" placeholder="PIN" style="width:39%;display:inline-block;">
+      <br>IN<br>
+      <span class="lbl">PAN No.</span> : <input class="e" name="pan" value="{{ customer.pan_number }}" style="width:calc(100% - 55px);display:inline-block;"><br>
+      <span class="lbl">GST NO.</span> : <input class="e" name="gst" value="{{ customer.gst_number }}" style="width:calc(100% - 55px);display:inline-block;"><br>
+      <span class="lbl">Mobile No.</span> : <input class="e" name="mobile" value="{{ quotation.lead.customer_phone }}" style="width:calc(100% - 65px);display:inline-block;"><br>
+      <span class="lbl">Email</span> : <input class="e" name="email" value="{{ quotation.lead.customer_email }}" style="width:calc(100% - 40px);display:inline-block;">
+    </td>
+    <!-- Consignee -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <input class="e bold" name="consignee_name" value="{{ quotation.lead.customer_name }}" placeholder="Consignee Name"><br>
+      <input class="e" name="consignee_company" value="{{ quotation.lead.company }}" placeholder="Company"><br>
+      <textarea class="e" name="consignee_address" rows="2" style="width:100%;">{{ quotation.delivery_address|default:customer.shipping_address|default:quotation.lead.location }}</textarea>
+      <input class="e" name="consignee_city" value="{{ customer.city }}" placeholder="City" style="width:59%;display:inline-block;">
+      <input class="e" name="consignee_pincode" value="{{ customer.pincode }}" placeholder="PIN" style="width:39%;display:inline-block;">
+      <br>IN<br>
+      <span class="lbl">PAN No.</span> : <input class="e" name="consignee_pan" value="{{ customer.pan_number }}" style="width:calc(100% - 55px);display:inline-block;"><br>
+      <span class="lbl">GST NO.</span> : <input class="e" name="consignee_gst" value="{{ customer.gst_number }}" style="width:calc(100% - 55px);display:inline-block;"><br>
+      <span class="lbl">Mobile No.</span> : <input class="e" name="consignee_mobile" value="{{ quotation.lead.customer_phone }}" style="width:calc(100% - 65px);display:inline-block;"><br>
+      <span class="lbl">Email</span> : <input class="e" name="consignee_email" value="{{ quotation.lead.customer_email }}" style="width:calc(100% - 40px);display:inline-block;">
+    </td>
+    <!-- Sales details -->
+    <td style="vertical-align:top; padding:4px 5px;">
+      <span class="lbl">Broker Name</span> : <input class="e" name="broker_name" value="{{ quotation.lead.broker.name }}" style="width:calc(100% - 80px);display:inline-block;"><br>
+      <span class="lbl">Mobile</span> : <input class="e" name="broker_mobile" value="{{ quotation.lead.broker.phone|default:quotation.lead.customer_phone }}" style="width:calc(100% - 50px);display:inline-block;"><br>
+      <span class="lbl">Email</span> : <input class="e" name="broker_email" value="{{ quotation.lead.broker.email|default:quotation.lead.customer_email }}" style="width:calc(100% - 40px);display:inline-block;"><br>
+      <span class="lbl">Sales Executive</span> : <input class="e" name="sales_exec" value="{{ quotation.created_by.get_full_name|default:quotation.created_by.username }}" style="width:calc(100% - 95px);display:inline-block;"><br>
+      <span class="lbl">Mobile No.</span> : <input class="e" name="sales_exec_phone" value="{{ quotation.created_by.phone }}" style="width:calc(100% - 65px);display:inline-block;"><br>
+      <span class="lbl">Email</span> : <input class="e" name="sales_exec_email" value="" style="width:calc(100% - 40px);display:inline-block;"><br>
+      <span class="lbl">Prepared by</span> : <input class="e" name="prepared_by" value="{{ quotation.created_by.get_full_name|default:quotation.created_by.username }}" style="width:calc(100% - 75px);display:inline-block;"><br>
+      <span class="lbl">Customer Code</span> : <input class="e" name="customer_code" value="{{ customer.customer_code }}" style="width:calc(100% - 90px);display:inline-block;"><br>
+      <span class="lbl">Version</span> : v{{ quotation.version }}
+    </td>
+  </tr>
+</table>
+
+<!-- GREETING -->
+<p style="font-size:9px; margin:4px 0 3px;">Dear Sir/Madam ,<br>
+we have received your enquiry and are pleased to offer you our best rates as per the details below</p>
+
+<!-- LINE ITEMS -->
+<table class="items">
+  <thead>
+    <tr>
+      <th style="width:18px;">#</th>
+      <th style="width:64px;">HSN</th>
+      <th>Description (Size)</th>
+      <th style="width:46px;">Length</th>
+      <th style="width:52px;">Make</th>
+      <th style="width:38px;">Grade</th>
+      <th style="width:28px;">Pcs</th>
+      <th style="width:58px;">Qty(Nos)</th>
+      <th style="width:68px;">INR per(Nos)</th>
+      <th style="width:72px;">Amount (INR)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td class="ctr" style="font-size:9.5px;">{{ forloop.counter }}</td>
+      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_hsn" value="{{ item.hsn_code }}"></td>
+      <td><input class="e" name="item_{{ forloop.counter0 }}_name" value="{{ item.product_name }}"></td>
+      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_length" value="{{ item.length }}"></td>
+      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_make" value="{{ item.make }}"></td>
+      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_grade" value="{% if item.product %}{{ item.product.grade }}{% endif %}"></td>
+      <td><input class="e num" name="item_{{ forloop.counter0 }}_pcs" value="{{ item.pcs|default:'' }}"></td>
+      <td style="white-space:nowrap;">
+        <input class="e num item-qty" data-row="{{ forloop.counter0 }}"
+               name="item_{{ forloop.counter0 }}_qty"
+               value="{{ item.quantity }}" style="width:55%;display:inline-block;">
+        <select class="e" name="item_{{ forloop.counter0 }}_uom"
+                data-row="{{ forloop.counter0 }}"
+                style="width:40%;display:inline-block;font-size:8px;padding:0;">
+          <option value="ton"{% if item.uom == 'ton' %} selected{% endif %}>ton</option>
+          <option value="kg"{% if item.uom == 'kg' %} selected{% endif %}>kg</option>
+        </select>
+      </td>
+      <td><input class="e num item-rate" data-row="{{ forloop.counter0 }}"
+                 name="item_{{ forloop.counter0 }}_rate" value="{{ item.unit_price }}"></td>
+      <td><input class="e num item-amount ro" data-row="{{ forloop.counter0 }}"
+                 name="item_{{ forloop.counter0 }}_amount"
+                 value="{{ item.final_price }}" readonly tabindex="-1"></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;background:#f9f9f9;">Total Item Value</td>
+      <td style="background:#f9f9f9;"><input class="e num ro" id="f-item-value" readonly tabindex="-1" value="{{ item_value }}"></td>
+    </tr>
+    <tr>
+      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+        Loading Extra (₹)
+      </td>
+      <td><input class="e num" id="f-loading" name="loading" value="{{ loading_extra }}" oninput="recalc()"></td>
+    </tr>
+    <tr>
+      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+        Transport Extra (₹)
+      </td>
+      <td><input class="e num" id="f-transport" name="transport" value="{{ transport_extra }}" oninput="recalc()"></td>
+    </tr>
+    <tr>
+      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+        CGST&nbsp;<input class="e num" name="cgst_pct" id="f-cgst-pct" value="{{ quotation.cgst_percent }}"
+                         style="width:30px;display:inline-block;text-align:center;" oninput="recalc()">&nbsp;%
+      </td>
+      <td><input class="e num ro" id="f-cgst" readonly tabindex="-1" value="{{ cgst }}"></td>
+    </tr>
+    <tr>
+      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+        SGST&nbsp;<input class="e num" name="sgst_pct" id="f-sgst-pct" value="{{ quotation.sgst_percent }}"
+                         style="width:30px;display:inline-block;text-align:center;" oninput="recalc()">&nbsp;%
+      </td>
+      <td><input class="e num ro" id="f-sgst" readonly tabindex="-1" value="{{ sgst }}"></td>
+    </tr>
+    <tr class="grand-row">
+      <td colspan="6" style="font-weight:bold;font-size:10px;">TOTAL</td>
+      <td class="num" style="font-size:10px;">—</td>
+      <td class="num" style="font-size:10px;"><input class="e num ro" id="f-total-tons" readonly tabindex="-1" value="{{ total_tons|floatformat:2 }} T" style="font-weight:bold;font-size:10px;"></td>
+      <td></td>
+      <td><input class="e num ro" id="f-grand" readonly tabindex="-1" value="{{ grand_total }}" style="font-weight:bold;font-size:10px;"></td>
+    </tr>
+  </tfoot>
+</table>
+
+<p style="font-size:8px;font-style:italic;color:#555;margin:2px 0;">* Billing will be done on actual weight at time of dispatch.</p>
+
+<!-- REMARKS -->
+<div class="remarks-box">
+  <strong>Remarks :</strong>&nbsp;
+  <textarea class="e" name="remarks" rows="2" style="width:100%;margin-top:2px;">{{ quotation.quotation_notes_clean|default:quotation.quotation_notes_raw }}</textarea>
+</div>
+
+<!-- E.&.O.E + BANK -->
+<table class="eoe-table" style="margin-top:4px;">
+  <tr>
+    <td style="width:40%;vertical-align:top;">
+      <strong>E.&amp;O.E</strong><br><br>
+      <span id="amount-words" style="font-size:9px;">{{ grand_total|inr_words }}</span>
+    </td>
+    <td style="width:60%;vertical-align:top;padding:3px 5px;">
+      <table class="bank-inner">
+        <tr>
+          <td style="white-space:nowrap;font-weight:bold;font-size:9px;">Our Bank :</td>
+          <td><strong>Standard Chattered Bank</strong><br>Chembur</td>
+          <td><strong>YES Bank Ghatkopar East</strong></td>
+          <td><strong>Saraswat Bank, SME Vikhroll(E)</strong></td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;"># Ac No :</td>
+          <td>24505076473</td>
+          <td>021381300000265</td>
+          <td>281500100000175</td>
+        </tr>
+        <tr>
+          <td style="font-weight:bold;"># IFSC :</td>
+          <td>SCBL0036066</td>
+          <td>YESB0000213</td>
+          <td>SRCB0000281</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- TERMS -->
+<div class="terms">
+  <ol>
+    <li>Delivery will be made within 15 days following receipt of payment.</li>
+    <li>Validity of the Quotation — 15 Days.</li>
+    <li>The Work Shall Commence ONLY After The Written Confirmation Via E-Mail.</li>
+    <li>Kindly Mention The Quotation Number in The Subject Line of All of Your E-Mail Communications Related to This Order.</li>
+    <li>Material would be dispatched ONLY after the receipt of the technically &amp; commercially confirmed Purchase Order and/or on receipt of the mentioned Advance Amount.</li>
+    <li>Billing will be done on actual weight at time of dispatch. The quantities mentioned above are indicative estimates only.</li>
+    <li>Any Discrepancy in The Material Should Be Communicated Back To us Within a Period of 3 Days of its Delivery.</li>
+    <li>This is a Computer Generated Quotation And Does Not Require a Signature.</li>
+    <li>Rates are subject to market fluctuation. Please reconfirm before placing the order.</li>
+    <li>All disputes subject to Mumbai jurisdiction only.</li>
+  </ol>
+</div>
+
+<p style="font-size:9px;margin:8px 0 2px;">Yours Faithfully,</p>
+<p style="font-size:10px;font-weight:bold;margin:0;">Ferrite Structural Steels Pvt Ltd</p>
+
+<div class="footer-bar">
+  <div class="co">Ferrite Structural Steels Pvt. Ltd.</div>
+  <div>H.O.: 803, Excel Plaza, B-Wing, Bldg No.7, 90 Feet Road, Pantnagar, Ghatkopar (E), Mumbai — 400075 &nbsp;|&nbsp; Mobile: +91 9920777335 / 022-21022818 &nbsp;|&nbsp; Email: accounts@ferrite.in &nbsp;|&nbsp; sales@ferrite.in</div>
+  <div>Sales / Godown: Plot 18, KWC Kalamboli, Navi Mumbai — 410218, Dist. Raigad &nbsp;|&nbsp; www.ferrite.in &nbsp;|&nbsp; CIN U27200MH2014PTC259228 &nbsp;|&nbsp; GST NO.: 27AACCF4875H1ZE</div>
+</div>
+
+</form><!-- /pdf-form -->
+</div><!-- /#pdf-page -->
+</div><!-- /.paper-wrap -->
+
+<script>
+function parseNum(v) {
+  return parseFloat(String(v).replace(/[₹,\s]/g, '')) || 0;
+}
+
+function recalcRow(idx) {
+  const qty  = parseNum(document.querySelector(`[name="item_${idx}_qty"]`).value);
+  const rate = parseNum(document.querySelector(`[name="item_${idx}_rate"]`).value);
+  const el   = document.querySelector(`.item-amount[data-row="${idx}"]`);
+  if (el) el.value = (qty * rate).toFixed(2);
+}
+
+function recalc() {
+  // Sum item amounts
+  const amounts = [...document.querySelectorAll('.item-amount')].map(el => parseNum(el.value));
+  const itemVal = amounts.reduce((a, b) => a + b, 0);
+
+  const loading   = parseNum(document.getElementById('f-loading').value);
+  const transport = parseNum(document.getElementById('f-transport').value);
+  const taxable   = itemVal + loading + transport;
+  const cgstPct   = parseNum(document.getElementById('f-cgst-pct').value);
+  const sgstPct   = parseNum(document.getElementById('f-sgst-pct').value);
+  const cgst      = taxable * cgstPct / 100;
+  const sgst      = taxable * sgstPct / 100;
+  const grand     = taxable + cgst + sgst;
+
+  // Total tons
+  let tons = 0;
+  document.querySelectorAll('.item-qty').forEach(el => {
+    const row = el.dataset.row;
+    const uom = document.querySelector(`[name="item_${row}_uom"]`).value;
+    tons += uom === 'kg' ? parseNum(el.value) / 1000 : parseNum(el.value);
+  });
+
+  document.getElementById('f-item-value').value = itemVal.toFixed(2);
+  document.getElementById('f-cgst').value        = cgst.toFixed(2);
+  document.getElementById('f-sgst').value        = sgst.toFixed(2);
+  document.getElementById('f-grand').value       = grand.toFixed(2);
+  document.getElementById('f-total-tons').value  = tons.toFixed(2) + ' T';
+}
+
+// Wire qty/rate inputs
+document.querySelectorAll('.item-qty, .item-rate').forEach(el => {
+  el.addEventListener('input', () => {
+    recalcRow(el.dataset.row);
+    recalc();
+  });
+});
+document.querySelectorAll('[name$="_uom"]').forEach(el => {
+  el.addEventListener('change', recalc);
+});
+
+// Auto-grow textareas
+document.querySelectorAll('textarea.e').forEach(ta => {
+  const resize = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+  ta.addEventListener('input', resize);
+  resize();
+});
+
+// Submit handler — ensure readonly inputs are included
+function downloadPDF() {
+  // Make readonly inputs writable briefly so they submit
+  document.querySelectorAll('.e.ro').forEach(el => {
+    el.removeAttribute('readonly');
+    el.setAttribute('data-was-ro', '1');
+  });
+  document.getElementById('pdf-form').submit();
+}
+
+// Initial recalc to sync displayed totals
+recalc();
+</script>
+</body>
+</html>

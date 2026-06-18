@@ -89,6 +89,7 @@ class Quotation(models.Model):
     )
     version = models.IntegerField(default=1)
     quotation_number = models.CharField(max_length=50, unique=True, blank=True)
+    sales_order_no   = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     outcome = models.CharField(max_length=20, choices=OUTCOME_CHOICES, default='not_updated')
     winning_quotation = models.ForeignKey(

@@ -244,7 +244,6 @@
   </div>
 
   <!-- Market Orders -->
-  {% if request.user.team == 'market' or request.user.role == 'admin' %}
   <div class="col-12 col-lg-6">
     <div class="g-card g-market">
       <div class="g-card-head">
@@ -278,17 +277,18 @@
             <div class="g-tip-body"><strong>Delivery Order (DO)</strong><p>Enter the DO number on the order detail page to complete the order and send the DO confirmation to the broker's email.</p></div>
           </div>
         </div>
+        {% if request.user.team == 'market' or request.user.role == 'admin' %}
         <div class="g-links">
           <a href="{% url 'market_order_list' %}" class="g-link">Market Orders →</a>
           <a href="{% url 'market_order_create' %}" class="g-link">New Order →</a>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
-  {% endif %}
 
   <!-- Admin: Email Polling -->
-  {% if request.user.role == 'admin' or request.user.role == 'lead' %}
+  {% if request.user.role == 'admin' %}
   <div class="col-12">
     <div class="g-card g-admin">
       <div class="g-card-head">
