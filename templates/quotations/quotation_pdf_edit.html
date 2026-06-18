@@ -231,25 +231,22 @@ we have received your enquiry and are pleased to offer you our best rates as per
     {% for item in items %}
     <tr>
       <td class="ctr" style="font-size:9.5px;">{{ forloop.counter }}</td>
-      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_hsn" value="{{ item.hsn_code }}"></td>
-      <td><input class="e" name="item_{{ forloop.counter0 }}_name" value="{{ item.product_name }}"></td>
-      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_length" value="{{ item.length }}"></td>
-      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_make" value="{{ item.make }}"></td>
-      <td><input class="e ctr" name="item_{{ forloop.counter0 }}_grade" value="{% if item.product %}{{ item.product.grade }}{% endif %}"></td>
-      <td><input class="e num" name="item_{{ forloop.counter0 }}_pcs" value="{{ item.pcs|default:'' }}"></td>
+      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_hsn" value="{{ item.hsn_code }}" readonly tabindex="-1"></td>
+      <td><input class="e ro" name="item_{{ forloop.counter0 }}_name" value="{{ item.product_name }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_length" value="{{ item.length }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_make" value="{{ item.make }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_grade" value="{% if item.product %}{{ item.product.grade }}{% endif %}" readonly tabindex="-1"></td>
+      <td><input class="e ro num" name="item_{{ forloop.counter0 }}_pcs" value="{{ item.pcs|default:'' }}" readonly tabindex="-1"></td>
       <td style="white-space:nowrap;">
-        <input class="e num item-qty" data-row="{{ forloop.counter0 }}"
+        <input class="e ro num item-qty" data-row="{{ forloop.counter0 }}"
                name="item_{{ forloop.counter0 }}_qty"
-               value="{{ item.quantity }}" style="width:55%;display:inline-block;">
-        <select class="e" name="item_{{ forloop.counter0 }}_uom"
-                data-row="{{ forloop.counter0 }}"
-                style="width:40%;display:inline-block;font-size:8px;padding:0;">
-          <option value="ton"{% if item.uom == 'ton' %} selected{% endif %}>ton</option>
-          <option value="kg"{% if item.uom == 'kg' %} selected{% endif %}>kg</option>
-        </select>
+               value="{{ item.quantity }}" readonly tabindex="-1" style="width:55%;display:inline-block;">
+        <input class="e ro" name="item_{{ forloop.counter0 }}_uom"
+               value="{{ item.uom }}" readonly tabindex="-1"
+               style="width:40%;display:inline-block;font-size:8px;padding:0;">
       </td>
-      <td><input class="e num item-rate" data-row="{{ forloop.counter0 }}"
-                 name="item_{{ forloop.counter0 }}_rate" value="{{ item.unit_price }}"></td>
+      <td><input class="e ro num item-rate" data-row="{{ forloop.counter0 }}"
+                 name="item_{{ forloop.counter0 }}_rate" value="{{ item.unit_price }}" readonly tabindex="-1"></td>
       <td><input class="e num item-amount ro" data-row="{{ forloop.counter0 }}"
                  name="item_{{ forloop.counter0 }}_amount"
                  value="{{ item.final_price }}" readonly tabindex="-1"></td>
