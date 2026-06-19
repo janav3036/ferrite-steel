@@ -554,8 +554,8 @@ def quotation_pdf_edit(request, pk):
             quotation.sales_order_no = son
             quotation.save(update_fields=['sales_order_no'])
         ctx = _build_pdf_context_from_post(request.POST, quotation)
-        html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
         try:
+            html = render_to_string('quotations/quotation_pdf.html', ctx)
             import weasyprint
             pdf = weasyprint.HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
             response = HttpResponse(pdf, content_type='application/pdf')
@@ -563,6 +563,9 @@ def quotation_pdf_edit(request, pk):
             return response
         except ImportError:
             return HttpResponse('WeasyPrint is not installed.', status=500)
+        except Exception as e:
+            import traceback
+            return HttpResponse(f'PDF generation failed:\n\n{traceback.format_exc()}', content_type='text/plain', status=500)
     else:
         ctx = _quotation_context(quotation)
         ctx['logo_b64'] = _logo_b64()
