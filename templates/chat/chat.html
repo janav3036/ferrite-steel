@@ -218,13 +218,28 @@
         background: white;
         flex-shrink: 0;
     }
+    .compose-attachments {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        margin-bottom: 6px;
+    }
+    .compose-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #F0FDFA; border: 1px solid #99F6E4;
+        border-radius: 7px; padding: 4px 10px;
+        font-size: .77rem; color: #0F766E; font-weight: 500;
+    }
+    .compose-chip .chip-remove {
+        cursor: pointer; color: #5EAAA0; border: none; background: none;
+        padding: 0; font-size: .8rem; line-height: 1;
+    }
+    .compose-chip .chip-remove:hover { color: #DC2626; }
     .compose-wrap {
         display: flex;
         align-items: flex-end;
         gap: 8px;
         border: 1px solid #C8D9D4;
         border-radius: 10px;
-        padding: 8px 8px 8px 14px;
+        padding: 8px 8px 8px 10px;
         background: #FAFCFB;
         transition: border-color .15s, box-shadow .15s, background .15s;
     }
@@ -233,6 +248,15 @@
         box-shadow: 0 0 0 3px rgba(13,148,136,.09);
         background: white;
     }
+    .compose-icon-btn {
+        width: 28px; height: 28px;
+        border-radius: 6px; border: none; background: transparent;
+        color: #9FBFB5; cursor: pointer; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; transition: background .12s, color .12s;
+    }
+    .compose-icon-btn:hover { background: #F0FDFA; color: #0D9488; }
+    .compose-icon-btn.active { background: #F0FDFA; color: #0D9488; }
     .compose-input {
         flex: 1;
         border: none;
@@ -262,6 +286,76 @@
     .send-btn:hover { background: #0F766E; transform: scale(1.04); }
     .send-btn:active { transform: scale(.97); }
     .send-btn:disabled { background: #C8D9D4; cursor: not-allowed; transform: none; }
+
+    /* ── Link picker panel ── */
+    .link-picker {
+        display: none;
+        background: white;
+        border: 1px solid #C8D9D4;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(11,23,18,.1);
+    }
+    .link-picker.open { display: block; }
+    .link-picker-tabs {
+        display: flex;
+        border-bottom: 1px solid #EBF2EF;
+        padding: 6px 8px 0;
+        gap: 4px;
+    }
+    .link-tab {
+        padding: 5px 12px; font-size: .75rem; font-weight: 600;
+        border: none; background: transparent; cursor: pointer; color: #9FBFB5;
+        border-bottom: 2px solid transparent; margin-bottom: -1px;
+        border-radius: 6px 6px 0 0;
+        transition: color .12s;
+    }
+    .link-tab.active { color: #0D9488; border-bottom-color: #0D9488; }
+    .link-picker-search {
+        padding: 8px 12px;
+        border-bottom: 1px solid #EBF2EF;
+    }
+    .link-picker-search input {
+        width: 100%; box-sizing: border-box;
+        border: 1px solid #C8D9D4; border-radius: 7px;
+        padding: 6px 10px; font-size: .83rem;
+        outline: none; background: #FAFCFB;
+        transition: border-color .12s;
+    }
+    .link-picker-search input:focus { border-color: #0D9488; }
+    .link-picker-results {
+        max-height: 160px; overflow-y: auto;
+    }
+    .link-result {
+        padding: 9px 14px; font-size: .83rem; cursor: pointer;
+        color: #1E293B; border-bottom: 1px solid #F0F9F7;
+        transition: background .1s;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .link-result:hover { background: #F0FDFA; }
+    .link-result-empty { padding: 14px; font-size: .8rem; color: #9FBFB5; text-align: center; }
+
+    /* ── Attachment/link cards inside bubbles ── */
+    .msg-attachment {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #F0FDFA; border: 1px solid #99F6E4;
+        border-radius: 7px; padding: 5px 10px;
+        font-size: .78rem; color: #0F766E; text-decoration: none;
+        margin-top: 5px;
+    }
+    .msg-attachment:hover { background: #CCFBF1; color: #0F766E; text-decoration: none; }
+    .msg-link-card {
+        display: flex; align-items: center; gap: 8px;
+        background: #F0FDFA; border-left: 3px solid #0D9488;
+        border-radius: 0 7px 7px 0; padding: 7px 10px;
+        margin-top: 5px; text-decoration: none; color: inherit;
+        transition: background .12s;
+    }
+    .msg-link-card:hover { background: #CCFBF1; text-decoration: none; color: inherit; }
+    .msg-link-icon { font-size: .95rem; }
+    .msg-link-label { font-size: .8rem; font-weight: 600; color: #0F766E; flex: 1; }
+    .msg-link-arrow { font-size: .7rem; color: #5EAAA0; }
 
     /* ── Mobile overrides (base.html handles most, these are chat-specific) ── */
     @media (max-width: 767.98px) {
@@ -337,7 +431,19 @@
                         <span class="msg-time">{{ msg.created_at|time:"H:i" }}</span>
                     </div>
                     <div class="msg-bubble {% if msg.sender == request.user %}me{% endif %}">
-                        {{ msg.content }}
+                        {% if msg.content %}{{ msg.content }}{% endif %}
+                        {% if msg.attachment %}
+                        <a href="{{ msg.attachment.url }}" target="_blank" class="msg-attachment" style="display:flex;">
+                            <i class="bi bi-paperclip"></i> {{ msg.attachment_name }}
+                        </a>
+                        {% endif %}
+                        {% if msg.link_type %}
+                        <a href="{% if msg.link_type == 'quotation' %}{% url 'quotation_detail' msg.link_id %}{% elif msg.link_type == 'lead' %}{% url 'lead_detail' msg.link_id %}{% elif msg.link_type == 'customer' %}{% url 'customer_detail' msg.link_id %}{% else %}#{% endif %}" class="msg-link-card" style="display:flex;">
+                            <span class="msg-link-icon">{{ link_icons|default:'' }}{% if msg.link_type == 'quotation' %}📋{% elif msg.link_type == 'lead' %}📥{% else %}🏢{% endif %}</span>
+                            <span class="msg-link-label">{{ msg.link_label }}</span>
+                            <span class="msg-link-arrow">→</span>
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -351,7 +457,32 @@
         </div>
 
         <div class="chat-compose">
+            <!-- Link picker panel -->
+            <div class="link-picker" id="link-picker">
+                <div class="link-picker-tabs">
+                    <button class="link-tab active" onclick="setLinkType('quotation')">📋 Quotation</button>
+                    <button class="link-tab" onclick="setLinkType('lead')">📥 Lead</button>
+                    <button class="link-tab" onclick="setLinkType('customer')">🏢 Customer</button>
+                </div>
+                <div class="link-picker-search">
+                    <input type="text" id="link-search-input" placeholder="Search…" oninput="searchLinks()">
+                </div>
+                <div class="link-picker-results" id="link-results">
+                    <div class="link-result-empty">Type to search</div>
+                </div>
+            </div>
+
+            <!-- Attachment / link preview chips -->
+            <div class="compose-attachments" id="compose-chips" style="display:none;"></div>
+
             <div class="compose-wrap">
+                <button class="compose-icon-btn" id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">
+                    <i class="bi bi-paperclip"></i>
+                </button>
+                <button class="compose-icon-btn" id="link-btn" title="Share CRM link" onclick="toggleLinkPicker()">
+                    <i class="bi bi-link-45deg"></i>
+                </button>
+                <input type="file" id="file-input" style="display:none" onchange="fileSelected(this)">
                 <textarea class="compose-input" id="compose-input" rows="1"
                           placeholder="Message #{{ active_label }}…"></textarea>
                 <button class="send-btn" id="send-btn" title="Send (Enter)">
@@ -371,18 +502,37 @@
     const csrfToken = '{{ csrf_token }}';
 
     let lastId = 0;
+    let pendingFile = null;
+    let pendingLink = null;  // {type, id, label}
+    let activeLinkType = 'quotation';
+    let searchTimer = null;
 
     document.querySelectorAll('[data-id]').forEach(el => {
         const id = parseInt(el.dataset.id);
         if (id > lastId) lastId = id;
     });
 
-    function scrollBottom() {
-        container.scrollTop = container.scrollHeight;
-    }
+    function scrollBottom() { container.scrollTop = container.scrollHeight; }
 
     function escHtml(s) {
         return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    }
+
+    function buildBubbleExtras(m) {
+        let html = '';
+        if (m.attachment_url) {
+            html += `<a href="${escHtml(m.attachment_url)}" target="_blank" class="msg-attachment" style="display:flex;">
+                <i class="bi bi-paperclip"></i> ${escHtml(m.attachment_name || 'File')}
+            </a>`;
+        }
+        if (m.link_type) {
+            html += `<a href="${escHtml(m.link_url)}" class="msg-link-card" style="display:flex;">
+                <span class="msg-link-icon">${escHtml(m.link_icon)}</span>
+                <span class="msg-link-label">${escHtml(m.link_label)}</span>
+                <span class="msg-link-arrow">→</span>
+            </a>`;
+        }
+        return html;
     }
 
     function appendMessage(m) {
@@ -393,34 +543,69 @@
         wrap.className = 'msg-row' + (m.is_me ? ' me' : '');
         wrap.dataset.id = m.id;
         wrap.innerHTML = `
-            <div class="msg-avatar${m.is_me ? ' me' : ''}">${m.initials}</div>
+            <div class="msg-avatar${m.is_me ? ' me' : ''}">${escHtml(m.initials)}</div>
             <div class="msg-body">
                 <div class="msg-meta">
-                    <span class="msg-sender">${m.sender}</span>
-                    <span class="msg-time">${m.time}</span>
+                    <span class="msg-sender">${escHtml(m.sender)}</span>
+                    <span class="msg-time">${escHtml(m.time)}</span>
                 </div>
-                <div class="msg-bubble${m.is_me ? ' me' : ''}">${escHtml(m.content)}</div>
+                <div class="msg-bubble${m.is_me ? ' me' : ''}">
+                    ${m.content ? escHtml(m.content) : ''}
+                    ${buildBubbleExtras(m)}
+                </div>
             </div>`;
         container.appendChild(wrap);
         if (m.id > lastId) lastId = m.id;
     }
 
+    function updateChips() {
+        const bar = document.getElementById('compose-chips');
+        bar.innerHTML = '';
+        if (pendingFile) {
+            bar.innerHTML += `<span class="compose-chip">
+                <i class="bi bi-paperclip"></i> ${escHtml(pendingFile.name)}
+                <button class="chip-remove" onclick="clearFile()" title="Remove">✕</button>
+            </span>`;
+        }
+        if (pendingLink) {
+            const icons = {quotation:'📋', lead:'📥', customer:'🏢'};
+            bar.innerHTML += `<span class="compose-chip">
+                ${icons[pendingLink.type] || '🔗'} ${escHtml(pendingLink.label)}
+                <button class="chip-remove" onclick="clearLink()" title="Remove">✕</button>
+            </span>`;
+        }
+        bar.style.display = (pendingFile || pendingLink) ? 'flex' : 'none';
+    }
+
     function sendMessage() {
         const text = input.value.trim();
-        if (!text) return;
+        if (!text && !pendingFile && !pendingLink) return;
+
         sendBtn.disabled = true;
+        const fd = new FormData();
+        fd.append('channel', channel);
+        fd.append('content', text);
+        if (pendingFile) { fd.append('attachment', pendingFile); }
+        if (pendingLink) {
+            fd.append('link_type', pendingLink.type);
+            fd.append('link_id', pendingLink.id);
+            fd.append('link_label', pendingLink.label);
+        }
+
         input.value = '';
         input.style.height = '';
+        pendingFile = null;
+        pendingLink = null;
+        updateChips();
+        closeLinkPicker();
 
         fetch('{% url "chat_send" %}', {
             method: 'POST',
-            headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `channel=${encodeURIComponent(channel)}&content=${encodeURIComponent(text)}`,
+            headers: {'X-CSRFToken': csrfToken},
+            body: fd,
         })
         .then(r => r.json())
-        .then(data => {
-            if (data.ok) { appendMessage(data); scrollBottom(); }
-        })
+        .then(data => { if (data.ok) { appendMessage(data); scrollBottom(); } })
         .finally(() => { sendBtn.disabled = false; input.focus(); });
     }
 
@@ -435,6 +620,76 @@
         })
         .catch(() => {});
     }
+
+    // ── File handling ──
+    window.fileSelected = function(input) {
+        if (input.files.length > 0) {
+            pendingFile = input.files[0];
+            updateChips();
+        }
+        input.value = '';
+    };
+    window.clearFile = function() { pendingFile = null; updateChips(); };
+
+    // ── Link picker ──
+    window.toggleLinkPicker = function() {
+        const picker = document.getElementById('link-picker');
+        const btn = document.getElementById('link-btn');
+        if (picker.classList.contains('open')) {
+            closeLinkPicker();
+        } else {
+            picker.classList.add('open');
+            btn.classList.add('active');
+            document.getElementById('link-search-input').focus();
+        }
+    };
+    function closeLinkPicker() {
+        document.getElementById('link-picker').classList.remove('open');
+        document.getElementById('link-btn').classList.remove('active');
+        document.getElementById('link-search-input').value = '';
+        document.getElementById('link-results').innerHTML = '<div class="link-result-empty">Type to search</div>';
+    }
+    window.setLinkType = function(type) {
+        activeLinkType = type;
+        document.querySelectorAll('.link-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('link-search-input').value = '';
+        document.getElementById('link-results').innerHTML = '<div class="link-result-empty">Type to search</div>';
+        document.getElementById('link-search-input').focus();
+    };
+    window.searchLinks = function() {
+        clearTimeout(searchTimer);
+        const q = document.getElementById('link-search-input').value.trim();
+        if (!q) {
+            document.getElementById('link-results').innerHTML = '<div class="link-result-empty">Type to search</div>';
+            return;
+        }
+        searchTimer = setTimeout(() => {
+            fetch(`{% url "chat_search" %}?type=${activeLinkType}&q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById('link-results');
+                if (!data.results.length) {
+                    el.innerHTML = '<div class="link-result-empty">No results</div>';
+                    return;
+                }
+                const icons = {quotation:'📋', lead:'📥', customer:'🏢'};
+                el.innerHTML = data.results.map(r =>
+                    `<div class="link-result" onclick="selectLink(${r.id}, ${JSON.stringify(r.label)})">
+                        <span>${icons[activeLinkType] || '🔗'}</span>
+                        <span>${escHtml(r.label)}</span>
+                    </div>`
+                ).join('');
+            });
+        }, 250);
+    };
+    window.selectLink = function(id, label) {
+        pendingLink = {type: activeLinkType, id, label};
+        updateChips();
+        closeLinkPicker();
+        input.focus();
+    };
+    window.clearLink = function() { pendingLink = null; updateChips(); };
 
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keydown', function (e) {

@@ -77,11 +77,17 @@
 <script>
 const TEAM_ROLES = {
     '':          [['admin', 'Admin']],
-    'team_9':    [['lead', 'Team Lead'], ['member', 'Member']],
-    'cs':        [['lead', 'Team Lead'], ['member', 'Member']],
-    'corporate': [['lead', 'Team Lead'], ['member', 'Member']],
-    'market':    [['lead', 'Team Lead'], ['primary', 'Primary Member'],
-                  ['rolling', 'Rolling Member'], ['loading_dock', 'Loading Dock']],
+    'team_9':           [['lead', 'Team Lead'], ['member', 'Member']],
+    'cs':               [['lead', 'Team Lead'], ['member', 'Member']],
+    'corporate':        [['lead', 'Team Lead'], ['member', 'Member']],
+    'market':           [['lead', 'Team Lead'], ['primary', 'Primary Member'],
+                         ['rolling', 'Rolling Member'], ['loading_dock', 'Loading Dock']],
+    'marketing':        [['lead', 'Team Lead'], ['member', 'Member']],
+    'accounts':         [['lead', 'Team Lead'], ['member', 'Member']],
+    'billing_dispatch': [['lead', 'Team Lead'], ['member', 'Member']],
+    'tender':           [['lead', 'Team Lead'], ['member', 'Member']],
+    'quality':          [['lead', 'Team Lead'], ['member', 'Member']],
+    'collection':       [['lead', 'Team Lead'], ['member', 'Member']],
 };
 function filterRoles() {
     const teamSel = document.getElementById('id_team');

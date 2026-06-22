@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 18 Jun 2026 (session 24 — PDF redesign, edit-PDF midpoint, team filter for admin, sidebar fixes, sales_order_no field)
+**Last updated:** 22 Jun 2026 (session 25 — 6 new company teams, chat file sharing + CRM share buttons, standalone question practice + QuestionAttempt tracking, RAG URL field replaces OneDrive, RAG now searches Cases + Questions, frontend design refresh, dashboard week_start bug fix)
 
 ---
 
@@ -101,7 +101,7 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete — email pipeline is LIVE. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
-**Current work: Session 24 complete — quotation PDF fully redesigned to match Ferrite example (10-column table, logo, E.&O.E banks, inr_words filter), edit-PDF midpoint added (preview all fields in-browser before downloading), team-wise admin filter for leads/quotations/dashboard, sidebar behaviour fixed (FS logo opens drawer, squeeze on small screens), sales_order_no field added to Quotation. Next: delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
+**Current work: Session 25 complete — 6 new company teams added (Marketing/Accounts/Billing Dispatch/Tender/Quality/Collection; view-only for quotation system); chat file sharing + share buttons on lead/quotation/customer detail pages; standalone question practice visible to all users; QuestionAttempt model (admin sees attempt list + marks); RAG URL field replaces OneDrive (client manages own file storage); RAG search extended to Cases + Questions; frontend design refresh (Outfit heading font, sidebar left-border active indicator, page entrance animation, improved stat cards/tables/buttons); dashboard week_start bug fixed (now truncates to midnight). Next: add Nginx /media/ block on Hetzner for chat file serving, delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
 
 ### What is built
 
@@ -135,13 +135,15 @@ to a non-technical client.
 
 **Training app (Sub-module 3A — Case Management):** `training` app with `Case` model (title, problem_description, context, resolution, departments JSONField, customer FK nullable, created_by FK, created_at). Views: `training_home` (bento grid — 3A live, 3B live, 3C placeholder), `case_list`, `case_detail`, `case_create`, `case_edit`, `case_delete`. URLs at `/training/`. Training sidebar link live (gated by `view_case` perm). "Convert to Case" button on lead detail wired — passes `notes` + `lead` as query params to `case_create`. Permissions: `view_case` in BASE (all roles), `add/change/delete_case` in LEAD_EXTRA (lead + admin).
 
-**Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`, `quiz_set_create`, `quiz_set_edit`, `quiz_set_delete`, `question_create`, `question_create_for_quiz`, `question_edit`, `question_delete`. `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets matching their team. **Quiz/question CRUD restricted to admin only** (QUIZ_MANAGE permission block in `aegis/signals.py`; auto-assigned to admin role only).
+**Training app (Sub-module 3B — Quiz System):** `QuizSet` (title, description, departments JSONField, created_by, created_at), `Question` (question_text, correct_answer, source, quiz_set FK nullable, departments JSONField, created_by, created_at), `QuizAttempt` (user, quiz_set, score, total_questions, passed, completed_at), `QuestionAttempt` (user FK, question FK, answer TextField, is_correct BooleanField, attempted_at — migration 0007). Views: `quiz_list`, `quiz_detail`, `quiz_take`, `quiz_results`, `quiz_set_create`, `quiz_set_edit`, `quiz_set_delete`, `question_create`, `question_create_for_quiz`, `question_edit`, `question_delete`, `question_practice` (standalone Q&A for users), `question_attempts` (admin — list of who attempted which standalone questions + correctness), `quiz_set_attempts` (admin — attempt log per quiz set). `judge_quiz_answer(question, correct_answer, user_answer)` in `training/services/llm.py` — calls together.ai to judge correctness and explain if wrong. Pass threshold: 70%. Best attempt tracked per user per quiz set. Department filtering: users only see quiz sets + standalone questions matching their team. **Normal user quiz list:** Tests (QuizSets) shown first with heading, then Practice Questions (standalone questions where quiz_set=null). **Admin quiz list:** Shows attempt overview statistics (who took what, scores). **Quiz/question CRUD restricted to admin only** (QUIZ_MANAGE permission block in `aegis/signals.py`; auto-assigned to admin role only).
 
 **Notification system:** `Notification` model in `aegis/models.py` (user FK, title, message, link, type choices, is_read, created_at). `notify(users, title, message, link, notif_type)` utility in `aegis/notifications.py` — bulk_creates. Context processor `aegis.context_processors.notification_count` injects `unread_notification_count` globally. Dashboard shows notifications panel (right column, up to 12, scrollable, per-type icons, unread highlighting, mark-all-read). Full notifications page at `/notifications/`. Wired at: lead_create, quotation_approve, quotation_outcome (win/loss), market_order_confirm, market_order_assign_do, market_order_set_do, case_create, poll_emails (new inquiry lead → team + admins; broker confirmation → market + admins; broker counter → market + admins).
 
-**Team chat:** `chat` app with `ChatMessage` model (channel, sender FK, content, created_at). Channels: all_staff + user's own team; admins see all. Views: `chat_home` (renders last 100 messages), `chat_send` (POST → JSON), `chat_poll` (GET ?channel=&since=id → JSON). 4-second JS polling, tracks `lastId`, sanitizes with `escHtml()`. Auto-resize textarea, Enter to send, Shift+Enter for newline. At `/chat/`.
+**Team chat:** `chat` app with `ChatMessage` model (channel, sender FK, content, created_at, `attachment` FileField null=True upload_to='chat_attachments/', `attachment_name` CharField blank=True — migration 0002). Channels: all_staff + user's own team; admins see all. Views: `chat_home` (renders last 100 messages), `chat_send` (POST → JSON, handles optional file attachment), `chat_poll` (GET ?channel=&since=id → JSON). 4-second JS polling, tracks `lastId`, sanitizes with `escHtml()`. Auto-resize textarea, Enter to send, Shift+Enter for newline. File/image upload button in chat input. At `/chat/`.
 
-**Frontend redesign (session 15):** All pages redesigned with DM Sans font, blue accent (`#2563EB`), CSS variable theming. Multi-panel pages use bento/card grid layouts. Table pages use dark headers, `.9rem` font, click-to-navigate rows. Role chips (admin=blue, lead=green, member=grey), dept-tag chips (team_9=blue, cs=green, market=orange, corporate=purple), status pills per entity type. Pages redesigned: directory, profile, case_list, case_detail, case_create, case_edit, case_confirm_delete, quiz_list, quiz_take, broker_list, broker_create, market_order_list, market_order_create, quotation_select_lead, quotation_send_confirm, add_user, edit_user_role, dashboard.
+**CRM share-to-chat:** Share button on lead detail, quotation detail, and customer detail pages → `templates/chat/_share_modal.html` — Bootstrap modal with channel selector; posts a formatted link message to the selected channel via `chat_send`. Lets team members share specific CRM records directly into chat without leaving the page.
+
+**Frontend redesign (session 15 + refresh session 25):** All pages redesigned with DM Sans body font, blue accent (`#2563EB`), CSS variable theming. Multi-panel pages use bento/card grid layouts. Table pages use dark headers, `.9rem` font, click-to-navigate rows. Role chips (admin=blue, lead=green, member=grey), dept-tag chips, status pills per entity type. **Session 25 refresh:** `Outfit` (Google Fonts) added as display/heading font (h1–h5, brand name, stat values). Sidebar gradient deepened (`#0C1424 → #080F1C`). Active sidebar link redesigned: left-border 3px indicator via `::before` + subtle tint (replaces solid fill). Page entrance animation (`fsPageIn` — 5px lift-fade) on `.fs-main`. `.page-hdr` now has `padding-bottom + border-bottom` separator. Cards: 10px radius, layered shadow, `#F7FAFC` header. Tables: deeper navy header `#18273E`, column labels `#8FAFC8`, row hover `#F2F6FF`. Buttons: `scale(.98)` press, primary shadow. Login page: dark brand panel with dot-grid, blue glow, diagonal stripe, feature list tiles. Dashboard stat cards: icon block + colored top accent stripe (grey/amber/green/blue), `countUp` animation. `_sb_amber.html` + `_sb_guide.html` each override `--border` for theme-appropriate separators.
 
 **Customer notes surfaced across views:** `_quotation_context` passes `customer_notes_display` (raw notes stripped of `--- Pricing Add-ons ---` section) — shown as a read-only card on quotation detail. `lead_detail` view also fetches and passes `customer_notes_display` — shown as a card above the Quotations section. Quotation editor (`quotation_edit`) shows `customer_notes` (raw, unstripped — also used by JS for add-on defaults) as a visible card between Cost Summary and Save.
 
@@ -157,7 +159,7 @@ to a non-technical client.
 
 **Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
 
-**Training app (Sub-module 3C — RAG Q&A):** `KnowledgeDocument` + `DocumentChunk` models (migration 0005). Services in `training/services/`: `extractor.py` (pypdf/python-docx → text), `embedder.py` (together.ai `togethercomputer/m2-bert-80M-8k-retrieval` → 1024-dim vectors), `onedrive.py` (MSAL upload to OneDrive — needs live credentials), `processor.py` (orchestrates extract → chunk → embed → upload). Views: `document_list`, `document_create`, `document_detail`, `document_delete`, `document_ask` (RAG Q&A — semantic search over chunks + LLM answer via together.ai). Templates: full CRUD + Q&A UI at `/training/documents/`. **End-to-end test pending** — comment out OneDrive lines in `processor.py` (line 5 import, lines 11–12 upload call) before local testing.
+**Training app (Sub-module 3C — RAG Q&A):** `KnowledgeDocument` + `DocumentChunk` models (migration 0005). Services in `training/services/`: `extractor.py` (pypdf/python-docx → text), `embedder.py` (together.ai `intfloat/multilingual-e5-large-instruct` → 1024-dim vectors), `processor.py` (orchestrates extract → chunk → embed → mark processed). **No OneDrive** — client manages their own file storage; `file_url` on KnowledgeDocument is now a user-pasted URL (Google Drive/SharePoint/any link). `onedrive.py` no longer used. Views: `document_list`, `document_create`, `document_detail`, `document_delete`, `document_ask` (RAG Q&A — semantic search over document chunks + Case text + Question/answer text; LLM synthesises answer via together.ai). Templates: full CRUD + Q&A UI at `/training/documents/`. RAG search scope: KnowledgeDocuments + Cases + Questions (all three are embedded and searchable).
 
 **Training UI (session 18):** All 21 training templates redesigned with warm amber/cream theme. `templates/training/_sb_amber.html` — shared include that overrides all `--sb-*` CSS variables to amber; included at top of `extra_head` in every training template. Non-training pages retain default navy sidebar from `base.html` `:root`. `base.html` refactored with 15 `--sb-*` sub-tokens so sidebar colour is fully CSS-variable-driven per page.
 
@@ -168,7 +170,7 @@ to a non-technical client.
 - Product rates — all 0 after import; must be filled via admin
 - TMT products missing — must be added manually or re-imported
 - **Existing role checks in views** — gradually replace `request.user.role == 'x'` with `request.user.has_perm()` as views are touched (Architecture Decision 18)
-- OneDrive integration for 3C — needs live MSAL credentials (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `ONEDRIVE_FOLDER`) in `.env`; lines already commented out in `processor.py`
+- **Nginx `/media/` location block on Hetzner** — needed for production serving of chat file attachments; currently WhiteNoise only serves `/static/`. Must add to `/etc/nginx/sites-enabled/ferite_steel` before chat file uploads work on prod.
 - GCP e2-small VM — DNS cutover done; VM still running, delete when confirmed stable on Hetzner
 
 ### Pending before Phase 2 is fully live
@@ -209,8 +211,14 @@ DataGrip 2025.1.3 (primary), pgAdmin 4 (secondary)
 | `cs` | CS Team | `lead`, `member` (customer service, jointly handled) |
 | `market` | Market Team | `lead`, `primary`, `rolling`, `loading_dock` |
 | `corporate` | Corporate Team | `lead`, `member` (details TBD) |
+| `marketing` | Marketing | `lead`, `member` — view-only for quotation system |
+| `accounts` | Accounts | `lead`, `member` — view-only for quotation system |
+| `billing_dispatch` | Billing Dispatch | `lead`, `member` — view-only for quotation system |
+| `tender` | Tender | `lead`, `member` — view-only for quotation system |
+| `quality` | Quality | `lead`, `member` — view-only for quotation system |
+| `collection` | Collection | `lead`, `member` — view-only for quotation system |
 
-Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based on selected team.
+Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based on selected team. **New teams (Marketing, Accounts, Billing Dispatch, Tender, Quality, Collection) can view the quotation system but cannot create or edit quotations/customers — removed from quotation and customer model `handling_team` choices.**
 
 **Market team workflow:** Broker sends order → market member creates Lead + MarketOrder → quotation editor used internally (rate calc; PDF = "INTERNAL — RATES ONLY") → rate sent to broker → broker confirms → loading dock assigned → DO issued.
 
@@ -219,7 +227,7 @@ Admins: `team = null`. Role dropdown in Add/Edit User forms filters via JS based
 ## 6. Models
 
 ### CustomUser (aegis)
-`role`: admin/lead/member/primary/rolling/loading_dock (default: member). `team`: team_9/cs/market/corporate (nullable for admins). Also: `phone`, `branch`, `employee_id`.
+`role`: admin/lead/member/primary/rolling/loading_dock (default: member). `team`: team_9/cs/market/corporate/marketing/accounts/billing_dispatch/tender/quality/collection (nullable for admins). Also: `phone`, `branch`, `employee_id`.
 
 **Custom permissions:** `can_manage_users`, `can_view_user_list`. Auto-assigned by `aegis/signals.py` `post_save` signal based on role + team. Superusers bypass all permission checks. Signal clears and resets permissions on every user save.
 
@@ -270,13 +278,15 @@ IMAP credentials per team (unique per team). `team`, `email_address`, `imap_host
 
 **Case (created, migrated):** `title`, `problem_description` (TextField), `context` (TextField — what triggered it), `resolution` (TextField), `departments` (JSONField — list of team slugs e.g. `["team_9", "cs"]`), `customer` (FK → Customer, null=True), `created_by` (FK → CustomUser), `created_at`. Permissions: `view_case` (all), `add/change/delete_case` (lead+admin).
 
-**KnowledgeDocument (created, migrated — migration 0006):** `source_type` (file/text), `file_url` (URLField — OneDrive link after upload), `filename` (CharField — original filename, saved at upload time; migration 0006), `direct_text` (TextField — extracted text for files; paste-in for text type; populated by `processor.py` for both types), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. No `file` field — original file not stored; text extracted at upload time, file optionally uploaded to OneDrive (OneDrive disabled — creds needed). Processing triggered automatically at upload time in `document_create` view.
+**KnowledgeDocument (created, migrated — migration 0006):** `source_type` (file/text), `file_url` (URLField — user-pasted link to wherever the document is stored, e.g. Google Drive/SharePoint; no auto-upload), `filename` (CharField — original filename, saved at upload time; migration 0006), `direct_text` (TextField — extracted text for files; paste-in for text type; populated by `processor.py` for both types), `title`, `keywords` (JSONField), `departments` (JSONField), `description` (TextField), `is_processed` (BooleanField, default=False), `processed_at` (DateTimeField, null=True), `uploaded_by` (FK → CustomUser), `uploaded_at`. No `file` field — original file not stored; text extracted at upload time. Client manages their own file storage. `onedrive.py` service is unused. Processing triggered automatically at upload time in `document_create` view.
 
 **DocumentChunk (created, migrated — migration 0005):** `document` (FK → KnowledgeDocument, CASCADE), `chunk_text` (TextField), `embedding` (VectorField, 1024 dimensions — pgvector), `chunk_index` (IntegerField). Used for semantic similarity search in RAG Q&A.
 
 **QuizSet:** `title`, `description`, `departments` (JSONField), `created_by`, `created_at`. **CRUD admin-only** via `add/change/delete_quizset` permissions (QUIZ_MANAGE block).
 
 **Question:** `question_text` (TextField), `correct_answer` (TextField — admin-written; LLM judges user answer against this), `source` (TextField — free text/URL reference to related case or document), `quiz_set` (FK → QuizSet, null=True — null = standalone flat pool question), `departments` (JSONField), `created_by`, `created_at`. **CRUD admin-only** via `add/change/delete_question` permissions (QUIZ_MANAGE block).
+
+**QuestionAttempt (created, migrated — migration 0007):** `user` (FK → CustomUser), `question` (FK → Question), `answer` (TextField — user's submitted answer), `is_correct` (BooleanField — LLM judge result), `attempted_at` (DateTimeField). Records every standalone question attempt. Admin views: `question_attempts` (per-question attempt log) + `quiz_set_attempts` (per-quiz-set attempt log with scores).
 
 `AUTH_USER_MODEL = 'aegis.CustomUser'`
 **Migration discipline:** Never run `migrate` without reviewing `makemigrations` output first.
@@ -382,7 +392,8 @@ Do not proceed with affected modules until resolved.
 - **Model-level validators:** GST (15-char) and PAN (10-char) fields need `RegexValidator`
 - **Django logging config:** Must write errors to file before production — currently silent on 500
 - **Audit logging:** Consider `django-auditlog` or `django-simple-history` for Module 4 (Credit Risk)
-- **3C RAG:** TESTED AND WORKING end-to-end on Hetzner. OneDrive lines commented out in `processor.py` — leave commented until live MSAL credentials available. Embedding model: `intfloat/multilingual-e5-large-instruct` (1024-dim, serverless). Chunk size: 300 words.
+- **3C RAG:** TESTED AND WORKING end-to-end on Hetzner. OneDrive integration dropped — client manages own file storage, `file_url` is now user-pasted. Embedding model: `intfloat/multilingual-e5-large-instruct` (1024-dim, serverless). Chunk size: 300 words. RAG searches KnowledgeDocuments + Cases + Questions.
+- **Nginx `/media/` block:** Must add `/media/` location block to Hetzner Nginx config (`/etc/nginx/sites-enabled/ferite_steel`) before chat file attachments work in production. WhiteNoise handles static files only.
 - **Web Speech API browser compatibility:** Voice dictation on both lead detail and quotation detail require Chrome/Edge + HTTPS. Confirm team browser (client question 16) — Safari/Firefox not supported.
 
 ---
@@ -525,12 +536,15 @@ ferite_steel/                      ← project root
 │   ├── quotations/                ← lead_list/detail/create, quotation_list/detail/edit/pdf/select_lead,
 │   │                                 market_order_list/create/detail, quotation_send_confirm,
 │   │                                 quotation_pdf_edit (A4 editable preview → WeasyPrint download)
-│   ├── training/                  ← 21 templates; all include _sb_amber.html for amber sidebar theme
+│   ├── training/                  ← 24 templates; all include _sb_amber.html for amber sidebar theme
 │   │   ├── _sb_amber.html         ← shared include: Syne font + amber --sb-* + --accent overrides
 │   │   ├── home.html, case_list/detail/create/edit/confirm_delete.html
 │   │   ├── document_list/detail/create/ask/confirm_delete.html
 │   │   ├── quiz_list/detail/take/results.html, quiz_set_create/edit/confirm_delete.html
-│   │   └── question_create/edit/confirm_delete.html
+│   │   ├── question_create/edit/confirm_delete.html
+│   │   ├── question_practice.html ← standalone question Q&A for users (dept-filtered)
+│   │   ├── question_attempts.html ← admin: per-question attempt log
+│   │   └── quiz_set_attempts.html ← admin: per-quiz-set attempt log
 │   └── guide/                     ← 3 templates; all include _sb_guide.html for forest-green Codex theme
 │       ├── _sb_guide.html         ← shared include: Cormorant Garamond + forest --sb-* + --accent overrides
 │       ├── core.html              ← /guide/core/ — auth, profile, notifications, chat; admin: user mgmt
@@ -551,7 +565,7 @@ Shell context: working directory is the project root. Use `python manage.py` not
 | `aegis` | Auth & user management — CustomUser |
 | `database` | Product, Customer, Broker — CRUD views |
 | `quotations` | Module 2 — Lead, Quotation, QuotationLineItem, MarketOrder, LLM service |
-| `training` | Module 3 — Case, KnowledgeDocument, DocumentChunk, QuizSet, Question, QuizAttempt — all created and migrated |
+| `training` | Module 3 — Case, KnowledgeDocument, DocumentChunk, QuizSet, Question, QuizAttempt, QuestionAttempt — all created and migrated |
 | `guide` | User manual — 3 static pages (core, quotations, training); no models; Codex forest-green theme |
 | `ares`, `athena`, `hephaestus`, `hermes`, `themis` | Not yet created |
 

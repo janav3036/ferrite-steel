@@ -5,11 +5,16 @@
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <h2 class="mb-0">Lead #{{ lead.pk }}</h2>
     <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+            onclick="openShareModal('lead', '{{ lead.pk }}', '{{ lead.company|default:lead.customer_name }} (Lead #{{ lead.pk }})')">
+            <i class="bi bi-share"></i> Share
+        </button>
         <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
             data-bs-target="#deleteLeadModal">Delete Lead</button>
         <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
     </div>
 </div>
+{% include 'chat/_share_modal.html' %}
 
 <!-- Delete confirmation modal -->
 <div class="modal fade" id="deleteLeadModal" tabindex="-1">

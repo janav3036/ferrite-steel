@@ -1,16 +1,28 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.utils import timezone
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from .models import ChatMessage
 
 CHANNEL_LABELS = {
-    'all_staff': 'All Staff',
-    'team_9':    'Team 9',
-    'cs':        'CS Team',
-    'market':    'Market Team',
-    'corporate': 'Corporate Team',
+    'all_staff':        'All Staff',
+    'team_9':           'Team 9',
+    'cs':               'CS Team',
+    'market':           'Market Team',
+    'corporate':        'Corporate Team',
+    'marketing':        'Marketing',
+    'accounts':         'Accounts',
+    'billing_dispatch': 'Billing Dispatch',
+    'tender':           'Tender',
+    'quality':          'Quality',
+    'collection':       'Collection',
+}
+
+LINK_ICONS = {
+    'quotation': '📋',
+    'lead':      '📥',
+    'customer':  '🏢',
 }
 
 
@@ -21,6 +33,37 @@ def _accessible_channels(user):
     if user.role == 'admin' or user.is_superuser:
         channels = list(CHANNEL_LABELS.keys())
     return channels
+
+
+def _link_url(link_type, link_id):
+    try:
+        if link_type == 'quotation':
+            return reverse('quotation_detail', args=[link_id])
+        if link_type == 'lead':
+            return reverse('lead_detail', args=[link_id])
+        if link_type == 'customer':
+            return reverse('customer_detail', args=[link_id])
+    except Exception:
+        pass
+    return '#'
+
+
+def _msg_dict(m, current_user_id):
+    d = {
+        'id': m.pk,
+        'sender': m.sender.get_full_name() or m.sender.username,
+        'initials': m.sender.username[:2].upper(),
+        'content': m.content,
+        'time': m.created_at.strftime('%H:%M'),
+        'is_me': m.sender_id == current_user_id,
+        'attachment_url': m.attachment.url if m.attachment else '',
+        'attachment_name': m.attachment_name,
+        'link_type': m.link_type,
+        'link_label': m.link_label,
+        'link_url': _link_url(m.link_type, m.link_id) if m.link_type else '',
+        'link_icon': LINK_ICONS.get(m.link_type, '🔗'),
+    }
+    return d
 
 
 @login_required
@@ -45,6 +88,7 @@ def chat_home(request):
         'active_channel': active,
         'active_label': CHANNEL_LABELS.get(active, active),
         'messages': messages_qs,
+        'link_icons': LINK_ICONS,
     })
 
 
@@ -53,21 +97,33 @@ def chat_home(request):
 def chat_send(request):
     channel = request.POST.get('channel', 'all_staff')
     content = request.POST.get('content', '').strip()
-    if not content:
+    link_type = request.POST.get('link_type', '').strip()
+    link_id_raw = request.POST.get('link_id', '').strip()
+    link_label = request.POST.get('link_label', '').strip()
+    uploaded_file = request.FILES.get('attachment')
+
+    if not content and not link_type and not uploaded_file:
         return JsonResponse({'ok': False, 'error': 'Empty message'}, status=400)
 
     accessible = _accessible_channels(request.user)
     if channel not in accessible:
         return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
 
-    msg = ChatMessage.objects.create(channel=channel, sender=request.user, content=content)
+    link_id = int(link_id_raw) if link_id_raw.isdigit() else None
+
+    msg = ChatMessage(channel=channel, sender=request.user, content=content)
+    if uploaded_file:
+        msg.attachment = uploaded_file
+        msg.attachment_name = uploaded_file.name
+    if link_type and link_id:
+        msg.link_type = link_type
+        msg.link_id = link_id
+        msg.link_label = link_label
+    msg.save()
+
     return JsonResponse({
         'ok': True,
-        'id': msg.pk,
-        'sender': msg.sender.get_full_name() or msg.sender.username,
-        'initials': msg.sender.username[:2].upper(),
-        'content': msg.content,
-        'time': msg.created_at.strftime('%H:%M'),
+        **_msg_dict(msg, request.user.pk),
         'is_me': True,
     })
 
@@ -82,12 +138,52 @@ def chat_poll(request):
         return JsonResponse({'messages': []})
 
     qs = ChatMessage.objects.filter(channel=channel, pk__gt=since_id).select_related('sender').order_by('created_at')
-    data = [{
-        'id': m.pk,
-        'sender': m.sender.get_full_name() or m.sender.username,
-        'initials': m.sender.username[:2].upper(),
-        'content': m.content,
-        'time': m.created_at.strftime('%H:%M'),
-        'is_me': m.sender_id == request.user.pk,
-    } for m in qs]
+    data = [_msg_dict(m, request.user.pk) for m in qs]
     return JsonResponse({'messages': data})
+
+
+@login_required
+def chat_channels_json(request):
+    channels = _accessible_channels(request.user)
+    data = [{'slug': c, 'label': CHANNEL_LABELS[c]} for c in channels]
+    return JsonResponse({'channels': data})
+
+
+@login_required
+def chat_search(request):
+    from quotations.models import Lead, Quotation
+    from database.models import Customer
+
+    entity_type = request.GET.get('type', '')
+    q = request.GET.get('q', '').strip()
+    results = []
+
+    if entity_type == 'quotation' and q:
+        qs = Quotation.objects.select_related('lead').filter(
+            quotation_number__icontains=q
+        ) | Quotation.objects.select_related('lead').filter(
+            lead__company__icontains=q
+        )
+        for obj in qs.distinct()[:8]:
+            results.append({
+                'id': obj.pk,
+                'label': f"{obj.quotation_number} — {obj.lead.company if obj.lead else ''}",
+            })
+
+    elif entity_type == 'lead' and q:
+        qs = Lead.objects.filter(company__icontains=q) | Lead.objects.filter(customer_name__icontains=q)
+        for obj in qs.distinct()[:8]:
+            results.append({
+                'id': obj.pk,
+                'label': f"{obj.company or obj.customer_name}",
+            })
+
+    elif entity_type == 'customer' and q:
+        qs = Customer.objects.filter(name__icontains=q) | Customer.objects.filter(company__icontains=q)
+        for obj in qs.distinct()[:8]:
+            results.append({
+                'id': obj.pk,
+                'label': obj.name or obj.company,
+            })
+
+    return JsonResponse({'results': results})

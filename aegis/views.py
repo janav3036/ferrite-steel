@@ -17,7 +17,7 @@ from .models import CustomUser, Notification
 def dashboard(request):
     from .models import CustomUser
     today = timezone.now()
-    week_start = today - timedelta(days=today.weekday())
+    week_start = (today - timedelta(days=today.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     team_f = request.GET.get('team', '') if request.user.role == 'admin' else ''
 
     if request.user.role == 'admin':

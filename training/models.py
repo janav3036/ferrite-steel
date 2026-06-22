@@ -150,3 +150,27 @@ class QuizAttempt(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.quiz_set}"
+
+
+class QuestionAttempt(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='question_attempts'
+    )
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name='attempts'
+    )
+    user_answer = models.TextField()
+    correct = models.BooleanField()
+    attempted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Question Attempt'
+        verbose_name_plural = 'Question Attempts'
+        ordering = ['-attempted_at']
+
+    def __str__(self):
+        return f"{self.user} - Q{self.question_id}"

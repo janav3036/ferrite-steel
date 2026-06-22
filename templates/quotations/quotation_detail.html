@@ -21,9 +21,14 @@
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-danger">Delete</button>
         </form>
+        <button type="button" class="btn btn-outline-secondary"
+            onclick="openShareModal('quotation', '{{ quotation.pk }}', '{{ quotation.quotation_number }} — {{ quotation.lead.company|default:quotation.lead.customer_name }}')">
+            <i class="bi bi-share"></i> Share
+        </button>
         <a href="{% url 'quotation_list' %}" class="btn btn-outline-secondary">← Back</a>
     </div>
 </div>
+{% include 'chat/_share_modal.html' %}
 
 {% if messages %}
     {% for message in messages %}

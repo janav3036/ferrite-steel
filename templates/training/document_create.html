@@ -188,6 +188,12 @@
                     <textarea name="description" rows="2" class="form-control"
                               placeholder="Brief summary of what this document covers">{{ form.description.value|default:'' }}</textarea>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Document URL <small>(optional — paste OneDrive / SharePoint link)</small></label>
+                    <input type="url" name="file_url" class="form-control"
+                           value="{{ form.file_url.value|default:'' }}"
+                           placeholder="https://…">
+                </div>
                 <div>
                     <label class="form-label">Departments</label>
                     <div class="dept-group">

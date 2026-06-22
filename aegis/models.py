@@ -5,10 +5,16 @@ from django.contrib.auth.models import AbstractUser
 # Create your models here.
 class CustomUser(AbstractUser):
     TEAM_CHOICES = [
-        ('team_9',    'Team 9'),
-        ('cs',        'CS Team'),
-        ('market',    'Market Team'),
-        ('corporate', 'Corporate Team'),
+        ('team_9',           'Team 9'),
+        ('cs',               'CS Team'),
+        ('market',           'Market Team'),
+        ('corporate',        'Corporate Team'),
+        ('marketing',        'Marketing'),
+        ('accounts',         'Accounts'),
+        ('billing_dispatch', 'Billing Dispatch'),
+        ('tender',           'Tender'),
+        ('quality',          'Quality'),
+        ('collection',       'Collection'),
     ]
 
     ROLE_CHOICES = [

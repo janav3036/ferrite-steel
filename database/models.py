@@ -158,9 +158,9 @@ class Product(models.Model):
 
 class Customer(models.Model):
     TEAM_CHOICES = [
-        ('team_9', 'Team 9'),
-        ('cs', 'CS Team'),
-        ('market', 'Market Team'),
+        ('team_9',    'Team 9'),
+        ('cs',        'CS Team'),
+        ('market',    'Market Team'),
         ('corporate', 'Corporate Team'),
     ]
     PAYMENT_TERMS_CHOICES = [

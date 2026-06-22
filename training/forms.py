@@ -3,10 +3,16 @@ from database.models import Customer
 from .models import QuizSet, Question, Case, KnowledgeDocument
 
 DEPARTMENT_CHOICES = [
-    ('team_9', 'Team 9'),
-    ('cs', 'CS Team'),
-    ('market', 'Market Team'),
-    ('corporate', 'Corporate Team'),
+    ('team_9',           'Team 9'),
+    ('cs',               'CS Team'),
+    ('market',           'Market Team'),
+    ('corporate',        'Corporate Team'),
+    ('marketing',        'Marketing'),
+    ('accounts',         'Accounts'),
+    ('billing_dispatch', 'Billing Dispatch'),
+    ('tender',           'Tender'),
+    ('quality',          'Quality'),
+    ('collection',       'Collection'),
 ]
 
 
@@ -68,7 +74,7 @@ class KnowledgeDocumentForm(forms.ModelForm):
     
     class Meta:
         model = KnowledgeDocument
-        fields = ['title', 'source_type', 'departments', 'description', 'direct_text']
+        fields = ['title', 'source_type', 'file_url', 'departments', 'description', 'direct_text']
         widgets = {
             'description': forms.Textarea(attrs={'rows':2}),
             'direct_text': forms.Textarea(attrs={'rows':8}),

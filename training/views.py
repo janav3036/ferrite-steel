@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Q
 from pgvector.django import CosineDistance
-from .models import Case, QuizSet, QuizAttempt, KnowledgeDocument, DocumentChunk, Question
+from .models import Case, QuizSet, QuizAttempt, KnowledgeDocument, DocumentChunk, Question, QuestionAttempt
 from .forms import CaseForm, KnowledgeDocumentForm, QuizSetForm, QuestionForm
 from .services.llm import judge_quiz_answer
 from .services.processor import process_document
@@ -141,9 +141,33 @@ def quiz_list(request):
         messages.error(request, 'You do not have access to Training.')
         return redirect('dashboard')
     user = request.user
+    is_admin = user.is_superuser or user.role == 'admin'
+
     all_sets = QuizSet.objects.annotate(question_count=Count('questions')).order_by('-created_at')
-    if not (user.is_superuser or user.role == 'admin'):
+    if not is_admin:
         all_sets = [qs for qs in all_sets if not qs.departments or user.team in qs.departments]
+
+    if is_admin:
+        quiz_set_data = []
+        for qs in all_sets:
+            attempts = QuizAttempt.objects.filter(quiz_set=qs)
+            total = attempts.count()
+            quiz_set_data.append({
+                'quiz_set': qs,
+                'total_attempts': total,
+                'unique_takers': attempts.values('user').distinct().count(),
+                'pass_count': attempts.filter(passed=True).count(),
+            })
+
+        standalone_qs = Question.objects.filter(quiz_set__isnull=True).annotate(
+            attempt_count=Count('attempts'),
+            correct_count=Count('attempts', filter=Q(attempts__correct=True)),
+        ).order_by('created_at')
+        return render(request, 'training/quiz_list.html', {
+            'quiz_set_data': quiz_set_data,
+            'standalone_questions': list(standalone_qs),
+            'is_admin': True,
+        })
 
     best_attempts = {}
     for attempt in QuizAttempt.objects.filter(user=user).select_related('quiz_set'):
@@ -162,7 +186,16 @@ def quiz_list(request):
             'passed': best.passed if best else False,
         })
 
-    return render(request, 'training/quiz_list.html', {'quiz_set_data': quiz_set_data})
+    standalone_qs = Question.objects.filter(quiz_set__isnull=True).order_by('created_at')
+    if user.team:
+        standalone_qs = standalone_qs.filter(departments__contains=user.team)
+    standalone_questions = list(standalone_qs)
+
+    return render(request, 'training/quiz_list.html', {
+        'quiz_set_data': quiz_set_data,
+        'standalone_questions': standalone_questions,
+        'is_admin': False,
+    })
 
 
 @login_required
@@ -247,6 +280,62 @@ def quiz_results(request, pk):
         'attempt': attempt,
         'results': results,
         'pass_threshold': int(PASS_THRESHOLD * 100),
+    })
+
+
+@login_required
+def question_practice(request, pk):
+    if not request.user.has_perm('training.view_case'):
+        messages.error(request, 'You do not have access to Training.')
+        return redirect('dashboard')
+    question = get_object_or_404(Question, pk=pk, quiz_set__isnull=True)
+    user = request.user
+    if not (user.is_superuser or user.role == 'admin'):
+        if question.departments and user.team not in question.departments:
+            messages.error(request, 'You do not have access to this question.')
+            return redirect('quiz_list')
+    verdict = None
+    user_answer = ''
+    if request.method == 'POST':
+        user_answer = request.POST.get('user_answer', '').strip()
+        if user_answer:
+            verdict = judge_quiz_answer(question.question_text, question.correct_answer, user_answer)
+            QuestionAttempt.objects.create(
+                user=request.user,
+                question=question,
+                user_answer=user_answer,
+                correct=verdict['correct'],
+            )
+        else:
+            verdict = {'correct': False, 'explanation': 'No answer provided.'}
+    return render(request, 'training/question_practice.html', {
+        'question': question,
+        'user_answer': user_answer,
+        'verdict': verdict,
+    })
+
+
+@login_required
+def quiz_set_attempts(request, pk):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return redirect('quiz_list')
+    quiz_set = get_object_or_404(QuizSet, pk=pk)
+    attempts = QuizAttempt.objects.filter(quiz_set=quiz_set).select_related('user').order_by('-completed_at')
+    return render(request, 'training/quiz_set_attempts.html', {
+        'quiz_set': quiz_set,
+        'attempts': attempts,
+    })
+
+
+@login_required
+def question_attempts(request, pk):
+    if not (request.user.is_superuser or request.user.role == 'admin'):
+        return redirect('quiz_list')
+    question = get_object_or_404(Question, pk=pk, quiz_set__isnull=True)
+    attempts = QuestionAttempt.objects.filter(question=question).select_related('user').order_by('-attempted_at')
+    return render(request, 'training/question_attempts.html', {
+        'question': question,
+        'attempts': attempts,
     })
 
 
@@ -351,7 +440,14 @@ def document_ask(request):
                     Q(problem_description__icontains=question) |
                     Q(resolution__icontains=question)
                 )[:3])
-                answer = answer_question(question, chunks, cases)
+                question_qs = Question.objects.all()
+                if not (user.is_superuser or user.role == 'admin') and user.team:
+                    question_qs = question_qs.filter(departments__contains=user.team)
+                quiz_questions = list(question_qs.filter(
+                    Q(question_text__icontains=question) |
+                    Q(correct_answer__icontains=question)
+                )[:3])
+                answer = answer_question(question, chunks, cases, quiz_questions)
             except Exception as e:
                 messages.error(request, f'Could not get answer: {e}')
     return render(request, 'training/document_ask.html', {

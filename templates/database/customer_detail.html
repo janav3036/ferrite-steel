@@ -13,6 +13,10 @@
             {% if customer.customer_code %}<span class="badge bg-secondary">{{ customer.customer_code }}</span>{% endif %}
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="openShareModal('customer', '{{ customer.pk }}', '{{ customer.name|default:customer.company }}')">
+                <i class="bi bi-share"></i> Share
+            </button>
             <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
             <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">← Customers</a>
         </div>
@@ -168,4 +172,5 @@
     <p class="text-muted">No leads found for this customer.</p>
     {% endif %}
 </div>
+{% include 'chat/_share_modal.html' %}
 {% endblock %}

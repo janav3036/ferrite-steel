@@ -1,0 +1,129 @@
+<!-- Chat share modal — include once per page; call openShareModal(type, id, label) to open -->
+<div class="modal fade" id="chatShareModal" tabindex="-1" aria-labelledby="chatShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content" style="border-radius:14px;overflow:hidden;border:1px solid #D1E9E4;">
+            <div class="modal-header" style="background:#F0FDFA;border-bottom:1px solid #C8EEE4;padding:14px 20px;">
+                <h6 class="modal-title mb-0" id="chatShareModalLabel" style="font-size:.9rem;font-weight:700;color:#0F172A;">
+                    <i class="bi bi-chat-dots me-2" style="color:#0D9488;"></i>Share to Chat
+                </h6>
+                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:18px 20px;">
+
+                <!-- Link preview card -->
+                <div id="share-link-preview" style="display:flex;align-items:center;gap:8px;background:#F0FDFA;border-left:3px solid #0D9488;border-radius:0 8px 8px 0;padding:9px 12px;margin-bottom:16px;">
+                    <span id="share-link-icon" style="font-size:1rem;"></span>
+                    <span id="share-link-label" style="font-size:.84rem;font-weight:600;color:#0F766E;"></span>
+                </div>
+
+                <!-- Channel selector -->
+                <div class="mb-3">
+                    <label style="display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:6px;">Channel</label>
+                    <select id="share-channel-select" style="width:100%;border:1px solid #C8D9D4;border-radius:8px;padding:8px 10px;font-size:.85rem;background:#FAFCFB;outline:none;color:#1E293B;">
+                        <option value="">Loading…</option>
+                    </select>
+                </div>
+
+                <!-- Optional message -->
+                <div class="mb-3">
+                    <label style="display:block;font-size:.78rem;font-weight:600;color:#374151;margin-bottom:6px;">Message <span style="font-weight:400;color:#9FBFB5;">(optional)</span></label>
+                    <textarea id="share-message" rows="2"
+                        style="width:100%;box-sizing:border-box;border:1px solid #C8D9D4;border-radius:8px;padding:8px 10px;font-size:.85rem;background:#FAFCFB;outline:none;resize:none;font-family:inherit;color:#1E293B;"
+                        placeholder="Add a note…"></textarea>
+                </div>
+
+                <!-- Feedback -->
+                <div id="share-feedback" style="display:none;font-size:.8rem;padding:6px 10px;border-radius:7px;margin-bottom:12px;"></div>
+            </div>
+            <div class="modal-footer" style="padding:12px 20px;border-top:1px solid #EBF2EF;background:#FAFCFB;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm" id="share-send-btn"
+                    style="background:#0D9488;color:#fff;border:none;padding:6px 18px;border-radius:7px;font-weight:600;"
+                    onclick="submitShare()">
+                    <i class="bi bi-send-fill me-1"></i>Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const ICONS = {quotation: '📋', lead: '📥', customer: '🏢'};
+    let _shareType = '', _shareId = '', _shareLabel = '';
+    let _channelsLoaded = false;
+
+    window.openShareModal = function(type, id, label) {
+        _shareType = type;
+        _shareId = id;
+        _shareLabel = label;
+
+        document.getElementById('share-link-icon').textContent = ICONS[type] || '🔗';
+        document.getElementById('share-link-label').textContent = label;
+        document.getElementById('share-message').value = '';
+        document.getElementById('share-feedback').style.display = 'none';
+        document.getElementById('share-send-btn').disabled = false;
+        document.getElementById('share-send-btn').innerHTML = '<i class="bi bi-send-fill me-1"></i>Send';
+
+        if (!_channelsLoaded) {
+            fetch('{% url "chat_channels_json" %}')
+                .then(r => r.json())
+                .then(data => {
+                    const sel = document.getElementById('share-channel-select');
+                    sel.innerHTML = data.channels.map(c =>
+                        `<option value="${c.slug}">${c.label}</option>`
+                    ).join('');
+                    _channelsLoaded = true;
+                });
+        }
+
+        new bootstrap.Modal(document.getElementById('chatShareModal')).show();
+    };
+
+    window.submitShare = function() {
+        const channel = document.getElementById('share-channel-select').value;
+        const message = document.getElementById('share-message').value.trim();
+        const btn = document.getElementById('share-send-btn');
+        if (!channel) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Sending…';
+
+        const fd = new FormData();
+        fd.append('channel', channel);
+        fd.append('content', message);
+        fd.append('link_type', _shareType);
+        fd.append('link_id', _shareId);
+        fd.append('link_label', _shareLabel);
+
+        fetch('{% url "chat_send" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            body: fd,
+        })
+        .then(r => r.json())
+        .then(data => {
+            const fb = document.getElementById('share-feedback');
+            if (data.ok) {
+                fb.style.display = 'block';
+                fb.style.background = '#DCFCE7';
+                fb.style.color = '#15803D';
+                fb.textContent = '✓ Shared to #' + channel;
+                btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Sent';
+                setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('chatShareModal')).hide(), 1200);
+            } else {
+                fb.style.display = 'block';
+                fb.style.background = '#FEE2E2';
+                fb.style.color = '#B91C1C';
+                fb.textContent = 'Failed to send — try again.';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Send';
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Send';
+        });
+    };
+})();
+</script>

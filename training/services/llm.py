@@ -37,7 +37,7 @@ def judge_quiz_answer(question_text, correct_answer, user_answer):
     except (json.JSONDecodeError, AttributeError):
         return {"correct": False, "explanation": raw}
     
-def answer_question(question, chunks, cases):
+def answer_question(question, chunks, cases, quiz_questions=None):
     context_parts = []
     if chunks:
         context_parts.append("=== KNOWLEDGE BASE ===")
@@ -50,6 +50,13 @@ def answer_question(question, chunks, cases):
                 f"Case: {case.title}\n"
                 f"Problem: {case.problem_description}\n"
                 f"Resolution: {case.resolution}"
+            )
+    if quiz_questions:
+        context_parts.append("=== TRAINING Q&A ===")
+        for q in quiz_questions:
+            context_parts.append(
+                f"Q: {q.question_text}\n"
+                f"A: {q.correct_answer}"
             )
     context = '\n\n'.join(context_parts)
     system = (

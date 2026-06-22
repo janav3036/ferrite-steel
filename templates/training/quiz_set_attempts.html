@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}{{ quiz_set.title }} — Attempts{% endblock %}
+
+{% block extra_head %}
+{% include "training/_sb_amber.html" %}
+<style>
+    .pill-passed { background:#DCFCE7; color:#15803D; font-size:.65rem; font-weight:700; padding:2px 9px; border-radius:100px; letter-spacing:.06em; text-transform:uppercase; }
+    .pill-failed  { background:#FEE2E2; color:#B91C1C; font-size:.65rem; font-weight:700; padding:2px 9px; border-radius:100px; letter-spacing:.06em; text-transform:uppercase; }
+    .attempts-table { width:100%; border-collapse:collapse; font-size:.855rem; }
+    .attempts-table th {
+        background:#1C1917; color:#FAFAF9;
+        font-family:'Syne',sans-serif; font-size:.65rem; font-weight:700;
+        letter-spacing:.09em; text-transform:uppercase;
+        padding:10px 16px; text-align:left;
+    }
+    .attempts-table td { padding:12px 16px; border-bottom:1px solid #F5F1EA; color:#1C1917; vertical-align:middle; }
+    .attempts-table tr:last-child td { border-bottom:none; }
+    .attempts-table tr:hover td { background:#FFFBF4; }
+    .score-strong { font-family:'Syne',sans-serif; font-weight:800; color:#C2670B; }
+    .empty-state { background:#FFFFFF; border:1.5px dashed #E8E2D8; border-radius:16px; padding:50px 40px; text-align:center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+    <div>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">{{ quiz_set.title }}</h4>
+        <small class="text-muted">{{ attempts.count }} attempt{{ attempts.count|pluralize }} recorded</small>
+    </div>
+    <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary btn-sm">← Quizzes</a>
+</div>
+
+{% if attempts %}
+<div style="background:#FFFFFF;border:1px solid #E8E2D8;border-radius:14px;overflow:hidden;">
+    <table class="attempts-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Score</th>
+                <th>Result</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in attempts %}
+            <tr>
+                <td>
+                    <div style="font-weight:600;">{{ a.user.get_full_name|default:a.user.username }}</div>
+                    <div style="font-size:.75rem;color:#A8A29E;">{{ a.user.team|default:"—" }}</div>
+                </td>
+                <td><span class="score-strong">{{ a.score }}</span> / {{ a.total_questions }}</td>
+                <td>
+                    {% if a.passed %}
+                    <span class="pill-passed">Passed</span>
+                    {% else %}
+                    <span class="pill-failed">Failed</span>
+                    {% endif %}
+                </td>
+                <td style="color:#78716C;">{{ a.completed_at|date:"d M Y, g:i a" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div style="font-size:2rem;color:#D6D3CE;margin-bottom:12px;"><i class="bi bi-inbox"></i></div>
+    <div style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;color:#1C1917;margin-bottom:6px;">No attempts yet</div>
+    <p class="text-muted mb-0" style="font-size:.84rem;">Nobody has taken this quiz yet.</p>
+</div>
+{% endif %}
+{% endblock %}
