@@ -11,7 +11,7 @@ Claude.ai) on every aspect of the FERITE-STEEL project. Read it fully before doi
 anything. Never deviate from the decisions recorded here without explicit instruction
 from Janav.
 
-**Last updated:** 22 Jun 2026 (session 25 — 6 new company teams, chat file sharing + CRM share buttons, standalone question practice + QuestionAttempt tracking, RAG URL field replaces OneDrive, RAG now searches Cases + Questions, frontend design refresh, dashboard week_start bug fix)
+**Last updated:** 22 Jun 2026 (session 26 — RAG / doc picker, extra_js block fix, Phase 3 completion email drafted)
 
 ---
 
@@ -101,7 +101,7 @@ to a non-technical client.
 ## 3. Current State
 
 **Phase 1 complete. Phase 2 (Quotation Automator): complete — email pipeline is LIVE. Phase 3 (Training + Case Solver): ALL sub-modules complete and tested — 3A (Case Management), 3B (Quiz System), 3C (RAG Q&A pipeline) all working end-to-end.**
-**Current work: Session 25 complete — 6 new company teams added (Marketing/Accounts/Billing Dispatch/Tender/Quality/Collection; view-only for quotation system); chat file sharing + share buttons on lead/quotation/customer detail pages; standalone question practice visible to all users; QuestionAttempt model (admin sees attempt list + marks); RAG URL field replaces OneDrive (client manages own file storage); RAG search extended to Cases + Questions; frontend design refresh (Outfit heading font, sidebar left-border active indicator, page entrance animation, improved stat cards/tables/buttons); dashboard week_start bug fixed (now truncates to midnight). Next: add Nginx /media/ block on Hetzner for chat file serving, delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
+**Current work: Session 26 complete — RAG / doc picker added to Ask page (type `/` in empty question box → floating picker lists all available KnowledgeDocuments; select one or more to scope the chunk search; chips show above textarea; stacks work; answer header shows which docs were searched); `extra_js` block name bug fixed in `quiz_take.html` + `document_ask.html` (both used `extra_scripts` which base.html never defined — JS was silently dropped); Phase 3 completion email drafted + sent to client; Phase 2 payment pending until boss returns from vacation (July 3rd); Phase 3 payment 1-week timer started June 22 (due ~June 29, client agreed to settle both together on July 3rd). Next: add Nginx /media/ block on Hetzner for chat file serving, delete GCP VM, then Phase 4 (Credit Risk AI) when client is ready.**
 
 ### What is built
 
@@ -159,7 +159,7 @@ to a non-technical client.
 
 **Permission cache fix:** `aegis/signals.py` `post_save` signal now clears `_perm_cache` and `_user_perm_cache` on the instance after `user_permissions.set(...)` — prevents stale cached permissions in the same request after a role change.
 
-**Training app (Sub-module 3C — RAG Q&A):** `KnowledgeDocument` + `DocumentChunk` models (migration 0005). Services in `training/services/`: `extractor.py` (pypdf/python-docx → text), `embedder.py` (together.ai `intfloat/multilingual-e5-large-instruct` → 1024-dim vectors), `processor.py` (orchestrates extract → chunk → embed → mark processed). **No OneDrive** — client manages their own file storage; `file_url` on KnowledgeDocument is now a user-pasted URL (Google Drive/SharePoint/any link). `onedrive.py` no longer used. Views: `document_list`, `document_create`, `document_detail`, `document_delete`, `document_ask` (RAG Q&A — semantic search over document chunks + Case text + Question/answer text; LLM synthesises answer via together.ai). Templates: full CRUD + Q&A UI at `/training/documents/`. RAG search scope: KnowledgeDocuments + Cases + Questions (all three are embedded and searchable).
+**Training app (Sub-module 3C — RAG Q&A):** `KnowledgeDocument` + `DocumentChunk` models (migration 0005). Services in `training/services/`: `extractor.py` (pypdf/python-docx → text), `embedder.py` (together.ai `intfloat/multilingual-e5-large-instruct` → 1024-dim vectors), `processor.py` (orchestrates extract → chunk → embed → mark processed). **No OneDrive** — client manages their own file storage; `file_url` on KnowledgeDocument is now a user-pasted URL (Google Drive/SharePoint/any link). `onedrive.py` no longer used. Views: `document_list`, `document_create`, `document_detail`, `document_delete`, `document_ask` (RAG Q&A — semantic search over document chunks + Case text + Question/answer text; LLM synthesises answer via together.ai). Templates: full CRUD + Q&A UI at `/training/documents/`. RAG search scope: KnowledgeDocuments + Cases + Questions (all three are embedded and searchable). **`/` doc picker on Ask page:** type `/` in empty question textarea → floating picker shows all available KnowledgeDocuments (dept-filtered); click to select → amber chip added above input; type `/` again (or click `+ add`) to stack more docs; chunks are restricted to selected doc IDs on submit; Cases + Questions still searched broadly; answer header shows which docs were scoped. `document_ask` view accepts `doc_ids[]` POST list and passes `available_docs_json` + `selected_docs_json` to template for JS. JS uses `opacity/visibility` transition (not `display: none/block`) to avoid CSS animation conflicts.
 
 **Training UI (session 18):** All 21 training templates redesigned with warm amber/cream theme. `templates/training/_sb_amber.html` — shared include that overrides all `--sb-*` CSS variables to amber; included at top of `extra_head` in every training template. Non-training pages retain default navy sidebar from `base.html` `:root`. `base.html` refactored with 15 `--sb-*` sub-tokens so sidebar colour is fully CSS-variable-driven per page.
 
@@ -395,6 +395,7 @@ Do not proceed with affected modules until resolved.
 - **3C RAG:** TESTED AND WORKING end-to-end on Hetzner. OneDrive integration dropped — client manages own file storage, `file_url` is now user-pasted. Embedding model: `intfloat/multilingual-e5-large-instruct` (1024-dim, serverless). Chunk size: 300 words. RAG searches KnowledgeDocuments + Cases + Questions.
 - **Nginx `/media/` block:** Must add `/media/` location block to Hetzner Nginx config (`/etc/nginx/sites-enabled/ferite_steel`) before chat file attachments work in production. WhiteNoise handles static files only.
 - **Web Speech API browser compatibility:** Voice dictation on both lead detail and quotation detail require Chrome/Edge + HTTPS. Confirm team browser (client question 16) — Safari/Firefox not supported.
+- **Template JS block name:** `base.html` defines `extra_head` (in `<head>`) and `extra_js` (before `</body>`). Do NOT use `extra_scripts` — it is not defined and any JS in that block is silently dropped.
 
 ---
 

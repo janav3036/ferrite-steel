@@ -218,7 +218,7 @@
 
 {% endblock %}
 
-{% block extra_scripts %}
+{% block extra_js %}
 <script>
 const totalQ = {{ questions|length }};
 
@@ -237,4 +237,4 @@ document.getElementById('quiz-form').addEventListener('submit', function(e) {
     document.getElementById('progressFill').style.width = '100%';
 });
 </script>
-{% endblock %}
+{% endblock extra_js %}

@@ -416,18 +416,36 @@ def document_ask(request):
     if not request.user.has_perm('training.view_case'):
         messages.error(request, 'You do not have access to Training.')
         return redirect('dashboard')
+    user = request.user
+
+    if user.is_superuser or user.role == 'admin':
+        avail_qs = KnowledgeDocument.objects.filter(is_processed=True)
+    elif user.team:
+        avail_qs = KnowledgeDocument.objects.filter(is_processed=True, departments__contains=user.team)
+    else:
+        avail_qs = KnowledgeDocument.objects.none()
+    available_docs = list(avail_qs.values('id', 'title', 'filename'))
+
     answer = None
     question = ''
+    selected_docs = []
+
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
+        raw_ids = request.POST.getlist('doc_ids')
+        selected_ids = [int(x) for x in raw_ids if x.isdigit()]
+        if selected_ids:
+            selected_docs = list(avail_qs.filter(id__in=selected_ids).values('id', 'title', 'filename'))
+
         if question:
             from .services.embedder import embed_query
             from .services.llm import answer_question
-            user = request.user
             try:
                 query_embedding = embed_query(question)
                 chunk_qs = DocumentChunk.objects.filter(document__is_processed=True)
-                if not (user.is_superuser or user.role == 'admin') and user.team:
+                if selected_ids:
+                    chunk_qs = chunk_qs.filter(document_id__in=selected_ids)
+                elif not (user.is_superuser or user.role == 'admin') and user.team:
                     chunk_qs = chunk_qs.filter(document__departments__contains=user.team)
                 chunks = list(chunk_qs.annotate(
                     distance=CosineDistance('embedding', query_embedding)
@@ -450,9 +468,14 @@ def document_ask(request):
                 answer = answer_question(question, chunks, cases, quiz_questions)
             except Exception as e:
                 messages.error(request, f'Could not get answer: {e}')
+    import json as _json
     return render(request, 'training/document_ask.html', {
         'question': question,
         'answer': answer,
+        'available_docs': available_docs,
+        'selected_docs': selected_docs,
+        'available_docs_json': _json.dumps(available_docs),
+        'selected_docs_json': _json.dumps(selected_docs),
     })
 @login_required
 def question_list(request):

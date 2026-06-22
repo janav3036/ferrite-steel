@@ -140,6 +140,103 @@
         box-shadow: 0 2px 8px rgba(194,103,11,.08);
     }
     .hint-card i { margin-right: 5px; opacity: .7; }
+
+    /* Scope / doc-picker */
+    .ask-input-wrap { position: relative; }
+
+    .scope-bar {
+        display: flex; align-items: center; flex-wrap: wrap;
+        gap: 6px; padding: 8px 12px;
+        background: #FFF8F1; border: 1px solid #F5DCC0;
+        border-radius: 9px 9px 0 0; border-bottom: none;
+        margin-bottom: 0;
+    }
+    .scope-bar + .ask-input { border-radius: 0 0 10px 10px; }
+    .scope-bar-label {
+        font-size: .7rem; font-weight: 700; color: #A8A29E;
+        letter-spacing: .06em; text-transform: uppercase;
+        white-space: nowrap; margin-right: 2px;
+    }
+    .scope-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: #C2670B; color: #fff;
+        border-radius: 6px; padding: 3px 8px 3px 9px;
+        font-size: .75rem; font-weight: 600; line-height: 1;
+        max-width: 200px;
+    }
+    .scope-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scope-chip-remove {
+        background: none; border: none; color: rgba(255,255,255,.7);
+        padding: 0; cursor: pointer; font-size: .85rem; line-height: 1;
+        display: flex; align-items: center;
+        transition: color .1s;
+    }
+    .scope-chip-remove:hover { color: #fff; }
+    .scope-add-btn {
+        background: none; border: 1px dashed #E3C9A8; color: #C2670B;
+        border-radius: 6px; padding: 3px 9px;
+        font-size: .72rem; font-weight: 600; cursor: pointer;
+        transition: background .12s, border-color .12s;
+        white-space: nowrap;
+    }
+    .scope-add-btn:hover { background: #FFF0E0; border-color: #C2670B; }
+
+    /* Doc picker dropdown */
+    .doc-picker {
+        position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
+        background: #FFFFFF; border: 1px solid #E8E2D8;
+        border-radius: 10px; box-shadow: 0 8px 24px rgba(28,25,23,.12);
+        z-index: 200;
+        overflow: hidden;
+        opacity: 0; visibility: hidden; transform: translateY(-4px);
+        transition: opacity .14s ease, transform .14s ease, visibility .14s;
+    }
+    .doc-picker.open {
+        opacity: 1; visibility: visible; transform: translateY(0);
+    }
+    .doc-picker-search-wrap {
+        padding: 10px 12px 8px; border-bottom: 1px solid #F0EBE3;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .doc-picker-search-wrap i { color: #C2670B; font-size: .85rem; flex-shrink: 0; }
+    .doc-picker-search {
+        flex: 1; border: none; outline: none;
+        font-size: .85rem; color: #1C1917; background: transparent;
+        font-family: inherit;
+    }
+    .doc-picker-list { max-height: 210px; overflow-y: auto; padding: 4px 0; }
+    .doc-picker-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 14px; cursor: pointer;
+        font-size: .83rem; color: #44403C;
+        transition: background .1s;
+    }
+    .doc-picker-item:hover, .doc-picker-item.focused {
+        background: #FFF8F1; color: #C2670B;
+    }
+    .doc-picker-item i { color: #C2670B; font-size: .8rem; flex-shrink: 0; }
+    .doc-picker-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-picker-item-sub { font-size: .7rem; color: #A8A29E; white-space: nowrap; }
+    .doc-picker-item.selected .doc-picker-item-name::after {
+        content: ' ✓'; color: #C2670B; font-weight: 700;
+    }
+    .doc-picker-empty {
+        padding: 16px 14px; font-size: .81rem; color: #A8A29E; text-align: center;
+    }
+    .doc-picker-hint {
+        padding: 6px 14px; font-size: .68rem; color: #C9C2B8;
+        border-top: 1px solid #F0EBE3; text-align: right;
+        letter-spacing: .02em;
+    }
+    .scope-tip {
+        font-size: .74rem; color: #A8A29E;
+        margin-top: 6px;
+    }
+    .scope-tip kbd {
+        background: #F5F0EA; border: 1px solid #E0D8CE;
+        border-radius: 4px; padding: 1px 5px; font-size: .72rem;
+        color: #78716C; font-family: inherit;
+    }
 </style>
 {% endblock %}
 
@@ -160,14 +257,41 @@
         <form method="post" id="askForm">
             {% csrf_token %}
             <label class="ask-input-label">Your question</label>
-            <textarea
-                name="question"
-                id="questionInput"
-                class="ask-input"
-                rows="3"
-                placeholder="e.g. What is the difference between E250 and E350 grade steel?"
-                required>{{ question }}</textarea>
-            <div class="ask-actions">
+            <div class="ask-input-wrap">
+                <!-- Scope bar (shown when docs are selected) -->
+                <div id="scopeBar" class="scope-bar" style="display:none">
+                    <span class="scope-bar-label">Searching in</span>
+                    <div id="scopeChips"></div>
+                    <button type="button" class="scope-add-btn" id="addScopeBtn">
+                        <i class="bi bi-plus-lg"></i> add
+                    </button>
+                </div>
+                <textarea
+                    name="question"
+                    id="questionInput"
+                    class="ask-input"
+                    rows="3"
+                    placeholder="Type your question… or / to scope to specific documents"
+                    required>{{ question }}</textarea>
+                <!-- Doc picker dropdown -->
+                <div id="docPicker" class="doc-picker">
+                    <div class="doc-picker-search-wrap">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="docPickerSearch" class="doc-picker-search"
+                               placeholder="Filter documents…" autocomplete="off">
+                    </div>
+                    <div id="docPickerList" class="doc-picker-list"></div>
+                    <div class="doc-picker-hint">Click or ↑↓ Enter to select • Esc to close</div>
+                </div>
+                <!-- Hidden inputs for selected doc IDs (populated by JS) -->
+                <div id="scopeInputs"></div>
+            </div>
+            {% if not answer %}
+            <div class="scope-tip">
+                Tip: type <kbd>/</kbd> in an empty question box to scope the search to specific documents.
+            </div>
+            {% endif %}
+            <div class="ask-actions" style="margin-top:12px">
                 <button type="submit" class="btn-ask" id="askBtn">
                     <i class="bi bi-stars"></i>
                     <span id="askLabel">Ask</span>
@@ -190,7 +314,16 @@
             <span class="answer-hdr-label">
                 <i class="bi bi-stars"></i>Answer
             </span>
-            <span class="answer-hdr-sub">AI-generated from your knowledge base</span>
+            <span class="answer-hdr-sub">
+                {% if selected_docs %}
+                    Searched in:
+                    {% for d in selected_docs %}
+                        <strong>{{ d.title|default:d.filename }}</strong>{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    AI-generated from your knowledge base
+                {% endif %}
+            </span>
         </div>
         {% if question %}
         <div class="answer-question">{{ question }}</div>
@@ -223,17 +356,196 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
+{% block extra_js %}
 <script>
+// ── Doc data ──────────────────────────────────────────────────────────────────
+const ALL_DOCS = {{ available_docs_json|safe }};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+// {id: {id, title, filename}}
+const selectedDocs = {};
+
+// Pre-populate from POST response (re-renders chips after page reload)
+({{ selected_docs_json|safe }}).forEach(d => { selectedDocs[d.id] = d; });
+
+// ── Elements ──────────────────────────────────────────────────────────────────
+const questionInput  = document.getElementById('questionInput');
+const scopeBar       = document.getElementById('scopeBar');
+const scopeChipsEl   = document.getElementById('scopeChips');
+const scopeInputsEl  = document.getElementById('scopeInputs');
+const docPicker      = document.getElementById('docPicker');
+const docPickerSearch= document.getElementById('docPickerSearch');
+const docPickerList  = document.getElementById('docPickerList');
+const addScopeBtn    = document.getElementById('addScopeBtn');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function docLabel(d) {
+    return (d.title && d.title !== 'null' && d.title !== '') ? d.title : d.filename;
+}
+
+function renderChips() {
+    // Chips
+    scopeChipsEl.innerHTML = '';
+    Object.values(selectedDocs).forEach(d => {
+        const chip = document.createElement('span');
+        chip.className = 'scope-chip';
+        chip.innerHTML = `<span class="scope-chip-name" title="${escHtml(docLabel(d))}">${escHtml(docLabel(d))}</span>
+            <button type="button" class="scope-chip-remove" data-id="${d.id}" title="Remove">
+                <i class="bi bi-x"></i>
+            </button>`;
+        scopeChipsEl.appendChild(chip);
+    });
+    scopeBar.style.display = Object.keys(selectedDocs).length ? 'flex' : 'none';
+
+    // Sync borderRadii
+    const hasScopeBar = Object.keys(selectedDocs).length > 0;
+    questionInput.style.borderRadius = hasScopeBar ? '0 0 10px 10px' : '';
+
+    // Hidden inputs
+    scopeInputsEl.innerHTML = '';
+    Object.keys(selectedDocs).forEach(id => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'doc_ids'; inp.value = id;
+        scopeInputsEl.appendChild(inp);
+    });
+
+    // Refresh picker selections
+    renderPickerList(docPickerSearch.value);
+}
+
+function addDoc(d) {
+    selectedDocs[d.id] = d;
+    renderChips();
+}
+
+function removeDoc(id) {
+    delete selectedDocs[id];
+    renderChips();
+}
+
+// ── Picker rendering ──────────────────────────────────────────────────────────
+let focusedIdx = -1;
+
+function renderPickerList(query) {
+    const q = (query || '').toLowerCase();
+    const filtered = ALL_DOCS.filter(d => {
+        const label = docLabel(d).toLowerCase();
+        return !q || label.includes(q);
+    });
+    focusedIdx = -1;
+    if (!filtered.length) {
+        docPickerList.innerHTML = `<div class="doc-picker-empty">No documents found</div>`;
+        return;
+    }
+    docPickerList.innerHTML = filtered.map((d, i) => {
+        const isSel = !!selectedDocs[d.id];
+        return `<div class="doc-picker-item${isSel ? ' selected' : ''}" data-id="${d.id}" data-idx="${i}">
+            <i class="bi bi-file-earmark-text"></i>
+            <span class="doc-picker-item-name">${escHtml(docLabel(d))}</span>
+            ${d.filename ? `<span class="doc-picker-item-sub">${escHtml(d.filename)}</span>` : ''}
+        </div>`;
+    }).join('');
+
+    docPickerList.querySelectorAll('.doc-picker-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = parseInt(el.dataset.id);
+            const doc = ALL_DOCS.find(d => d.id === id);
+            if (doc) {
+                if (selectedDocs[id]) removeDoc(id);
+                else addDoc(doc);
+            }
+            hidePicker();
+            questionInput.focus();
+        });
+    });
+}
+
+function moveFocus(dir) {
+    const items = docPickerList.querySelectorAll('.doc-picker-item');
+    if (!items.length) return;
+    items[focusedIdx]?.classList.remove('focused');
+    focusedIdx = Math.max(0, Math.min(items.length - 1, focusedIdx + dir));
+    items[focusedIdx].classList.add('focused');
+    items[focusedIdx].scrollIntoView({ block: 'nearest' });
+}
+
+function selectFocused() {
+    const items = docPickerList.querySelectorAll('.doc-picker-item');
+    if (focusedIdx >= 0 && items[focusedIdx]) {
+        items[focusedIdx].click();
+    }
+}
+
+// ── Picker open/close ─────────────────────────────────────────────────────────
+function showPicker() {
+    renderPickerList('');
+    docPickerSearch.value = '';
+    docPicker.classList.add('open');
+    setTimeout(() => docPickerSearch.focus(), 30);
+}
+
+function hidePicker() {
+    docPicker.classList.remove('open');
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+
+// Slash-to-open on empty textarea
+questionInput.addEventListener('keydown', function(e) {
+    if (e.key === '/' && this.value === '') {
+        e.preventDefault();
+        showPicker();
+    }
+});
+
+// Add button
+addScopeBtn.addEventListener('click', showPicker);
+
+// Chip remove (delegated)
+scopeChipsEl.addEventListener('click', function(e) {
+    const btn = e.target.closest('.scope-chip-remove');
+    if (btn) removeDoc(parseInt(btn.dataset.id));
+});
+
+// Picker search input
+docPickerSearch.addEventListener('input', function() {
+    renderPickerList(this.value);
+});
+
+docPickerSearch.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { hidePicker(); questionInput.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveFocus(1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); moveFocus(-1); }
+    else if (e.key === 'Enter')     { e.preventDefault(); selectFocused(); }
+});
+
+// Click outside to close
+document.addEventListener('mousedown', function(e) {
+    if (!docPicker.contains(e.target) && e.target !== addScopeBtn) {
+        hidePicker();
+    }
+});
+
+// ── Form submit ───────────────────────────────────────────────────────────────
 document.getElementById('askForm').addEventListener('submit', function() {
     document.getElementById('askBtn').disabled = true;
     document.getElementById('askLabel').textContent = 'Thinking…';
     document.getElementById('thinkingNote').classList.add('active');
 });
 
+// ── Hint cards ────────────────────────────────────────────────────────────────
 function setQuestion(el) {
-    document.getElementById('questionInput').value = el.dataset.q;
-    document.getElementById('questionInput').focus();
+    questionInput.value = el.dataset.q;
+    questionInput.focus();
 }
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderChips();
 </script>
-{% endblock %}
+{% endblock extra_js %}
