@@ -312,6 +312,23 @@
     </div>
 </div>
 
+<!-- Rate Change Confirm Modal -->
+<div class="modal fade" id="rateChangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Catalog Rates?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="rate-change-list"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="rate-skip-btn">No, keep as-is</button>
+                <button type="button" class="btn btn-dark" id="rate-update-btn">Yes, update catalog</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
     const loadingInput = document.getElementById('id_loading_extra');
@@ -525,12 +542,22 @@
         if (catalogData) renderPickerRows(this.value);
     });
 
+    const PICKER_MIN_QUERY_LEN = 2;
+    const PICKER_MAX_RESULTS = 200;
+
     function renderPickerRows(query) {
         pickerBody.innerHTML = '';
         const q = query.trim().toLowerCase();
-        Object.entries(catalogData).forEach(([key, g]) => {
-            if (q && !g.type_display.toLowerCase().includes(q) && !g.size.toLowerCase().includes(q)) return;
 
+        if (q.length < PICKER_MIN_QUERY_LEN) {
+            pickerBody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-4">Type at least ${PICKER_MIN_QUERY_LEN} characters to search (e.g. size or sub-type)…</td></tr>`;
+            return;
+        }
+
+        const matches = Object.entries(catalogData).filter(([, g]) =>
+            g.type_display.toLowerCase().includes(q) || g.size.toLowerCase().includes(q));
+
+        matches.slice(0, PICKER_MAX_RESULTS).forEach(([key, g]) => {
             // Header row — always visible, clickable to expand
             const headerTr = document.createElement('tr');
             headerTr.className = 'picker-group-header';
@@ -583,8 +610,12 @@
                 }
             });
         });
-        if (!pickerBody.hasChildNodes()) {
+
+        if (matches.length === 0) {
             pickerBody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No products match.</td></tr>';
+        } else if (matches.length > PICKER_MAX_RESULTS) {
+            pickerBody.insertAdjacentHTML('beforeend',
+                `<tr><td colspan="10" class="text-center text-muted small py-2">Showing first ${PICKER_MAX_RESULTS} of ${matches.length} matches — narrow your search to see more.</td></tr>`);
         }
     }
 
@@ -822,21 +853,4 @@
         form.submit();
     }
 </script>
-
-<!-- Rate Change Confirm Modal -->
-<div class="modal fade" id="rateChangeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Update Catalog Rates?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="rate-change-list"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" id="rate-skip-btn">No, keep as-is</button>
-                <button type="button" class="btn btn-dark" id="rate-update-btn">Yes, update catalog</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
