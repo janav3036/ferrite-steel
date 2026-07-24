@@ -357,6 +357,74 @@
     .msg-link-label { font-size: .8rem; font-weight: 600; color: #0F766E; flex: 1; }
     .msg-link-arrow { font-size: .7rem; color: #5EAAA0; }
 
+    /* ── Read receipts ── */
+    .msg-receipt {
+        display: inline-flex;
+        align-items: center;
+        font-size: .78rem;
+        line-height: 1;
+        color: #B7C7C2;
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 1px 2px;
+        transition: color .18s ease, background .12s ease, transform .1s ease;
+    }
+    .msg-receipt:hover { background: rgba(13,148,136,.08); transform: scale(1.08); }
+    .msg-receipt.partial { color: #94A3B8; }
+    .msg-receipt.read-all { color: #0D9488; }
+
+    .receipt-popover {
+        position: fixed;
+        z-index: 1050;
+        min-width: 190px;
+        max-width: 240px;
+        background: white;
+        border: 1px solid #D6E4DE;
+        border-radius: 11px;
+        box-shadow: 0 10px 30px -6px rgba(11,23,18,.22), 0 2px 8px rgba(11,23,18,.08);
+        padding: 7px 0;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        transform-origin: top right;
+        animation: receiptPopIn .14s cubic-bezier(.2,.9,.3,1.3);
+    }
+    @keyframes receiptPopIn {
+        from { opacity: 0; transform: scale(.92) translateY(-3px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .receipt-popover .rp-title {
+        padding: 2px 13px 7px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid #F0F5F3;
+        font-size: .62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        color: #A0B4AE;
+        font-family: 'IBM Plex Mono', monospace;
+    }
+    .receipt-popover .rp-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 13px;
+        font-size: .81rem;
+        color: #374151;
+    }
+    .receipt-popover .rp-row .rp-avatar {
+        width: 20px; height: 20px; flex-shrink: 0;
+        border-radius: 6px;
+        background: #DBEAFE; color: #1D4ED8;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .58rem; font-weight: 700;
+    }
+    .receipt-popover .rp-row.rp-unread .rp-avatar { background: #F1F5F4; color: #A0B4AE; }
+    .receipt-popover .rp-row.rp-unread { color: #A0B4AE; }
+    .receipt-popover .rp-row .rp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .receipt-popover .rp-row .rp-check { font-size: .8rem; flex-shrink: 0; }
+    .receipt-popover .rp-row.rp-read .rp-check { color: #0D9488; }
+    .receipt-popover .rp-row.rp-unread .rp-check { color: #D6E4DE; }
+    .receipt-popover .rp-empty { padding: 8px 13px; font-size: .78rem; color: #A0B4AE; }
+
     /* ── Mobile overrides (base.html handles most, these are chat-specific) ── */
     @media (max-width: 767.98px) {
         .chat-layout { height: calc(100dvh - 130px); }
@@ -429,6 +497,11 @@
                     <div class="msg-meta">
                         <span class="msg-sender">{{ msg.sender.get_full_name|default:msg.sender.username }}</span>
                         <span class="msg-time">{{ msg.created_at|time:"H:i" }}</span>
+                        {% if msg.sender == request.user %}
+                        <span class="msg-receipt" data-id="{{ msg.pk }}" title="Sent">
+                            <i class="bi bi-check2"></i>
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="msg-bubble {% if msg.sender == request.user %}me{% endif %}">
                         {% if msg.content %}{{ msg.content }}{% endif %}
@@ -506,6 +579,7 @@
     let pendingLink = null;  // {type, id, label}
     let activeLinkType = 'quotation';
     let searchTimer = null;
+    let channelMembers = [];  // [{user_id, name, last_read_id}] — everyone but me, for this channel
 
     document.querySelectorAll('[data-id]').forEach(el => {
         const id = parseInt(el.dataset.id);
@@ -548,6 +622,7 @@
                 <div class="msg-meta">
                     <span class="msg-sender">${escHtml(m.sender)}</span>
                     <span class="msg-time">${escHtml(m.time)}</span>
+                    ${m.is_me ? `<span class="msg-receipt" data-id="${m.id}" title="Sent"><i class="bi bi-check2"></i></span>` : ''}
                 </div>
                 <div class="msg-bubble${m.is_me ? ' me' : ''}">
                     ${m.content ? escHtml(m.content) : ''}
@@ -605,7 +680,7 @@
             body: fd,
         })
         .then(r => r.json())
-        .then(data => { if (data.ok) { appendMessage(data); scrollBottom(); } })
+        .then(data => { if (data.ok) { appendMessage(data); scrollBottom(); refreshReceipts(); } })
         .finally(() => { sendBtn.disabled = false; input.focus(); });
     }
 
@@ -616,10 +691,95 @@
             if (data.messages && data.messages.length) {
                 data.messages.forEach(appendMessage);
                 scrollBottom();
+                refreshReceipts();
             }
         })
         .catch(() => {});
     }
+
+    // ── Read receipts ──
+    function fetchReadStatus() {
+        fetch(`{% url "chat_read_status" %}?channel=${encodeURIComponent(channel)}`)
+        .then(r => r.json())
+        .then(data => {
+            channelMembers = data.members || [];
+            refreshReceipts();
+        })
+        .catch(() => {});
+    }
+
+    function refreshReceipts() {
+        const total = channelMembers.length;
+        document.querySelectorAll('.msg-row.me .msg-receipt').forEach(el => {
+            const id = parseInt(el.dataset.id);
+            if (!id || total === 0) { el.style.display = 'none'; return; }
+            el.style.display = '';
+            const readCount = channelMembers.filter(m => m.last_read_id >= id).length;
+            el.classList.remove('partial', 'read-all');
+            if (readCount === 0) {
+                el.innerHTML = '<i class="bi bi-check2"></i>';
+                el.title = 'Sent — double-click for details';
+            } else if (readCount === total) {
+                el.classList.add('read-all');
+                el.innerHTML = '<i class="bi bi-check2-all"></i>';
+                el.title = 'Read by everyone — double-click for details';
+            } else {
+                el.classList.add('partial');
+                el.innerHTML = '<i class="bi bi-check2-all"></i>';
+                el.title = `Read by ${readCount} of ${total} — double-click for details`;
+            }
+        });
+    }
+
+    function closeReceiptPopover() {
+        const existing = document.getElementById('receipt-popover');
+        if (existing) existing.remove();
+        document.removeEventListener('mousedown', outsideReceiptClick, true);
+    }
+
+    function outsideReceiptClick(e) {
+        const pop = document.getElementById('receipt-popover');
+        if (pop && !pop.contains(e.target)) closeReceiptPopover();
+    }
+
+    function showReceiptPopover(tick) {
+        closeReceiptPopover();
+        const id = parseInt(tick.dataset.id);
+
+        const rows = channelMembers.map(m => {
+            const read = m.last_read_id >= id;
+            const initials = m.name.trim().slice(0, 2).toUpperCase();
+            return `<div class="rp-row ${read ? 'rp-read' : 'rp-unread'}">
+                <span class="rp-avatar">${escHtml(initials)}</span>
+                <span class="rp-name">${escHtml(m.name)}</span>
+                <i class="bi ${read ? 'bi-check2-all' : 'bi-clock'} rp-check"></i>
+            </div>`;
+        }).join('') || '<div class="rp-empty">No other channel members</div>';
+
+        const pop = document.createElement('div');
+        pop.className = 'receipt-popover';
+        pop.id = 'receipt-popover';
+        pop.innerHTML = `<div class="rp-title">Message info</div>${rows}`;
+        document.body.appendChild(pop);
+
+        const rect = tick.getBoundingClientRect();
+        const popRect = pop.getBoundingClientRect();
+        let left = rect.right - popRect.width;
+        let top = rect.bottom + 6;
+        left = Math.max(8, Math.min(left, window.innerWidth - popRect.width - 8));
+        top = Math.min(top, window.innerHeight - popRect.height - 8);
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+
+        setTimeout(() => document.addEventListener('mousedown', outsideReceiptClick, true), 0);
+    }
+
+    container.addEventListener('dblclick', function (e) {
+        const tick = e.target.closest('.msg-receipt');
+        if (!tick) return;
+        e.preventDefault();
+        showReceiptPopover(tick);
+    });
 
     // ── File handling ──
     window.fileSelected = function(input) {
@@ -701,7 +861,8 @@
     });
 
     scrollBottom();
-    setInterval(poll, 4000);
+    fetchReadStatus();
+    setInterval(function () { poll(); fetchReadStatus(); }, 4000);
 })();
 </script>
 {% endblock %}

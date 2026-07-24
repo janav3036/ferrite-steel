@@ -40,3 +40,19 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.sender.username} in #{self.channel}: {self.content[:60]}"
+
+    
+class ChatReadState(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_read_states')
+    channel = models.CharField(max_length=30, choices=ChatMessage.CHANNEL_CHOICES)
+    last_read_id = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Chat Read State'
+        verbose_name_plural = 'Chat Read States'
+        unique_together = ('user', 'channel')
+
+    def __str__(self):
+        return f"{self.user.username} read #{self.channel} up to {self.last_read_id}"
+    
