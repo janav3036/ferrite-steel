@@ -666,12 +666,17 @@ def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=Non
     from email.mime.base import MIMEBase
     from email.mime.text import MIMEText
     from email import encoders
+    from email.utils import make_msgid
 
     smtp_host = config.smtp_host or config.imap_host.replace('imap.', 'smtp.')
+    domain = config.email_address.split('@')[-1] or None
+    message_id = make_msgid(domain=domain)
+
     msg = MIMEMultipart()
     msg['From'] = config.email_address
     msg['To'] = to_email
     msg['Subject'] = subject
+    msg['Message-ID'] = message_id
     msg.attach(MIMEText(body, 'plain'))
 
     if pdf_bytes and filename:
@@ -689,6 +694,7 @@ def _send_via_smtp(config, to_email, subject, body, pdf_bytes=None, filename=Non
     server.login(config.smtp_username or config.imap_username, config.smtp_password or config.imap_password)
     server.sendmail(config.email_address, [to_email], msg.as_string())
     server.quit()
+    return message_id
 
 
 @login_required
@@ -704,6 +710,7 @@ def quotation_send(request, pk):
         body_with_ref = body + f'\n\n[Quotation Reference: {quotation.quotation_number}]'
 
         sent_to = None
+        sent_message_id = None
         if to_email:
             config = lead.received_via if (lead.received_via and lead.received_via.is_active) else None
             if not config:
@@ -726,7 +733,7 @@ def quotation_send(request, pk):
                             string=html, base_url=request.build_absolute_uri('/')
                         ).write_pdf()
                         filename = f"{quotation.quotation_number}.pdf"
-                    _send_via_smtp(
+                    sent_message_id = _send_via_smtp(
                         config,
                         to_email=to_email,
                         subject=subject,
@@ -748,7 +755,11 @@ def quotation_send(request, pk):
 
         quotation.status = 'sent'
         quotation.sent_at = timezone.now()
-        quotation.save(update_fields=['status', 'sent_at'])
+        update_fields = ['status', 'sent_at']
+        if sent_message_id:
+            quotation.sent_message_id = sent_message_id
+            update_fields.append('sent_message_id')
+        quotation.save(update_fields=update_fields)
 
         if sent_to:
             messages.success(request, f'{quotation} sent to {sent_to}.')

@@ -6,6 +6,7 @@ classifies them, and creates Leads for genuine product inquiries.
 """
 import email
 import imaplib
+import io
 import re
 from email.header import decode_header
 from datetime import timedelta
@@ -17,6 +18,7 @@ from django.utils import timezone
 from quotations.models import Lead, Quotation, TeamEmailConfig, MarketOrder
 from database.models import Broker
 from quotations.services.llm import classify_message, classify_broker_response
+from training.services.extractor import extract_text
 from aegis.models import CustomUser
 from aegis.notifications import notify
 
@@ -130,6 +132,32 @@ def _parse_plain_body(msg):
         return _decode(msg.get_payload(decode=True), charset)
     return ''
 
+def _extract_attachments_text(msg):
+    """Extract text from PDF/DOCX/Excel attachments and return it as a labelled block."""
+    if not msg.is_multipart():
+        return ''
+    parts = []
+    for part in msg.walk():
+        filename = part.get_filename()
+        if not filename:
+            continue
+        filename = ''.join(_decode(f, enc) for f, enc in decode_header(filename))
+        if not filename.lower().endswith(('.pdf', '.docx', '.xlsx', 'xls')):
+            continue
+
+        payload = part.get_payload(decode=True)
+        if not payload:
+            continue
+
+        try:
+            text = extract_text(io.BytesIO(payload), filename)
+        except Exception:
+            continue
+
+        if text.strip():
+            parts.append(f'--- Attachment: {filename} ----\n{text.strip()}')
+
+    return '\n\n'.join(parts)
 
 def _parse_sender(from_header):
     """Return (name, email) from a From header string."""
@@ -149,6 +177,15 @@ def _find_broker(email_addr: str):
     if not email_addr:
         return None
     return Broker.objects.filter(email__iexact=email_addr, is_active=True).first()
+
+
+_MSGID_RE = re.compile(r'<[^<>\s]+>')
+
+
+def _extract_referenced_ids(msg):
+    """Return the set of Message-IDs this message's In-Reply-To/References headers point to."""
+    raw = ' '.join(filter(None, [msg.get('In-Reply-To', ''), msg.get('References', '')]))
+    return set(_MSGID_RE.findall(raw))
 
 
 class Command(BaseCommand):
@@ -217,8 +254,12 @@ class Command(BaseCommand):
                 subject_parts = decode_header(msg.get('Subject', ''))
                 subject = ''.join(_decode(p, enc) for p, enc in subject_parts).strip()
                 sender_name, sender_email = _parse_sender(msg.get('From', ''))
+                
                 raw_body = _parse_plain_body(msg).strip()
                 body = _strip_reply_chain(raw_body)
+                attachment_text = _extract_attachments_text(msg)
+                if attachment_text:
+                    body = f'{body}\n\n{attachment_text}'.strip()
 
                 # ── Pre-filter: skip automated senders ───────────────────────────
                 if SPAM_PATTERNS.search(sender_email):
@@ -319,28 +360,50 @@ class Command(BaseCommand):
                     continue
 
                 # ── Handle replies to our own quotations ──────────────────────────
-                if '[Quotation Reference:' in raw_body:
+                # Primary signal: In-Reply-To/References headers matched against the
+                # Message-ID we stamped on the outbound quotation email (reliable —
+                # not user-editable, survives client-side quoting differences).
+                referenced_ids = _extract_referenced_ids(msg)
+                replied_quotation = None
+                if referenced_ids:
+                    replied_quotation = Quotation.objects.select_related('lead').filter(
+                        sent_message_id__in=referenced_ids
+                    ).first()
+
+                # Fallback: legacy text marker, for quotations sent before this field
+                # existed or if a client strips headers.
+                has_marker = '[Quotation Reference:' in raw_body
+                if replied_quotation is None and has_marker:
                     qt_match = re.search(r'\[Quotation Reference: (QT-[\d]+-?v?[\d]*)\]', raw_body)
+                    if qt_match:
+                        replied_quotation = Quotation.objects.select_related('lead').filter(
+                            quotation_number=qt_match.group(1)
+                        ).first()
+
+                if replied_quotation is not None or has_marker:
                     linked = False
-                    if qt_match and not dry_run:
-                        qt_num = qt_match.group(1)
-                        try:
-                            qt = Quotation.objects.select_related('lead').get(quotation_number=qt_num)
-                            lead = qt.lead
-                            stripped = _strip_reply_chain(raw_body)
-                            stamp = timezone.now().strftime('%d %b %Y %H:%M')
-                            block = (
-                                f'\n\n--- Reply from {sender_name} <{sender_email}> on {stamp} ---\n'
-                                f'{stripped.strip()}'
-                            )
-                            lead.notes = (lead.notes or '') + block
-                            lead.save(update_fields=['notes'])
-                            linked = True
-                            self.stdout.write(self.style.SUCCESS(
-                                f'  [REPLY-LINKED] {sender_email} → {qt_num} (Lead #{lead.pk})'
-                            ))
-                        except Exception as exc:
-                            self.stdout.write(f'  [REPLY-ERR]    {exc}')
+                    if replied_quotation is not None and not dry_run:
+                        lead = replied_quotation.lead
+                        stripped = body
+                        stamp = timezone.now().strftime('%d %b %Y %H:%M')
+                        block = (
+                            f'\n\n--- Reply from {sender_name} <{sender_email}> on {stamp} ---\n'
+                            f'{stripped.strip()}'
+                        )
+                        lead.notes = (lead.notes or '') + block
+                        lead.save(update_fields=['notes'])
+                        linked = True
+                        recipients = _get_recipients(config.team)
+                        notify(
+                            recipients,
+                            f'Reply received: {replied_quotation.quotation_number}',
+                            message=f'{sender_name or sender_email} replied - Lead #{lead.pk}',
+                            link=f'/quotations/leads/{lead.pk}/',
+                            notif_type='general',
+                        )
+                        self.stdout.write(self.style.SUCCESS(
+                            f'  [REPLY-LINKED] {sender_email} → {replied_quotation.quotation_number} (Lead #{lead.pk})'
+                        ))
                     if not linked:
                         self.stdout.write(f'  [SKIP-REPLY]   From: {sender_email} | Subject: {subject[:60]}')
                     if not dry_run:

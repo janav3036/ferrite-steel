@@ -126,6 +126,7 @@ class Quotation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    sent_message_id = models.CharField(max_length=255, blank=True)
 
     class Meta:
         verbose_name = 'Quotation'

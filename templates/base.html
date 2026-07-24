@@ -135,7 +135,8 @@
         }
 
         /* ── Nav ── */
-        .fs-nav { padding: 10px 8px; flex: 1; overflow: hidden; }
+        .fs-nav { padding: 10px 8px; flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+        .fs-nav::-webkit-scrollbar { display: none; }
 
         .fs-section-label {
             display: block;
