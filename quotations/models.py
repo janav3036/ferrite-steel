@@ -156,6 +156,8 @@ class QuotationLineItem(models.Model):
     UOM_CHOICES = [
         ('ton', 'T'),
         ('kg', 'KG'),
+        ('mtr', 'Mtr'),
+        ('nos', 'Nos'),
     ]
 
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='line_items')

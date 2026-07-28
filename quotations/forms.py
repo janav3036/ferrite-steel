@@ -59,7 +59,7 @@ class LineItemForm(forms.ModelForm):
         fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
         widgets = {
             'product': forms.HiddenInput(),
-            'hsn_code': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': 'readonly', 'tabindex': '-1'}),
+            'hsn_code': forms.HiddenInput(),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
             'make': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
             'length': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
