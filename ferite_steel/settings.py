@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'training',
     'guide',
     'chat',
+    'credit_risk',
 ]
 
 MIDDLEWARE = [

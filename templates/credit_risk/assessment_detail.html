@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load fs_filters %}
+{% block title %}Credit Assessment — {{ assessment.customer.name }} — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 page-hdr">
+    <div>
+        <h4 class="mb-0">{{ assessment.customer.name }}</h4>
+        {% if assessment.customer.company %}<div class="text-muted small">{{ assessment.customer.company }}</div>{% endif %}
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'assessment_create' %}?customer={{ assessment.customer.pk }}" class="btn btn-outline-primary btn-sm">Run New Assessment</a>
+        <a href="{% url 'assessment_list' %}" class="btn btn-outline-secondary btn-sm">Back to List</a>
+    </div>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+{% endfor %}
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Score</div>
+                <div class="display-6 fw-bold">{{ assessment.score }}<span class="fs-6 text-muted">/10</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase mb-2">Risk Level</div>
+                {% if assessment.risk_level == 'low' %}<span class="badge bg-success fs-6">Low</span>
+                {% elif assessment.risk_level == 'medium' %}<span class="badge bg-warning text-dark fs-6">Medium</span>
+                {% else %}<span class="badge bg-danger fs-6">High</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase mb-2">Recommendation</div>
+                {% if assessment.recommendation == 'approve' %}<span class="badge bg-success fs-6">Approve</span>
+                {% elif assessment.recommendation == 'decline' %}<span class="badge bg-danger fs-6">Decline</span>
+                {% else %}<span class="badge bg-secondary fs-6">Refer</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase">Assessed</div>
+                <div class="fw-semibold">{{ assessment.created_at|date:"d M Y" }}</div>
+                <div class="text-muted small">by {{ assessment.requested_by|default:"—" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Summary</div>
+    <div class="card-body">{{ assessment.summary|linebreaksbr }}</div>
+</div>
+
+{% if assessment.factors %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Factors</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+            <tbody>
+                {% for f in assessment.factors %}
+                <tr>
+                    <td style="width:1%; white-space:nowrap;">
+                        {% if f.impact == 'positive' %}<span class="badge bg-success">+</span>
+                        {% elif f.impact == 'negative' %}<span class="badge bg-danger">−</span>
+                        {% else %}<span class="badge bg-secondary">·</span>{% endif %}
+                    </td>
+                    <td class="fw-semibold" style="width:25%">{{ f.factor }}</td>
+                    <td>{{ f.detail }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Trading History</div>
+    <div class="card-body">
+        {% with th=assessment.trading_history %}
+        {% if th.company_context %}
+        <div class="alert alert-secondary small mb-3">
+            <strong>Company-wide context (not specific to this customer):</strong>
+            Total Sales {{ th.company_context.grand_total_sales|inr }} vs Total Purchases {{ th.company_context.grand_total_purchase|inr }} —
+            {% if th.company_context.holding_stock %}the company is currently holding more purchased stock value than it has sold.{% else %}the company has sold more than it has purchased.{% endif %}
+        </div>
+        {% endif %}
+
+        {% if not th.sales and not th.purchase %}
+        <div class="alert alert-warning">
+            <strong>No trading history found</strong> for this customer in the uploaded file ({{ assessment.trading_history_source_filename }}).
+            This assessment is based on the salesperson's notes only.
+        </div>
+        {% else %}
+        <div class="row g-3">
+            <div class="col-md-6">
+                <h6>Sales <span class="text-muted small">(this company selling to the customer)</span></h6>
+                {% if th.sales %}
+                <div class="small text-muted mb-1">
+                    Matched: <strong>{{ th.sales.matched_name }}</strong>
+                    ({{ th.sales.match_type }}{% if th.sales.match_score %}, {{ th.sales.match_score }}{% endif %})
+                    {% if th.sales.alternatives %}<br>Other close names: {{ th.sales.alternatives|join:", " }}{% endif %}
+                </div>
+                <table class="table table-sm">
+                    <thead><tr><th>Year</th><th>Count</th><th>Value</th></tr></thead>
+                    <tbody>
+                        {% for y in th.sales.years %}
+                        <tr><td>{{ y.year }}</td><td>{{ y.count|default:"—" }}</td><td>{{ y.taxable_value|inr }}</td></tr>
+                        {% endfor %}
+                        <tr class="fw-semibold"><td>Total</td><td>{{ th.sales.total_count|default:"—" }}</td><td>{{ th.sales.total_taxable_value|inr }}</td></tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small">No match found in Sales sheet.</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h6>Purchase <span class="text-muted small">(this company buying from the customer)</span></h6>
+                {% if th.purchase %}
+                <div class="small text-muted mb-1">
+                    Matched: <strong>{{ th.purchase.matched_name }}</strong>
+                    ({{ th.purchase.match_type }}{% if th.purchase.match_score %}, {{ th.purchase.match_score }}{% endif %})
+                    {% if th.purchase.alternatives %}<br>Other close names: {{ th.purchase.alternatives|join:", " }}{% endif %}
+                    {% if th.purchase.rank %}<br>Vendor rank: #{{ th.purchase.rank }}{% if th.purchase.in_top_20 %} (top 20){% endif %}{% endif %}
+                </div>
+                {% if th.purchase.streak_flags %}
+                {% for flag in th.purchase.streak_flags %}
+                <div class="alert alert-{% if flag.type == 'trailing_falloff' %}danger{% else %}warning{% endif %} py-2 small">
+                    {{ flag.detail }}
+                </div>
+                {% endfor %}
+                {% endif %}
+                <table class="table table-sm">
+                    <thead><tr><th>Year</th><th>Count</th><th>Value</th></tr></thead>
+                    <tbody>
+                        {% for y in th.purchase.years %}
+                        <tr><td>{{ y.year }}</td><td>{{ y.count|default:"—" }}</td><td>{{ y.taxable_value|inr }}</td></tr>
+                        {% endfor %}
+                        <tr class="fw-semibold"><td>Total</td><td>{{ th.purchase.total_count|default:"—" }}</td><td>{{ th.purchase.total_taxable_value|inr }}</td></tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small">No match found in Purchase sheet.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Salesperson Notes</div>
+    <div class="card-body">{{ assessment.notes|linebreaksbr|default:"—" }}</div>
+</div>
+{% endblock %}

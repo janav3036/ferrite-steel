@@ -202,6 +202,12 @@ class Customer(models.Model):
         verbose_name='Relationship Manager',
     )
     handling_team = models.CharField(max_length=20, choices=TEAM_CHOICES, blank=True)
+    credit_status = models.CharField(max_length=10, blank=True, choices=[
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ])
+    last_assessed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

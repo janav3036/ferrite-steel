@@ -37,6 +37,7 @@ LEAD_EXTRA = lambda: [
     _perm('training', 'add_case'),
     _perm('training', 'change_case'),
     _perm('training', 'delete_case'),
+    _perm('credit_risk', 'can_request_credit_assessment')
 ]
 
 # Quiz set and question management — admin only

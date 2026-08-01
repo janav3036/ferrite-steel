@@ -17,6 +17,11 @@
                 onclick="openShareModal('customer', '{{ customer.pk }}', '{{ customer.name|default:customer.company }}')">
                 <i class="bi bi-share"></i> Share
             </button>
+            {% if request.user.role == 'lead' or request.user.role == 'admin' %}
+            <a href="{% url 'assessment_create' %}?customer={{ customer.pk }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-shield-check"></i> Run Credit Check
+            </a>
+            {% endif %}
             <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
             <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">← Customers</a>
         </div>
@@ -100,6 +105,14 @@
                         <dd>{{ customer.transport_extra|inr }}</dd>
                         <dt class="text-muted small">Loading Rate</dt>
                         <dd>{{ customer.loading_rate|inr }}/T</dd>
+                        <dt class="text-muted small">Credit Status</dt>
+                        <dd>
+                            {% if customer.credit_status == 'low' %}<span class="badge bg-success">Low Risk</span>
+                            {% elif customer.credit_status == 'medium' %}<span class="badge bg-warning text-dark">Medium Risk</span>
+                            {% elif customer.credit_status == 'high' %}<span class="badge bg-danger">High Risk</span>
+                            {% else %}<span class="text-muted">Not assessed</span>{% endif %}
+                            {% if customer.last_assessed_at %}<div class="text-muted small">as of {{ customer.last_assessed_at|date:"d M Y" }}</div>{% endif %}
+                        </dd>
                         <dt class="text-muted small">Last Updated</dt>
                         <dd class="text-muted small">{{ customer.updated_at|date:"d M Y, H:i" }}</dd>
                     </dl>
@@ -170,6 +183,42 @@
     </div>
     {% else %}
     <p class="text-muted">No leads found for this customer.</p>
+    {% endif %}
+
+    <h5 class="mt-4 mb-3">Credit Assessment History</h5>
+    {% if credit_assessments %}
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Score</th>
+                    <th>Risk Level</th>
+                    <th>Recommendation</th>
+                    <th>Requested By</th>
+                    <th>Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in credit_assessments %}
+                <tr>
+                    <td>{{ a.score }}/10</td>
+                    <td>
+                        {% if a.risk_level == 'low' %}<span class="badge bg-success">Low</span>
+                        {% elif a.risk_level == 'medium' %}<span class="badge bg-warning text-dark">Medium</span>
+                        {% else %}<span class="badge bg-danger">High</span>{% endif %}
+                    </td>
+                    <td>{{ a.get_recommendation_display }}</td>
+                    <td class="text-muted small">{{ a.requested_by|default:"—" }}</td>
+                    <td class="text-muted small">{{ a.created_at|date:"d M Y" }}</td>
+                    <td><a href="{% url 'assessment_detail' a.pk %}" class="btn btn-outline-secondary btn-sm">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No credit assessments yet.</p>
     {% endif %}
 </div>
 {% include 'chat/_share_modal.html' %}

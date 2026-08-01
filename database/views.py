@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from quotations.models import Lead
+from credit_risk.models import CreditAssessment
 from .forms import BrokerForm, CustomerForm, ProductForm
 from .models import Broker, Customer, Product
 
@@ -160,10 +161,12 @@ def customer_detail(request, pk):
     ).order_by('-created_at') if customer.company else Lead.objects.filter(
         customer_name__iexact=customer.name,
     ).order_by('-created_at')
+    credit_assessments = CreditAssessment.objects.filter(customer=customer).select_related('requested_by').order_by('-created_at')
     return render(request, 'database/customer_detail.html', {
         'customer': customer,
         'leads': leads,
         'team_choices': Customer.TEAM_CHOICES,
+        'credit_assessments': credit_assessments,
     })
 
 

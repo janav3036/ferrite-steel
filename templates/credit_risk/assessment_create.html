@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}New Credit Assessment — Ferrite Steel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h4 class="mb-4">Run Credit Check</h4>
+
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-semibold">Customer</div>
+                <div class="card-body">
+                    {% if preset_customer %}
+                    <div class="fw-semibold">{{ preset_customer.name }}</div>
+                    {% if preset_customer.company %}<div class="text-muted small">{{ preset_customer.company }}</div>{% endif %}
+                    {{ form.customer }}
+                    {% else %}
+                    <div class="position-relative">
+                        <input type="text" id="customer-search" class="form-control"
+                               placeholder="Search by name or company…" autocomplete="off">
+                        <div id="customer-results" class="list-group position-absolute w-100 shadow"
+                             style="display:none;z-index:1050;top:calc(100% + 2px);left:0"></div>
+                    </div>
+                    {{ form.customer }}
+                    {% for error in form.customer.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-semibold">Tally Export</div>
+                <div class="card-body">
+                    <label for="{{ form.trading_file.id_for_label }}" class="form-label fw-semibold">{{ form.trading_file.label }}</label>
+                    {{ form.trading_file }}
+                    {% for error in form.trading_file.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    <div class="text-muted small mt-1">Upload the company's Sales/Purchase summary export from Tally.</div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-body">
+                    {{ form.notes }}
+                    {% for error in form.notes.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    <div class="text-muted small mt-1">{{ form.notes.help_text }}</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Run Credit Check</button>
+                <a href="{% url 'assessment_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not preset_customer %}
+<script>
+const searchUrl = '{% url "customer_search_json" %}';
+const searchInput = document.getElementById('customer-search');
+const resultsBox  = document.getElementById('customer-results');
+const customerSelect = document.getElementById('{{ form.customer.id_for_label }}');
+customerSelect.classList.add('d-none');
+let debounceTimer;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+    debounceTimer = setTimeout(() => doSearch(q), 280);
+});
+
+async function doSearch(q) {
+    try {
+        const resp = await fetch(`${searchUrl}?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        renderResults(data.results);
+    } catch { /* silent */ }
+}
+
+function renderResults(results) {
+    resultsBox.innerHTML = '';
+    results.forEach(c => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action py-2';
+        btn.innerHTML = `<span class="fw-semibold">${c.name}</span>` +
+            (c.company ? ` <span class="text-muted">— ${c.company}</span>` : '');
+        btn.addEventListener('click', () => selectCustomer(c));
+        resultsBox.appendChild(btn);
+    });
+    if (!results.length) {
+        const noResult = document.createElement('div');
+        noResult.className = 'list-group-item text-muted small py-2';
+        noResult.textContent = 'No customers found.';
+        resultsBox.appendChild(noResult);
+    }
+    resultsBox.style.display = '';
+}
+
+function selectCustomer(c) {
+    customerSelect.value = c.id;
+    searchInput.value = c.name + (c.company ? ' — ' + c.company : '');
+    resultsBox.style.display = 'none';
+}
+
+document.addEventListener('click', function (e) {
+    if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+        resultsBox.style.display = 'none';
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
