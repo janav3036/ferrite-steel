@@ -13,73 +13,75 @@ from .forms import BrokerForm, CustomerForm, ProductForm
 from .models import Broker, Customer, Product
 
 
-def _build_product_groups(products):
-    groups = {}
-    for p in products.select_related('base_product').order_by('sub_type', 'size', 'make', 'length', 'grade', 'site'):
-        key = f"{p.sub_type}||{p.size}"
-        if key not in groups:
-            groups[key] = {
-                'type_display': p.get_sub_type_display() or p.get_category_display(),
-                'size': p.size,
-                'makes': {},
-            }
-        g = groups[key]
-        mk = p.make or '—'
-        if mk not in g['makes']:
-            g['makes'][mk] = {'display': p.get_make_display() or '—', 'lengths': {}}
-        lk = p.length or ''
-        if lk not in g['makes'][mk]['lengths']:
-            g['makes'][mk]['lengths'][lk] = {'grades': {}}
-        gk = p.grade or ''
-        if gk not in g['makes'][mk]['lengths'][lk]['grades']:
-            g['makes'][mk]['lengths'][lk]['grades'][gk] = {'sites': {}}
-        sk = p.site or ''
-        g['makes'][mk]['lengths'][lk]['grades'][gk]['sites'][sk] = {
-            'id': p.pk,
-            'rate': str(p.effective_rate),
-            'qty': str(p.quantity),
-            'hsn': p.hsn_code,
-            'godown': p.godown or '',
-            'site_display': p.get_site_display() if p.site else '',
-            'pieces': p.pieces,
-        }
-    return groups
-
-
 @login_required
 def product_list(request):
     q = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+    unit = request.GET.get('unit', '').strip()
+    status = request.GET.get('status', 'active').strip()
 
-    products = Product.objects.filter(is_active=True)
+    products = Product.objects.select_related('base_product').order_by('category', 'item_no')
+
+    if status == 'active':
+        products = products.filter(is_active=True)
+    elif status == 'inactive':
+        products = products.filter(is_active=False)
+    # status == 'all' → no filter
 
     if q:
         products = products.filter(
-            Q(size__icontains=q) |
-            Q(hsn_code__icontains=q) |
-            Q(grade__icontains=q) |
-            Q(godown__icontains=q)
+            Q(item_no__icontains=q) |
+            Q(product_name__icontains=q) |
+            Q(hsn_code__icontains=q)
         )
 
-    all_groups = _build_product_groups(products)
-    group_items = list(all_groups.items())
-    total_groups = len(group_items)
+    if category:
+        if category == 'none':
+            products = products.filter(category='')
+        else:
+            products = products.filter(category=category)
 
-    paginator = Paginator(group_items, 50)
+    if unit:
+        products = products.filter(unit=unit)
+
+    total_count = products.count()
+
+    paginator = Paginator(products, 50)
     page_obj = paginator.get_page(request.GET.get('page'))
-    groups_page = dict(page_obj.object_list)
+
+    querystring = request.GET.copy()
+    querystring.pop('page', None)
 
     return render(request, 'database/product_list.html', {
-        'groups_json': json.dumps(groups_page),
-        'group_count': total_groups,
         'page_obj': page_obj,
+        'total_count': total_count,
         'q': q,
+        'category': category,
+        'unit': unit,
+        'status': status,
+        'category_choices': Product.CATEGORY_CHOICES,
+        'unit_choices': Product.UNIT_CHOICES,
+        'querystring': querystring.urlencode(),
     })
 
 
 @login_required
 def product_catalog_json(request):
-    groups = _build_product_groups(Product.objects.filter(is_active=True))
-    return JsonResponse(groups)
+    products = Product.objects.filter(is_active=True).select_related('base_product')
+    data = [
+        {
+            'id': p.pk,
+            'item_no': p.item_no,
+            'product_name': p.product_name,
+            'hsn_code': p.hsn_code,
+            'category': p.get_category_display(),
+            'unit': p.get_unit_display(),
+            'quantity': str(p.quantity),
+            'rate': str(p.effective_rate),
+        }
+        for p in products
+    ]
+    return JsonResponse({'products': data})
 
 
 @login_required
@@ -290,7 +292,7 @@ def product_edit(request, pk):
         form = ProductForm(request.POST, instance=product)
         if form.is_valid():
             form.save()
-            messages.success(request, f'"{product.size}" updated.')
+            messages.success(request, f'"{product.product_name}" updated.')
             return redirect('product_list')
     else:
         form = ProductForm(instance=product)
@@ -303,17 +305,17 @@ def product_delete(request, pk):
         return redirect('product_list')
     product = get_object_or_404(Product, pk=pk)
     product.delete()
-    messages.success(request, f'"{product.size}" deleted.')
+    messages.success(request, f'"{product.product_name}" deleted.')
     return redirect('product_list')
 
 
 @login_required
 def product_hsn_lookup(request):
-    """Return the HSN code for the first product matching the query (size or sub_type)."""
+    """Return the HSN code for the first product matching the query (item_no/product_name)."""
     q = request.GET.get('q', '').strip()
     if not q:
         return JsonResponse({'hsn_code': ''})
     product = Product.objects.filter(is_active=True).filter(
-        Q(size__icontains=q) | Q(sub_type__icontains=q)
+        Q(item_no__icontains=q) | Q(product_name__icontains=q)
     ).exclude(hsn_code='').first()
     return JsonResponse({'hsn_code': product.hsn_code if product else ''})

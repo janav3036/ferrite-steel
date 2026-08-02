@@ -79,13 +79,16 @@
         <div class="card-body p-0">
             {{ formset.management_form }}
             <div class="table-responsive">
-                <table class="table table-bordered table-sm mb-0 li-table" style="min-width:1254px;">
+                <table class="table table-bordered table-sm mb-0 li-table" style="min-width:1600px;">
                     <thead class="table-dark">
                         <tr>
                             <th class="col-num" style="width:44px">#</th>
                             <th class="col-product" style="width:280px">Product</th>
                             <th style="width:110px">Make</th>
                             <th style="width:110px">Length</th>
+                            <th style="width:100px">Grade</th>
+                            <th style="width:90px">Site</th>
+                            <th style="width:110px">Godown</th>
                             <th style="width:200px">Qty / UOM</th>
                             <th style="width:90px">PCS</th>
                             <th style="width:140px">Sell Rate</th>
@@ -105,6 +108,9 @@
                             </td>
                             <td>{{ item_form.make }}</td>
                             <td>{{ item_form.length }}</td>
+                            <td>{{ item_form.grade }}</td>
+                            <td>{{ item_form.site }}</td>
+                            <td>{{ item_form.godown }}</td>
                             <td>
                                 <div class="input-group input-group-sm">
                                     {{ item_form.quantity }}{{ item_form.uom }}
@@ -127,7 +133,7 @@
                             </td>
                         </tr>
                         <tr class="addon-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}" style="display:none">
-                            <td colspan="9" class="p-2 subrow-td">
+                            <td colspan="12" class="p-2 subrow-td">
                                 <div class="row g-2">
                                     <div class="col"><label class="form-label small mb-1">Purch. Rate</label><input
                                             type="number" data-addon="purchase_rate"
@@ -165,7 +171,7 @@
                             </td>
                         </tr>
                         <tr class="discount-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}" style="display:none">
-                            <td colspan="9" class="p-2 subrow-td">
+                            <td colspan="12" class="p-2 subrow-td">
                                 <div class="row g-2">
                                     <div class="col-sm-3 col-md-2">
                                         <label class="form-label small mb-1">Discount %</label>
@@ -175,7 +181,7 @@
                             </td>
                         </tr>
                         <tr class="notes-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
-                            <td colspan="9">
+                            <td colspan="12">
                                 <div class="d-flex align-items-center gap-2">
                                     <button type="button" class="btn btn-sm btn-outline-danger remove-row"
                                         title="Remove item">×</button>
@@ -254,6 +260,9 @@
             </td>
             <td>{{ formset.empty_form.make }}</td>
             <td>{{ formset.empty_form.length }}</td>
+            <td>{{ formset.empty_form.grade }}</td>
+            <td>{{ formset.empty_form.site }}</td>
+            <td>{{ formset.empty_form.godown }}</td>
             <td>
                 <div class="input-group input-group-sm">
                     {{ formset.empty_form.quantity }}{{ formset.empty_form.uom }}
@@ -274,7 +283,7 @@
             </td>
         </tr>
         <tr class="addon-row" style="display:none">
-            <td colspan="9" class="p-2 subrow-td">
+            <td colspan="12" class="p-2 subrow-td">
                 <div class="row g-2">
                     <div class="col"><label class="form-label small mb-1">Purch. Rate</label><input type="number"
                             data-addon="purchase_rate"
@@ -305,7 +314,7 @@
             </td>
         </tr>
         <tr class="discount-row" style="display:none">
-            <td colspan="9" class="p-2 subrow-td">
+            <td colspan="12" class="p-2 subrow-td">
                 <div class="row g-2">
                     <div class="col-sm-3 col-md-2">
                         <label class="form-label small mb-1">Discount %</label>
@@ -315,7 +324,7 @@
             </td>
         </tr>
         <tr class="notes-row">
-            <td colspan="9">
+            <td colspan="12">
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-outline-danger remove-row"
                         title="Remove item">×</button>
@@ -341,21 +350,18 @@
             </div>
             <div class="modal-body">
                 <input type="text" id="picker-search" class="form-control form-control-sm mb-3"
-                    placeholder="Search by size or sub-type…">
+                    placeholder="Search by item no, product name, or HSN code…">
                 <div id="picker-loading" class="text-center text-muted py-4">Loading catalog…</div>
                 <div class="table-responsive" id="picker-table-wrap" style="display:none">
                     <table class="table table-sm table-bordered align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width:24px"></th>
-                                <th style="width:140px">Sub-type</th>
-                                <th>Size</th>
-                                <th style="width:100px">Make</th>
-                                <th style="width:120px">Length</th>
-                                <th style="width:90px">Grade</th>
-                                <th style="width:90px">Site</th>
-                                <th style="width:110px" class="text-end">Rate (₹/T)</th>
-                                <th style="width:80px" class="text-end">Qty (T)</th>
+                                <th style="width:120px">Item No.</th>
+                                <th>Product Name</th>
+                                <th style="width:110px">HSN</th>
+                                <th style="width:90px">Category</th>
+                                <th style="width:110px" class="text-end">Rate</th>
+                                <th style="width:80px" class="text-end">Qty</th>
                                 <th style="width:70px"></th>
                             </tr>
                         </thead>
@@ -616,210 +622,67 @@
         const q = query.trim().toLowerCase();
 
         if (q.length < PICKER_MIN_QUERY_LEN) {
-            pickerBody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-4">Type at least ${PICKER_MIN_QUERY_LEN} characters to search (e.g. size or sub-type)…</td></tr>`;
+            pickerBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Type at least ${PICKER_MIN_QUERY_LEN} characters to search (item no, product name, or HSN)…</td></tr>`;
             return;
         }
 
-        const matches = Object.entries(catalogData).filter(([, g]) =>
-            g.type_display.toLowerCase().includes(q) || g.size.toLowerCase().includes(q));
+        const matches = catalogData.products.filter(p =>
+            p.item_no.toLowerCase().includes(q) ||
+            p.product_name.toLowerCase().includes(q) ||
+            p.hsn_code.toLowerCase().includes(q));
 
-        matches.slice(0, PICKER_MAX_RESULTS).forEach(([key, g]) => {
-            // Header row — always visible, clickable to expand
-            const headerTr = document.createElement('tr');
-            headerTr.className = 'picker-group-header';
-            headerTr.style.cursor = 'pointer';
-            headerTr.dataset.key = key;
-            headerTr.innerHTML = `
-            <td class="text-center text-muted small"><span class="expand-icon">▶</span></td>
-            <td class="fw-semibold">${g.type_display}</td>
-            <td>${g.size}</td>
-            <td colspan="7" class="text-muted small fst-italic">click to select variant</td>
-        `;
-            pickerBody.appendChild(headerTr);
-
-            // Detail row — hidden until header clicked
-            const detailTr = document.createElement('tr');
-            detailTr.className = 'picker-group-detail table-light';
-            detailTr.dataset.key = key;
-            detailTr.style.display = 'none';
-            detailTr.innerHTML = `
-            <td class="picker-hsn-cell text-muted small text-center">—</td>
-            <td></td>
-            <td></td>
-            <td><select class="make-select form-select form-select-sm"></select></td>
-            <td><select class="length-select form-select form-select-sm"></select></td>
-            <td class="grade-cell">
-                <select class="grade-select form-select form-select-sm" style="display:none"></select>
-                <span class="grade-text text-muted small">—</span>
-            </td>
-            <td class="site-cell">
-                <select class="site-select form-select form-select-sm" style="display:none"></select>
-                <span class="site-text text-muted small">—</span>
-            </td>
-            <td class="rate-cell text-end fw-semibold">—</td>
-            <td class="qty-cell text-end text-muted small">—</td>
+        matches.slice(0, PICKER_MAX_RESULTS).forEach(p => {
+            const tr = document.createElement('tr');
+            tr.dataset.productId = p.id;
+            tr.dataset.itemNo = p.item_no;
+            tr.dataset.productName = p.product_name;
+            tr.dataset.hsnCode = p.hsn_code;
+            tr.dataset.rate = p.rate;
+            tr.innerHTML = `
+            <td>${p.item_no || '—'}</td>
+            <td class="fw-semibold">${p.product_name}</td>
+            <td class="text-muted small">${p.hsn_code || '—'}</td>
+            <td>${p.category || '—'}</td>
+            <td class="text-end fw-semibold">${p.rate ? `₹${parseFloat(p.rate).toLocaleString('en-IN')}` : '—'}</td>
+            <td class="text-end text-muted small">${p.quantity || '—'}</td>
             <td><button type="button" class="btn btn-sm btn-primary picker-add-btn">Add</button></td>
         `;
-            pickerBody.appendChild(detailTr);
-            initPickerRow(detailTr, g);
-
-            headerTr.addEventListener('click', function () {
-                const isOpen = detailTr.style.display !== 'none';
-                // Collapse all
-                pickerBody.querySelectorAll('.picker-group-detail').forEach(r => r.style.display = 'none');
-                pickerBody.querySelectorAll('.expand-icon').forEach(i => i.textContent = '▶');
-                pickerBody.querySelectorAll('.picker-group-header').forEach(r => r.classList.remove('table-primary'));
-                if (!isOpen) {
-                    detailTr.style.display = '';
-                    headerTr.querySelector('.expand-icon').textContent = '▼';
-                    headerTr.classList.add('table-primary');
-                }
-            });
+            pickerBody.appendChild(tr);
         });
 
         if (matches.length === 0) {
-            pickerBody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No products match.</td></tr>';
+            pickerBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products match.</td></tr>';
         } else if (matches.length > PICKER_MAX_RESULTS) {
             pickerBody.insertAdjacentHTML('beforeend',
-                `<tr><td colspan="10" class="text-center text-muted small py-2">Showing first ${PICKER_MAX_RESULTS} of ${matches.length} matches — narrow your search to see more.</td></tr>`);
+                `<tr><td colspan="7" class="text-center text-muted small py-2">Showing first ${PICKER_MAX_RESULTS} of ${matches.length} matches — narrow your search to see more.</td></tr>`);
         }
-    }
-
-    function initPickerRow(detailTr, g) {
-        const makeSelect = detailTr.querySelector('.make-select');
-        Object.entries(g.makes).forEach(([mk, mdata]) => {
-            const opt = document.createElement('option');
-            opt.value = mk; opt.textContent = mdata.display;
-            makeSelect.appendChild(opt);
-        });
-        makeSelect.addEventListener('change', () => pickerRefreshLength(detailTr, g));
-        detailTr.querySelector('.length-select').addEventListener('change', () => pickerRefreshGrade(detailTr, g));
-        detailTr.querySelector('.grade-select').addEventListener('change', () => pickerRefreshSite(detailTr, g));
-        detailTr.querySelector('.site-select').addEventListener('change', () => pickerRefreshVariant(detailTr, g));
-        pickerRefreshLength(detailTr, g);
-    }
-
-    function pickerRefreshLength(tr, g) {
-        const mk = tr.querySelector('.make-select').value;
-        const lengthSelect = tr.querySelector('.length-select');
-        lengthSelect.innerHTML = '';
-        Object.keys(g.makes[mk]?.lengths || {}).forEach(lk => {
-            const opt = document.createElement('option');
-            opt.value = lk; opt.textContent = lk || '—';
-            lengthSelect.appendChild(opt);
-        });
-        pickerRefreshGrade(tr, g);
-    }
-
-    function pickerRefreshGrade(tr, g) {
-        const mk = tr.querySelector('.make-select').value;
-        const lk = tr.querySelector('.length-select').value;
-        const grades = g.makes[mk]?.lengths[lk]?.grades || {};
-        const gradeKeys = Object.keys(grades);
-        const gradeSelect = tr.querySelector('.grade-select');
-        const gradeText = tr.querySelector('.grade-text');
-        gradeSelect.innerHTML = '';
-        if (gradeKeys.length > 1) {
-            gradeKeys.forEach(gk => {
-                const opt = document.createElement('option');
-                opt.value = gk; opt.textContent = gk || '—';
-                gradeSelect.appendChild(opt);
-            });
-            gradeSelect.style.display = ''; gradeText.style.display = 'none';
-        } else {
-            gradeSelect.style.display = 'none'; gradeText.style.display = '';
-            gradeText.textContent = gradeKeys[0] || '—';
-            if (gradeKeys.length === 1) {
-                const opt = document.createElement('option');
-                opt.value = gradeKeys[0]; gradeSelect.appendChild(opt);
-            }
-        }
-        pickerRefreshSite(tr, g);
-    }
-
-    function pickerRefreshSite(tr, g) {
-        const mk = tr.querySelector('.make-select').value;
-        const lk = tr.querySelector('.length-select').value;
-        const gk = tr.querySelector('.grade-select').value;
-        const sites = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites || {};
-        const siteKeys = Object.keys(sites);
-        const siteSelect = tr.querySelector('.site-select');
-        const siteText = tr.querySelector('.site-text');
-        siteSelect.innerHTML = '';
-        if (siteKeys.length > 1) {
-            siteKeys.forEach(sk => {
-                const opt = document.createElement('option');
-                opt.value = sk; opt.textContent = sites[sk].site_display || sk || '—';
-                siteSelect.appendChild(opt);
-            });
-            siteSelect.style.display = ''; siteText.style.display = 'none';
-        } else {
-            siteSelect.style.display = 'none'; siteText.style.display = '';
-            siteText.textContent = siteKeys.length === 1 ? (sites[siteKeys[0]].site_display || siteKeys[0]) : '—';
-            if (siteKeys.length === 1) {
-                const opt = document.createElement('option');
-                opt.value = siteKeys[0]; siteSelect.appendChild(opt);
-            }
-        }
-        pickerRefreshVariant(tr, g);
-    }
-
-    function pickerRefreshVariant(tr, g) {
-        const mk = tr.querySelector('.make-select').value;
-        const lk = tr.querySelector('.length-select').value;
-        const gk = tr.querySelector('.grade-select').value;
-        const sk = tr.querySelector('.site-select').value;
-        const v = g.makes[mk]?.lengths[lk]?.grades[gk]?.sites[sk];
-        if (!v) return;
-        tr.querySelector('.picker-hsn-cell').textContent = v.hsn || '—';
-        tr.querySelector('.rate-cell').textContent = v.rate ? `₹${parseFloat(v.rate).toLocaleString('en-IN')}` : '—';
-        tr.querySelector('.qty-cell').textContent = v.qty || '—';
-        tr.dataset.variantId = v.id;
-        tr.dataset.variantRate = v.rate;
-        tr.dataset.variantHsn = v.hsn;
-        tr.dataset.variantPieces = (v.pieces != null) ? String(v.pieces) : '';
     }
 
     // Add button in picker fills the target line item row
     pickerBody.addEventListener('click', function (e) {
         if (!e.target.matches('.picker-add-btn')) return;
-        const detailRow = e.target.closest('tr.picker-group-detail');
-        if (!pickerTargetRow || !detailRow) return;
+        const row = e.target.closest('tr');
+        if (!pickerTargetRow || !row) return;
 
-        const makeSelect = detailRow.querySelector('.make-select');
-        const lengthSelect = detailRow.querySelector('.length-select');
-        const gradeSelect = detailRow.querySelector('.grade-select');
-        const gradeText = detailRow.querySelector('.grade-text');
-        const mk = makeSelect.options[makeSelect.selectedIndex]?.text || '';
-        const lk = lengthSelect.value;
-        const g = catalogData[detailRow.dataset.key];
-
-        const productName = `${g.type_display} ${g.size}`;
-        const hsnCode = detailRow.dataset.variantHsn || '';
-        const rate = detailRow.dataset.variantRate || '';
-        const pieces = detailRow.dataset.variantPieces;
+        const productName = row.dataset.productName || '';
+        const hsnCode = row.dataset.hsnCode || '';
+        const rate = row.dataset.rate || '';
 
         const { addonRow, notesRow } = getRowGroup(pickerTargetRow);
 
         const nameField = pickerTargetRow.querySelector('[name$="-product_name"]');
-        const makeField = pickerTargetRow.querySelector('[name$="-make"]');
-        const lenField = pickerTargetRow.querySelector('[name$="-length"]');
         const hsnField = notesRow ? notesRow.querySelector('[name$="-hsn_code"]') : null;
-        const pcsField = pickerTargetRow.querySelector('[name$="-pcs"]');
         const productField = notesRow ? notesRow.querySelector('[name$="-product"]') : null;
         const purchaseRateField = addonRow ? addonRow.querySelector('.purchase-rate-field') : null;
 
         if (nameField) nameField.value = productName;
-        if (makeField) makeField.value = mk;
-        if (lenField) lenField.value = lk;
         if (hsnField) hsnField.value = hsnCode;
-        if (productField) productField.value = detailRow.dataset.variantId || '';
-        if (pcsField) pcsField.value = pieces !== '' ? pieces : '';
+        if (productField) productField.value = row.dataset.productId || '';
 
         if (purchaseRateField) {
             purchaseRateField.value = rate;
             purchaseRateField.dataset.originalRate = rate;
-            purchaseRateField.dataset.productId = detailRow.dataset.variantId || '';
+            purchaseRateField.dataset.productId = row.dataset.productId || '';
             purchaseRateField.dataset.productName = productName;
             addonRow.style.display = 'table-row';
             recalcRow(pickerTargetRow);

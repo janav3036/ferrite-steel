@@ -139,7 +139,7 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
     system_prompt = (
         "You are a quotation assistant for an iron and steel distribution company in India. "
         "Given a customer enquiry, use the lookup_pricing tool to find rates for the requested products. "
-        "When calling lookup_pricing, use short search terms — search by size (e.g. '12mm') or product type (e.g. 'TMT') separately, not the full description. "
+        "When calling lookup_pricing, use short search terms — search by item number, product name, or HSN code, not the full description. "
         "IMPORTANT: Ignore any prices or rates mentioned in the enquiry text — always use lookup_pricing to get the correct rate from the catalog. "
         "IMPORTANT: The enquiry may come from an email reply chain. Focus only on the new request at the top — ignore any previously quoted or repeated content below it. "
         + (f"\n{keyword_context}\n" if keyword_context else "")

@@ -56,13 +56,16 @@ class LineItemForm(forms.ModelForm):
 
     class Meta:
         model = QuotationLineItem
-        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
+        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'grade', 'site', 'godown', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
         widgets = {
             'product': forms.HiddenInput(),
             'hsn_code': forms.HiddenInput(),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'make': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
-            'length': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'readonly': True}),
+            'make': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'length': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'grade': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'site': forms.Select(attrs={'class': 'form-select form-select-sm'}),
+            'godown': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'e.g. Plot 557'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm qty-field', 'step': '0.001', 'style': 'width:75px'}),
             'uom': forms.Select(attrs={'class': 'form-select form-select-sm uom-field', 'style': 'width:58px;flex:0 0 auto'}),
             'pcs': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),

@@ -11,7 +11,7 @@ TOOL_DEFINITION = {
     'function': {
         'name': 'lookup_pricing',
         'description': (
-            'Look up rate and stock for a steel product by size, sub-type, or HSN code. '
+            'Look up rate and stock for a steel product by item number, product name, or HSN code. '
             'Returns data from the product catalog. Always returns found: true/false.'
         ),
         'parameters': {
@@ -19,7 +19,7 @@ TOOL_DEFINITION = {
             'properties': {
                 'query': {
                     'type': 'string',
-                    'description': 'Size, sub-type, or HSN code to search for (e.g. "12mm", "Angle", "72141000")',
+                    'description': 'Item number, product name, or HSN code to search for (e.g. "ISAM00012", "Angle 100X100X10", "72141000")',
                 },
             },
             'required': ['query'],
@@ -36,19 +36,15 @@ def lookup_pricing(query: str) -> dict:
     results = Product.objects.filter(
         is_active=True,
     ).filter(
-        Q(size__icontains=query) | Q(hsn_code__icontains=query) | Q(sub_type__icontains=query)
+        Q(item_no__icontains=query) | Q(product_name__icontains=query) | Q(hsn_code__icontains=query)
     ).select_related('base_product').distinct()
 
     data = [
         {
+            'item_no': p.item_no,
+            'product_name': p.product_name,
             'hsn_code': p.hsn_code,
-            'make': p.get_make_display() or p.get_category_display(),
-            'sub_type': p.get_sub_type_display(),
-            'size': p.size,
-            'length': p.length or None,
-            'pieces': p.pieces,
-            'grade': p.grade,
-            'godown': p.godown,
+            'unit': p.get_unit_display(),
             'quantity': str(p.quantity),
             'rate': str(p.effective_rate),
         }

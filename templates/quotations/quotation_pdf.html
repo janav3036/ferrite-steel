@@ -165,7 +165,7 @@ we have received your enquiry and are pleased to offer you our best rates as per
       <td>{{ item.product_name }}{% if item.discount_pct %} <em style="font-size:8px;">({{ item.discount_pct|floatformat:2 }}% disc.)</em>{% endif %}</td>
       <td class="ctr">{{ item.length|default:"" }}</td>
       <td class="ctr">{{ item.make|default:"" }}</td>
-      <td class="ctr">{% if item.product %}{{ item.product.grade|default:"" }}{% endif %}</td>
+      <td class="ctr">{{ item.grade|default:"" }}</td>
       <td class="num">{{ item.pcs|default:"" }}</td>
       <td class="num">{{ item.quantity }} {{ item.uom }}</td>
       <td class="num">{{ item.unit_price|inr }}</td>

@@ -235,7 +235,7 @@ we have received your enquiry and are pleased to offer you our best rates as per
       <td><input class="e ro" name="item_{{ forloop.counter0 }}_name" value="{{ item.product_name }}" readonly tabindex="-1"></td>
       <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_length" value="{{ item.length }}" readonly tabindex="-1"></td>
       <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_make" value="{{ item.make }}" readonly tabindex="-1"></td>
-      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_grade" value="{% if item.product %}{{ item.product.grade }}{% endif %}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_grade" value="{{ item.grade }}" readonly tabindex="-1"></td>
       <td><input class="e ro num" name="item_{{ forloop.counter0 }}_pcs" value="{{ item.pcs|default:'' }}" readonly tabindex="-1"></td>
       <td style="white-space:nowrap;">
         <input class="e ro num item-qty" data-row="{{ forloop.counter0 }}"

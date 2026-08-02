@@ -72,21 +72,15 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'hsn_code', 'size', 'category', 'sub_type', 'make',
-            'length', 'grade', 'pieces', 'godown', 'site', 'quantity', 'rate',
-            'base_product', 'rate_offset', 'is_active',
+            'item_no', 'product_name', 'hsn_code', 'category', 'unit',
+            'quantity', 'rate', 'base_product', 'rate_offset', 'is_active',
         ]
         widgets = {
+            'item_no': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. ISAM00012'}),
+            'product_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Angle 100X100X10'}),
             'hsn_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 72141000'}),
-            'size': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12mm'}),
-            'category': forms.Select(attrs={'class': 'form-select', 'id': 'id_category'}),
-            'sub_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_type'}),
-            'make': forms.Select(attrs={'class': 'form-select'}),
-            'length': forms.Select(attrs={'class': 'form-select'}),
-            'grade': forms.Select(attrs={'class': 'form-select'}),
-            'pieces': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Leave blank if N/A'}),
-            'godown': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Plot 557'}),
-            'site': forms.Select(attrs={'class': 'form-select'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'unit': forms.Select(attrs={'class': 'form-select'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
             'rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'base_product': forms.Select(attrs={'class': 'form-select'}),
@@ -94,10 +88,10 @@ class ProductForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
+            'item_no': 'Item No.',
+            'product_name': 'Product Name',
             'category': 'Category',
-            'make': 'Make (Manufacturer)',
-            'godown': 'Godown',
-            'rate': 'Rate (₹/T) — direct rate; ignored if Base Product is set',
+            'rate': 'Rate (₹/unit) — direct rate; ignored if Base Product is set',
             'base_product': 'Base Product',
-            'rate_offset': 'Rate Offset (₹/T)',
+            'rate_offset': 'Rate Offset (₹/unit)',
         }

@@ -4,9 +4,9 @@ from .models import Broker, Customer, Product
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('hsn_code', 'category', 'make', 'sub_type', 'size', 'length', 'grade', 'godown', 'site', 'quantity', 'rate', 'base_product', 'rate_offset', 'effective_rate_display', 'is_active')
-    list_filter = ('category', 'make', 'sub_type', 'site', 'is_active')
-    search_fields = ('hsn_code', 'size', 'grade')
+    list_display = ('item_no', 'product_name', 'hsn_code', 'category', 'unit', 'quantity', 'rate', 'base_product', 'rate_offset', 'effective_rate_display', 'is_active')
+    list_filter = ('category', 'unit', 'is_active')
+    search_fields = ('item_no', 'product_name', 'hsn_code')
 
     @admin.display(description='Effective Rate')
     def effective_rate_display(self, obj):

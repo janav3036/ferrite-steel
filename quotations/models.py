@@ -159,6 +159,83 @@ class QuotationLineItem(models.Model):
         ('mtr', 'Mtr'),
         ('nos', 'Nos'),
     ]
+    MAKE_CHOICES = [
+        ('Jindal', 'Jindal'),
+        ('Sail', 'Sail'),
+        ('JSPL', 'JSPL'),
+        ('TATA', 'TATA'),
+        ('Posco', 'Posco'),
+        ('RINL', 'RINL'),
+        ('Rolling', 'Rolling'),
+        ('Apollo', 'Apollo'),
+        ('Khanna', 'Khanna'),
+        ('Essar / AMNS', 'Essar / AMNS'),
+        ('Essar', 'Essar'),
+        ('Goel', 'Goel'),
+        ('VSP / SAIL', 'VSP / SAIL'),
+        ('Sail / Jindal', 'Sail / Jindal'),
+        ('Others', 'Others'),
+    ]
+    LENGTH_CHOICES = [
+        ('6MTR', '6MTR'),
+        ('12MTR', '12MTR'),
+        ('5-6MTR', '5-6MTR'),
+        ('10-12MTR', '10-12MTR'),
+        ('7-12 MTR', '7-12 MTR'),
+        ('2.5MTR', '2.5MTR'),
+        ('8 feet', '8 feet'),
+        ('10 feet', '10 feet'),
+        ('12 feet', '12 feet'),
+        ('14 feet', '14 feet'),
+        ('16 feet', '16 feet'),
+        ('18 feet', '18 feet'),
+        ('20 feet', '20 feet'),
+        ('2500', '2500'),
+        ('3000', '3000'),
+        ('3150', '3150'),
+        ('5000', '5000'),
+        ('6000', '6000'),
+        ('6300', '6300'),
+        ('8000', '8000'),
+        ('10000', '10000'),
+        ('12000', '12000'),
+        ('CUTSIZE', 'CUTSIZE'),
+        ('Random', 'Random'),
+        ('Other', 'Other'),
+    ]
+    GRADE_CHOICES = [
+        ('E250', 'E250'),
+        ('E250BR', 'E250BR'),
+        ('E250B0', 'E250B0'),
+        ('E350BR', 'E350BR'),
+        ('E350C', 'E350C'),
+        ('516-GR 60', '516-GR 60'),
+        ('516-GR 70', '516-GR 70'),
+        ('C45', 'C45'),
+        ('513D', '513D'),
+        ('DD', 'DD'),
+        ('FE500', 'FE500'),
+        ('FE500D', 'FE500D'),
+        ('HCRM', 'HCRM'),
+        ('CRS', 'CRS'),
+        ('1018', '1018'),
+        ('EN8', 'EN8'),
+        ('EN9', 'EN9'),
+        ('AZ 70', 'AZ 70'),
+        ('AZ 150', 'AZ 150'),
+        ('AZ 150 C+', 'AZ 150 C+'),
+        ('PPGI', 'PPGI'),
+        ('PPGL', 'PPGL'),
+        ('SHS', 'SHS'),
+        ('IS4923', 'IS4923'),
+        ('IS1161', 'IS1161'),
+        ('SS 304', 'SS 304'),
+        ('SS316', 'SS316'),
+    ]
+    SITE_CHOICES = [
+        ('site_1', 'Site 1'),
+        ('site_2', 'Site 2'),
+    ]
 
     quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='line_items')
     product = models.ForeignKey(
@@ -168,8 +245,11 @@ class QuotationLineItem(models.Model):
     )
     hsn_code = models.CharField(max_length=20, blank=True)
     product_name = models.CharField(max_length=255)
-    make = models.CharField(max_length=100, blank=True)
-    length = models.CharField(max_length=50, blank=True)
+    make = models.CharField(max_length=100, choices=MAKE_CHOICES, blank=True)
+    length = models.CharField(max_length=50, choices=LENGTH_CHOICES, blank=True)
+    grade = models.CharField(max_length=50, choices=GRADE_CHOICES, blank=True)
+    site = models.CharField(max_length=10, choices=SITE_CHOICES, blank=True)
+    godown = models.CharField(max_length=100, blank=True)
     pcs = models.IntegerField(null=True, blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=3)
     uom = models.CharField(max_length=3, choices=UOM_CHOICES, default='ton')

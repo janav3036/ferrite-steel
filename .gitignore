@@ -34,3 +34,4 @@ Thumbs.db
 
 # Client data files used for one-time imports — never commit
 extra_data/
+/Item Data.xlsx

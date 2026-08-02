@@ -494,14 +494,13 @@ def _build_pdf_context_from_post(post, original):
         rate = _dec(f'item_{i}_rate')
         amount = qty * rate
         uom   = _s(f'item_{i}_uom', 'ton')
-        grade = _s(f'item_{i}_grade')
         pcs_raw = _s(f'item_{i}_pcs')
         item = SimpleNamespace(
             hsn_code=_s(f'item_{i}_hsn'),
             product_name=_s(f'item_{i}_name'),
             length=_s(f'item_{i}_length'),
             make=_s(f'item_{i}_make'),
-            product=SimpleNamespace(grade=grade) if grade else None,
+            grade=_s(f'item_{i}_grade'),
             pcs=int(pcs_raw) if pcs_raw.isdigit() else None,
             quantity=qty,
             uom=uom,
@@ -602,6 +601,9 @@ def quotation_revise(request, pk):
             product_name=item.product_name,
             make=item.make,
             length=item.length,
+            grade=item.grade,
+            site=item.site,
+            godown=item.godown,
             hsn_code=item.hsn_code,
             pcs=item.pcs,
             quantity=item.quantity,
