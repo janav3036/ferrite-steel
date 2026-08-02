@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('database', '0019_product_item_no_alter_product_grade_and_more'),
+        ('database', '0018_alter_product_sub_type'),
     ]
 
     operations = [
