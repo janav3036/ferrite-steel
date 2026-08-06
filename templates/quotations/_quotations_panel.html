@@ -1,0 +1,52 @@
+{% load fs_filters %}
+{% if page_obj %}
+<p class="text-muted small mb-2">{{ page_obj.paginator.count }} quotation{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Number</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Outcome</th>
+                <th class="hide-xs">Total (₹)</th>
+                <th class="hide-xs">Created By</th>
+                <th class="hide-xs">Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for qt in page_obj %}
+            <tr>
+                <td>{{ qt.quotation_number }}</td>
+                <td>{{ qt.lead.customer_name|default:"—" }}</td>
+                <td>
+                    <span class="badge
+                        {% if qt.status == 'draft' %}bg-secondary
+                        {% elif qt.status == 'approved' %}bg-success
+                        {% elif qt.status == 'sent' %}bg-primary
+                        {% else %}bg-danger{% endif %}">
+                        {{ qt.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge
+                        {% if qt.outcome == 'win' %}bg-success
+                        {% elif qt.outcome == 'loss' %}bg-danger
+                        {% else %}bg-light text-dark{% endif %}">
+                        {{ qt.get_outcome_display }}
+                    </span>
+                </td>
+                <td class="hide-xs">{{ qt.total_amount|inr }}</td>
+                <td class="hide-xs">{{ qt.created_by.username|default:"—" }}</td>
+                <td class="hide-xs">{{ qt.created_at|date:"d M Y" }}</td>
+                <td><a href="{% url 'quotation_detail' qt.pk %}" class="btn btn-sm btn-outline-primary">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% include 'partials/pagination.html' with panel_name="quotations" %}
+{% else %}
+<p class="text-muted">No quotations found.</p>
+{% endif %}

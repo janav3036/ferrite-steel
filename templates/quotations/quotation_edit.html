@@ -28,11 +28,11 @@
                     {{ form.valid_until }}
                 </div>
                 <div class="col-sm-4">
-                    <label class="form-label">Loading Extra (₹)</label>
+                    <label class="form-label">Loading Extra (₹/T)</label>
                     {{ form.loading_extra }}
                 </div>
                 <div class="col-sm-4">
-                    <label class="form-label">Transport Extra (₹)</label>
+                    <label class="form-label">Transport Extra (₹/T)</label>
                     {{ form.transport_extra }}
                 </div>
                 <div class="col-sm-6">
@@ -432,6 +432,39 @@
         });
     }
 
+    // Add-on values are persisted per line item in a hidden JSON field (id_..._addons)
+    // so they survive save/re-edit instead of resetting to 0.
+    function getAddonsHiddenInput(mainRow) {
+        const { notesRow } = getRowGroup(mainRow);
+        return notesRow ? notesRow.querySelector('.addons-field') : null;
+    }
+
+    function serializeAddons(mainRow) {
+        const { addonRow } = getRowGroup(mainRow);
+        const hidden = getAddonsHiddenInput(mainRow);
+        if (!addonRow || !hidden) return;
+        const data = {};
+        addonRow.querySelectorAll('.addon-field').forEach(input => {
+            const val = parseFloat(input.value);
+            if (!isNaN(val) && val !== 0) data[input.dataset.addon] = val;
+        });
+        hidden.value = JSON.stringify(data);
+    }
+
+    function loadAddonsFromHidden(mainRow) {
+        const { addonRow } = getRowGroup(mainRow);
+        const hidden = getAddonsHiddenInput(mainRow);
+        if (!addonRow || !hidden || !hidden.value) return false;
+        let data;
+        try { data = JSON.parse(hidden.value); } catch { return false; }
+        if (!data || typeof data !== 'object' || Object.keys(data).length === 0) return false;
+        addonRow.querySelectorAll('.addon-field').forEach(input => {
+            const key = input.dataset.addon;
+            if (data[key] !== undefined && data[key] !== null) input.value = data[key];
+        });
+        return true;
+    }
+
     function recalcRow(row) {
         const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
         const uom = row.querySelector('.uom-field')?.value || 'ton';
@@ -458,8 +491,12 @@
             totalTons += uom === 'kg' ? qty / 1000 : qty;
             itemValue += parseFloat(row.querySelector('.final-price-display')?.value) || parseFloat(row.querySelector('.amt-field').value) || 0;
         });
-        const loading = parseFloat(loadingInput ? loadingInput.value : 0) || 0;
-        const transport = parseFloat(transportInput ? transportInput.value : 0) || 0;
+        // loading_extra / transport_extra inputs hold a ₹-per-ton rate; multiply by
+        // total tonnage to get the actual amount added to the taxable value.
+        const loadingRate = parseFloat(loadingInput ? loadingInput.value : 0) || 0;
+        const transportRate = parseFloat(transportInput ? transportInput.value : 0) || 0;
+        const loading = loadingRate * totalTons;
+        const transport = transportRate * totalTons;
         const taxable = itemValue + loading + transport;
 
         document.getElementById('summary-tons').textContent = totalTons.toFixed(3);
@@ -480,7 +517,10 @@
         const anyRow = e.target.closest('tr');
         if (!anyRow) return;
         const mainRow = getMainRowFromAny(anyRow);
-        if (mainRow) recalcRow(mainRow);
+        if (mainRow) {
+            if (e.target.matches('.addon-field')) serializeAddons(mainRow);
+            recalcRow(mainRow);
+        }
         updateSummary();
     });
 
@@ -517,6 +557,7 @@
         const allMainRows = document.querySelectorAll('#formset-body .line-item-row');
         const newRow = allMainRows[allMainRows.length - 1];
         fillAddonDefaults(newRow);
+        serializeAddons(newRow);
         const { notesRow } = getRowGroup(newRow);
         const newNotes = notesRow ? notesRow.querySelector('[name$="-notes"]') : null;
         if (newNotes && customerNotes) newNotes.value = customerNotes;
@@ -546,7 +587,11 @@
 
     // Initialise all existing rows
     document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
-        fillAddonDefaults(row);
+        // Restore saved per-row add-on values first; only fall back to session
+        // defaults / customer.notes for rows that have nothing saved yet.
+        const restored = loadAddonsFromHidden(row);
+        if (!restored) fillAddonDefaults(row);
+
         const { discountRow, notesRow } = getRowGroup(row);
         const notesField = notesRow ? notesRow.querySelector('[name$="-notes"]') : null;
         if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
@@ -557,8 +602,10 @@
         if (fpDisplay && amt) fpDisplay.value = (amt * (1 - discPct / 100)).toFixed(2);
     });
 
-    // Seed purchase_rate from saved unit_price for LLM-generated rows
-    // (LLM fills unit_price directly; move it to purchase_rate so add-ons layer on top)
+    // Legacy rows saved before add-ons were persisted: unit_price already holds
+    // purchase rate + add-ons collapsed together with no breakdown. Seed
+    // purchase_rate from it (best effort) so the total isn't doubled, then
+    // persist that into the new addons field going forward.
     document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
         const { addonRow } = getRowGroup(row);
         const purchRate = addonRow ? addonRow.querySelector('.purchase-rate-field') : null;
@@ -567,10 +614,10 @@
             const saved = parseFloat(finalRate.value);
             if (saved && saved !== 0) {
                 purchRate.value = saved.toFixed(2);
-                fillAddonDefaults(row);
                 recalcRow(row);
             }
         }
+        serializeAddons(row);
     });
     updateRowNumbers();
     updateSummary();
@@ -685,6 +732,7 @@
             purchaseRateField.dataset.productId = row.dataset.productId || '';
             purchaseRateField.dataset.productName = productName;
             addonRow.style.display = 'table-row';
+            serializeAddons(pickerTargetRow);
             recalcRow(pickerTargetRow);
             updateSummary();
         }

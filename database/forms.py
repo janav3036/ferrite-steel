@@ -53,7 +53,7 @@ class CustomerForm(forms.ModelForm):
         }
         labels = {
             'notes': 'Notes (AI context)',
-            'transport_extra': 'Transport Extra (₹)',
+            'transport_extra': 'Transport Extra (₹/T)',
             'loading_rate': 'Loading Rate (₹/T)',
             'competitors': 'Competitors',
             'rm': 'Relationship Manager',

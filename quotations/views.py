@@ -187,6 +187,8 @@ def quotation_list(request):
         qs = qs.filter(outcome=outcome_f)
     params = request.GET.copy()
     params.pop('page', None)
+    params.pop('lead_page', None)
+    query_string = params.urlencode()
     paginator = Paginator(qs, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
     elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
@@ -196,19 +198,32 @@ def quotation_list(request):
         unquoted_leads = unquoted_leads.filter(Q(received_via__team=t) | Q(created_by__team=t))
     elif request.user.role == 'admin' and team_f:
         unquoted_leads = unquoted_leads.filter(Q(received_via__team=team_f) | Q(created_by__team=team_f))
-    return render(request, 'quotations/quotation_list.html', {
+    leads_paginator = Paginator(unquoted_leads, 25)
+    leads_page_obj = leads_paginator.get_page(request.GET.get('lead_page'))
+    leads_elided = [None if r == leads_paginator.ELLIPSIS else r for r in leads_paginator.get_elided_page_range(leads_page_obj.number, on_each_side=2, on_ends=1)]
+    context = {
         'page_obj': page_obj,
         'elided_page_range': elided,
-        'unquoted_leads': unquoted_leads,
+        'leads_page_obj': leads_page_obj,
+        'leads_elided_page_range': leads_elided,
         'q': q,
         'status_f': status_f,
         'outcome_f': outcome_f,
         'team_f': team_f,
         'team_choices': _CU.TEAM_CHOICES,
-        'query_string': params.urlencode(),
+        'query_string': query_string,
         'quotation_statuses': Quotation.STATUS_CHOICES,
         'quotation_outcomes': Quotation.OUTCOME_CHOICES,
-    })
+    }
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    panel = request.GET.get('panel')
+    if is_ajax and panel == 'quotations':
+        return render(request, 'quotations/_quotations_panel.html', context)
+    if is_ajax and panel == 'leads':
+        return render(request, 'quotations/_leads_panel.html', context)
+
+    return render(request, 'quotations/quotation_list.html', context)
 
 
 @login_required
@@ -351,6 +366,16 @@ def _logo_b64():
         return ''
 
 
+def _product_strip_b64():
+    from django.conf import settings
+    path = os.path.join(settings.BASE_DIR, 'static', 'images', 'product_strip.jpg')
+    try:
+        with open(path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('ascii')
+    except FileNotFoundError:
+        return ''
+
+
 def _quotation_context(quotation):
     items = list(quotation.line_items.all())
     total_tons = sum(
@@ -358,8 +383,10 @@ def _quotation_context(quotation):
         for i in items
     )
     item_value = sum(i.final_price for i in items)
-    loading_extra = quotation.loading_extra
-    transport_extra = quotation.transport_extra
+    # loading_extra / transport_extra are stored as a ₹-per-ton rate; multiply by
+    # total tonnage to get the actual amount added to the taxable value.
+    loading_extra = quotation.loading_extra * total_tons
+    transport_extra = quotation.transport_extra * total_tons
     taxable_value = item_value + loading_extra + transport_extra
     sgst = taxable_value * quotation.sgst_percent / 100
     cgst = taxable_value * quotation.cgst_percent / 100
@@ -409,6 +436,7 @@ def quotation_pdf(request, pk):
     )
     ctx = _quotation_context(quotation)
     ctx['logo_b64'] = _logo_b64()
+    ctx['product_strip_b64'] = _product_strip_b64()
     html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
     try:
         import weasyprint
@@ -468,8 +496,6 @@ def _build_pdf_context_from_post(post, original):
         delivery_address=_s('consignee_address') or _s('delivery'),
         payment_terms=_s('payment_terms'),
         created_by=created_by,
-        quotation_notes_clean=_s('remarks'),
-        quotation_notes_raw='',
         cgst_percent=_dec('cgst_pct'),
         sgst_percent=_dec('sgst_pct'),
     )
@@ -537,6 +563,7 @@ def _build_pdf_context_from_post(post, original):
         'total_tons': total_tons,
         'valid_until_str': valid_until_str,
         'logo_b64': _logo_b64(),
+        'product_strip_b64': _product_strip_b64(),
     }
 
 
@@ -568,6 +595,7 @@ def quotation_pdf_edit(request, pk):
     else:
         ctx = _quotation_context(quotation)
         ctx['logo_b64'] = _logo_b64()
+        ctx['product_strip_b64'] = _product_strip_b64()
         return render(request, 'quotations/quotation_pdf_edit.html', ctx)
 
 
@@ -730,6 +758,7 @@ def quotation_send(request, pk):
                         import weasyprint
                         ctx = _quotation_context(quotation)
                         ctx['logo_b64'] = _logo_b64()
+                        ctx['product_strip_b64'] = _product_strip_b64()
                         html = render_to_string('quotations/quotation_pdf.html', ctx, request=request)
                         pdf_bytes = weasyprint.HTML(
                             string=html, base_url=request.build_absolute_uri('/')

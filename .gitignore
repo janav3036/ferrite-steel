@@ -35,3 +35,6 @@ Thumbs.db
 # Client data files used for one-time imports — never commit
 extra_data/
 /Item Data.xlsx
+
+# Client documents dropped in repo root for reference — never commit
+/*.pdf

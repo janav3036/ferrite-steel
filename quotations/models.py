@@ -256,6 +256,7 @@ class QuotationLineItem(models.Model):
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=14, decimal_places=2)
     discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    addons = models.JSONField(default=dict, blank=True)
     notes = models.TextField(blank=True)
 
     class Meta:

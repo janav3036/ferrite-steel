@@ -68,14 +68,19 @@ html, body { margin: 0; padding: 0; background: #475569; font-family: Arial, san
 .num  { text-align: right; }
 .ctr  { text-align: center; }
 .grand-row td { background: #d9d9d9; font-weight: bold; font-size: 10px; }
-.remarks-box  { border: 1px solid #555; padding: 3px 5px; min-height: 24px; font-size: 9px; margin-top: 4px; }
+.remarks-box  { border: 1px solid #555; padding: 4px 6px; min-height: 24px; font-size: 9px; margin-top: 4px; }
+.remarks-box .remarks-heading { font-weight: bold; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; display: block; }
+.tnc-table { width: 100%; border-collapse: collapse; }
+.tnc-table td { border: none; padding: 1px 4px; font-size: 9px; line-height: 1.5; width: 50%; }
 .eoe-table td { border: 1px solid #555; padding: 3px 5px; vertical-align: top; }
 .bank-inner td { border: none; vertical-align: top; font-size: 8.5px; padding: 1px 4px; }
 .bank-inner td + td { border-left: 1px solid #ccc; }
 .terms { font-size: 8px; color: #333; margin-top: 5px; line-height: 1.5; }
 .terms ol { margin: 2px 0; padding-left: 20px; }
 .terms li { margin-bottom: 1px; }
-.footer-bar { margin-top: 8px; border-top: 1.5px solid #000; padding-top: 3px; text-align: center; font-size: 8px; color: #333; }
+.product-strip { margin-top: 6px; text-align: center; }
+.product-strip img { width: 100%; max-width: 100%; height: auto; }
+.footer-bar { margin-top: 6px; border-top: 1.5px solid #000; padding-top: 3px; text-align: center; font-size: 8px; color: #333; }
 .footer-bar .co { font-weight: bold; font-size: 9px; }
 
 /* ══════════════════════════════════════
@@ -296,10 +301,27 @@ we have received your enquiry and are pleased to offer you our best rates as per
 
 <p style="font-size:8px;font-style:italic;color:#555;margin:2px 0;">* Billing will be done on actual weight at time of dispatch.</p>
 
-<!-- REMARKS -->
+<!-- TERMS AND CONDITIONS -->
 <div class="remarks-box">
-  <strong>Remarks :</strong>&nbsp;
-  <textarea class="e" name="remarks" rows="2" style="width:100%;margin-top:2px;">{{ quotation.quotation_notes_clean|default:quotation.quotation_notes_raw }}</textarea>
+  <span class="remarks-heading">Terms and Conditions</span>
+  <table class="tnc-table">
+    <tr>
+      <td>• 18% GST Extra</td>
+      <td>• Loading Extra</td>
+    </tr>
+    <tr>
+      <td>• Transportation Extra</td>
+      <td>• 100% Payment Advance</td>
+    </tr>
+    <tr>
+      <td>• Unloading In Your Scope</td>
+      <td>• **Quotation is Valid for The Day</td>
+    </tr>
+    <tr>
+      <td>• **Weight tolerance +/- 0.75%</td>
+      <td></td>
+    </tr>
+  </table>
 </div>
 
 <!-- E.&.O.E + BANK -->
@@ -352,6 +374,12 @@ we have received your enquiry and are pleased to offer you our best rates as per
 
 <p style="font-size:9px;margin:8px 0 2px;">Yours Faithfully,</p>
 <p style="font-size:10px;font-weight:bold;margin:0;">Ferrite Structural Steels Pvt Ltd</p>
+
+{% if product_strip_b64 %}
+<div class="product-strip">
+  <img src="data:image/jpeg;base64,{{ product_strip_b64 }}" alt="Ferrite product range — M.S. Angles, T.M.T. Bars, M.S. Beams, M.S. Channels, M.S. Plates, M.S. Bars">
+</div>
+{% endif %}
 
 <div class="footer-bar">
   <div class="co">Ferrite Structural Steels Pvt. Ltd.</div>

@@ -56,10 +56,11 @@ class LineItemForm(forms.ModelForm):
 
     class Meta:
         model = QuotationLineItem
-        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'grade', 'site', 'godown', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'notes']
+        fields = ['product', 'hsn_code', 'product_name', 'make', 'length', 'grade', 'site', 'godown', 'quantity', 'uom', 'pcs', 'unit_price', 'total_price', 'discount_pct', 'addons', 'notes']
         widgets = {
             'product': forms.HiddenInput(),
             'hsn_code': forms.HiddenInput(),
+            'addons': forms.HiddenInput(attrs={'class': 'addons-field'}),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
             'make': forms.Select(attrs={'class': 'form-select form-select-sm'}),
             'length': forms.Select(attrs={'class': 'form-select form-select-sm'}),
