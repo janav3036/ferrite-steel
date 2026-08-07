@@ -1,96 +1,132 @@
 {% extends "base.html" %}
-{% block title %}Credit Risk — Ferrite Steel{% endblock %}
+{% block title %}The Ledger — Credit Risk — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "credit_risk/_sb_credit.html" %}
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3 page-hdr">
-    <h4 class="mb-0">Credit Risk</h4>
-    <a href="{% url 'assessment_create' %}" class="btn btn-primary btn-sm">+ New Assessment</a>
-</div>
+<div class="cr-shell">
 
-{% if messages %}
-{% for msg in messages %}
-<div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endfor %}
-{% endif %}
-
-{% if request.user.role == 'admin' %}
-<ul class="nav nav-pills mb-3">
-    <li class="nav-item"><a class="nav-link {% if scope == 'team' %}active{% endif %}" href="?scope=team">My Team</a></li>
-    <li class="nav-item"><a class="nav-link {% if scope == 'all' %}active{% endif %}" href="?scope=all">All Teams</a></li>
-</ul>
-{% endif %}
-
-<form method="get" class="row g-2 mb-3 align-items-end">
-    <input type="hidden" name="scope" value="{{ scope }}">
-    <div class="col-auto">
-        <select name="risk_level" class="form-select form-select-sm">
-            <option value="">All Risk Levels</option>
-            {% for val, label in risk_choices %}
-            <option value="{{ val }}" {% if risk_f == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
+    <div class="d-flex justify-content-between align-items-end mb-4 page-hdr">
+        <div>
+            <div class="cr-eyebrow mb-2">Credit Risk</div>
+            <h1 class="display mb-0" style="font-size:2rem;color:var(--text);">The Ledger</h1>
+        </div>
+        <a href="{% url 'assessment_create' %}" class="btn btn-primary">+ New Assessment</a>
     </div>
-    <div class="col-auto">
-        <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
-    </div>
-    <div class="col-auto">
-        <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
-    </div>
-</form>
 
-{% if page_obj %}
-<p class="text-muted small mb-2">{{ page_obj.paginator.count }} assessment{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
-<div class="table-responsive">
-    <table class="table table-sm table-bordered align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>Customer</th>
-                <th>Score</th>
-                <th>Risk Level</th>
-                <th>Recommendation</th>
-                <th>Requested By</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for a in page_obj %}
-            <tr onclick="window.location='{% url 'assessment_detail' a.pk %}'" style="cursor:pointer">
-                <td>{{ a.customer.name }}{% if a.customer.company %} <span class="text-muted small">— {{ a.customer.company }}</span>{% endif %}</td>
-                <td>{{ a.score }}/10</td>
-                <td>
-                    {% if a.risk_level == 'low' %}<span class="badge bg-success">Low</span>
-                    {% elif a.risk_level == 'medium' %}<span class="badge bg-warning text-dark">Medium</span>
-                    {% else %}<span class="badge bg-danger">High</span>{% endif %}
-                </td>
-                <td>{{ a.get_recommendation_display }}</td>
-                <td class="text-muted small">{{ a.requested_by|default:"—" }}</td>
-                <td class="text-muted small">{{ a.created_at|date:"d M Y" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-{% if page_obj.paginator.num_pages > 1 %}
-<nav>
-    <ul class="pagination pagination-sm">
-        {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&scope={{ scope }}&risk_level={{ risk_f }}&date_from={{ date_from }}&date_to={{ date_to }}">Previous</a></li>
-        {% endif %}
-        <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-        {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&scope={{ scope }}&risk_level={{ risk_f }}&date_from={{ date_from }}&date_to={{ date_to }}">Next</a></li>
-        {% endif %}
+    {% if request.user.role == 'admin' %}
+    <ul class="nav nav-pills mb-3">
+        <li class="nav-item"><a class="nav-link {% if scope == 'team' %}active{% endif %}" href="?scope=team">My Team</a></li>
+        <li class="nav-item"><a class="nav-link {% if scope == 'all' %}active{% endif %}" href="?scope=all">All Teams</a></li>
     </ul>
-</nav>
-{% endif %}
+    {% endif %}
 
-{% else %}
-<p class="text-muted">No assessments yet.</p>
-{% endif %}
+    <form method="get" class="row g-2 mb-3 align-items-end">
+        <input type="hidden" name="scope" value="{{ scope }}">
+        <div class="col-auto">
+            <select name="risk_level" class="form-select form-select-sm">
+                <option value="">All Risk Levels</option>
+                {% for val, label in risk_choices %}
+                <option value="{{ val }}" {% if risk_f == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto">
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Filter</button>
+        </div>
+    </form>
+
+    {% if page_obj %}
+    <p class="cr-mono small mb-2" style="color:var(--cr-ink-dim);letter-spacing:.03em;">
+        {{ page_obj.paginator.count }} ENTR{{ page_obj.paginator.count|pluralize:"Y,IES" }} — PAGE {{ page_obj.number }} OF {{ page_obj.paginator.num_pages }}
+    </p>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Customer</th>
+                    <th>Score</th>
+                    <th>Risk</th>
+                    <th>Confidence</th>
+                    <th>Recommendation</th>
+                    <th>Requested By</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody class="cr-stagger">
+                {% for a in page_obj %}
+                <tr {% if a.status == 'done' %}onclick="window.location='{% url 'assessment_detail' a.pk %}'" style="cursor:pointer"{% endif %}>
+                    <td>{{ a.customer.name }}{% if a.customer.company %} <span class="text-muted small">— {{ a.customer.company }}</span>{% endif %}</td>
+                    {% if a.status == 'processing' %}
+                    <td class="text-muted">—</td>
+                    <td class="text-muted">—</td>
+                    <td class="text-muted">—</td>
+                    <td class="text-muted">—</td>
+                    {% else %}
+                    <td class="cr-mono">{% if a.score %}{{ a.score }}<span style="color:var(--cr-ink-dim)">/10</span>{% else %}—{% endif %}</td>
+                    <td>
+                        {% if a.risk_level == 'low' %}<span class="cr-badge cr-badge-polished">Polished</span>
+                        {% elif a.risk_level == 'medium' %}<span class="cr-badge cr-badge-aged">Aged</span>
+                        {% elif a.risk_level == 'high' %}<span class="cr-badge cr-badge-tarnished">Tarnished</span>
+                        {% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if a.data_confidence == 'high' %}<span class="cr-badge cr-badge-polished">High</span>
+                        {% elif a.data_confidence == 'medium' %}<span class="cr-badge cr-badge-aged">Medium</span>
+                        {% elif a.data_confidence == 'low' %}<span class="cr-badge cr-badge-tarnished">Low</span>
+                        {% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                    <td>{{ a.get_recommendation_display|default:"—" }}</td>
+                    {% endif %}
+                    <td class="text-muted small">{{ a.requested_by|default:"—" }}</td>
+                    <td class="text-muted small cr-mono">{{ a.created_at|date:"d M Y" }}</td>
+                    <td>
+                        {% if a.status == 'processing' %}
+                        <span class="cr-badge cr-badge-neutral"><span class="spinner-border spinner-border-sm" style="width:.6rem;height:.6rem;border-width:1.5px;"></span> Assaying</span>
+                        {% elif a.status == 'failed' %}
+                        <span class="cr-badge cr-badge-tarnished">Failed</span>
+                        {% else %}
+                        <a href="{% url 'assessment_detail' a.pk %}" class="btn btn-outline-primary btn-sm">View</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if has_processing %}
+    <script>
+        setTimeout(function () { window.location.reload(); }, 5000);
+    </script>
+    {% endif %}
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav>
+        <ul class="pagination pagination-sm">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&scope={{ scope }}&risk_level={{ risk_f }}&date_from={{ date_from }}&date_to={{ date_to }}">Previous</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&scope={{ scope }}&risk_level={{ risk_f }}&date_from={{ date_from }}&date_to={{ date_to }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <p class="text-muted">The ledger is empty — no assessments yet.</p>
+    {% endif %}
+
+</div>
 {% endblock %}

@@ -1,25 +1,27 @@
 {% extends "base.html" %}
-{% block title %}New Credit Assessment — Ferrite Steel{% endblock %}
+{% block title %}New Entry — Credit Risk — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "credit_risk/_sb_credit.html" %}
+{% endblock %}
 
 {% block content %}
+<div class="cr-shell">
 <div class="row justify-content-center">
     <div class="col-lg-7">
-        <h4 class="mb-4">Run Credit Check</h4>
+        <div class="mb-4">
+            <div class="cr-eyebrow mb-2">Credit Risk — New Entry</div>
+            <h1 class="display mb-0" style="font-size:1.8rem;color:var(--text);">Run Credit Check</h1>
+        </div>
 
-        {% if messages %}
-        {% for msg in messages %}
-        <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
-        {% endfor %}
-        {% endif %}
-
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" class="cr-stagger">
             {% csrf_token %}
 
             <div class="card shadow-sm mb-3">
-                <div class="card-header fw-semibold">Customer</div>
+                <div class="card-header">Customer</div>
                 <div class="card-body">
                     {% if preset_customer %}
-                    <div class="fw-semibold">{{ preset_customer.name }}</div>
+                    <div class="fw-semibold" style="color:var(--text);">{{ preset_customer.name }}</div>
                     {% if preset_customer.company %}<div class="text-muted small">{{ preset_customer.company }}</div>{% endif %}
                     {{ form.customer }}
                     {% else %}
@@ -36,9 +38,9 @@
             </div>
 
             <div class="card shadow-sm mb-3">
-                <div class="card-header fw-semibold">Tally Export</div>
+                <div class="card-header">Tally Export</div>
                 <div class="card-body">
-                    <label for="{{ form.trading_file.id_for_label }}" class="form-label fw-semibold">{{ form.trading_file.label }}</label>
+                    <label for="{{ form.trading_file.id_for_label }}" class="form-label">{{ form.trading_file.label }}</label>
                     {{ form.trading_file }}
                     {% for error in form.trading_file.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
                     <div class="text-muted small mt-1">Upload the company's Sales/Purchase summary export from Tally.</div>
@@ -46,7 +48,7 @@
             </div>
 
             <div class="card shadow-sm mb-3">
-                <div class="card-header fw-semibold">Notes</div>
+                <div class="card-header">Notes</div>
                 <div class="card-body">
                     {{ form.notes }}
                     {% for error in form.notes.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
@@ -60,6 +62,7 @@
             </div>
         </form>
     </div>
+</div>
 </div>
 
 {% if not preset_customer %}
