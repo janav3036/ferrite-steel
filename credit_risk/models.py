@@ -15,6 +15,18 @@ class CreditAssessment(models.Model):
         ('refer', 'Refer for Review'),
     ]
 
+    CONFIDENCE_CHOICES = [
+        ('high', 'High'),
+        ('medium', 'Medium'),
+        ('low', 'Low'),
+    ]
+
+    STATUS_CHOICES = [
+        ('processing', 'Processing'),
+        ('done', 'Done'),
+        ('failed', 'Failed'),
+    ]
+
     customer = models.ForeignKey(
         'database.customer', on_delete=models.CASCADE, related_name='credit_assessments',
     )
@@ -30,12 +42,20 @@ class CreditAssessment(models.Model):
     )
     trading_history_source_filename = models.CharField(max_length=255, blank=True)
 
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='processing')
+    error_message = models.TextField(blank=True, help_text="Set when status=failed.")
+
     score = models.PositiveSmallIntegerField(
+        null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(10)],
     )
-    risk_level = models.CharField(max_length=10, choices=RISK_LEVEL_CHOICES)
-    recommendation = models.CharField(max_length=10, choices=RECOMMENDATION_CHOICES)
-    summary = models.TextField()
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVEL_CHOICES, blank=True)
+    data_confidence = models.CharField(
+        max_length=10, choices=CONFIDENCE_CHOICES, blank=True,
+        help_text="How much evidence backed this score (match quality + notes + quotation history).",
+    )
+    recommendation = models.CharField(max_length=10, choices=RECOMMENDATION_CHOICES, blank=True)
+    summary = models.TextField(blank=True)
     factors = models.JSONField(default=list, help_text="[{'factor', 'detail', 'impact'}]")
     llm_raw_response = models.TextField(blank=True)
 
@@ -50,4 +70,6 @@ class CreditAssessment(models.Model):
         ]
 
     def __str__(self):
+        if self.status != 'done':
+            return f'{self.customer} - {self.get_status_display()}'
         return f'{self.customer} - {self.get_risk_level_display()} ({self.score}/10)'

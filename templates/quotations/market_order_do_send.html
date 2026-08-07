@@ -96,12 +96,6 @@
         <a href="{% url 'market_order_detail' order.pk %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} py-2 px-3 mb-3" style="font-size:.84rem;">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
-
     <div class="card shadow-sm mb-4">
         <div class="card-header">Compose</div>
         <form method="post">

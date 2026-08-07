@@ -14,7 +14,7 @@ def _risk_level_for_score(score):
     return 'high'
 
 
-def assess_credit(customer, notes, trading_history):
+def assess_credit(customer, notes, trading_history, prior_assessment=None, quotation_signal=None):
     system_prompt = (
         "You are a credit-risk assistant for an iron and steel distribution company in India, "
         "helping a salesperson decide whether to extend trade credit to a customer.\n\n"
@@ -50,6 +50,17 @@ def assess_credit(customer, notes, trading_history):
         "the notes alone — do not imply a complete assessment when evidence is partial or "
         "absent, and lean toward a lower score / 'refer' recommendation when both trading "
         "history and notes offer limited signal.\n\n"
+        "IN-HOUSE QUOTATION HISTORY: if provided, this is the customer's own quotation record "
+        "from this company's CRM (total quotations, win/loss count, most recent date) — a "
+        "direct, steel-business-relevant signal, more specific than the Tally export. Treat it "
+        "as a meaningful factor when present. It is only included when the customer has enough "
+        "quotations on file for the numbers to be reliable, so if it's absent, do not assume "
+        "the customer has no relationship with the company — just don't mention it.\n\n"
+        "PRIOR ASSESSMENT: if provided, this is the most recent previous assessment for this "
+        "same customer. Use it as a checkpoint to comment on whether risk has changed since "
+        "then (improved/worsened/unchanged) in your summary — but do not anchor to the old "
+        "score. Re-derive your score fresh from the current evidence; the prior score is context, "
+        "not a starting point.\n\n"
         "Score the customer 1-10 (10 = excellent / lowest risk, 1 = very poor / highest risk).\n"
         "Score bands: 8-10 = low risk, 4-7 = medium risk, 1-3 = high risk.\n"
         "Recommendation must be one of: approve, decline, refer.\n"
@@ -85,6 +96,14 @@ def assess_credit(customer, notes, trading_history):
     else:
         parts.append(f"Sales-sheet match: {json.dumps(sales) if sales else 'No match found in Sales sheet.'}")
         parts.append(f"Purchase-sheet match: {json.dumps(purchase) if purchase else 'No match found in Purchase sheet.'}")
+    if quotation_signal:
+        parts.append(f"In-house quotation history: {json.dumps(quotation_signal)}")
+    if prior_assessment:
+        parts.append(
+            f"Prior assessment ({prior_assessment.created_at.date().isoformat()}): "
+            f"score {prior_assessment.score}/10 ({prior_assessment.risk_level}), "
+            f"recommendation: {prior_assessment.recommendation}.\nSummary: {prior_assessment.summary}"
+        )
     parts.append(f"Salesperson notes:\n{notes}")
     user_message = "\n\n".join(parts)
 
@@ -105,3 +124,28 @@ def assess_credit(customer, notes, trading_history):
         'factors': parsed.get('factors', []),
         'raw_response': raw,
     }
+
+
+def compute_data_confidence(trading_history, notes, quotation_signal):
+    """How much the inputs behind a given score are actually worth trusting —
+    computed the same way as risk_level: deterministically in Python, never
+    left to the LLM to self-report, so it can't inflate its own confidence."""
+    sales = trading_history.get('sales') if trading_history else None
+    purchase = trading_history.get('purchase') if trading_history else None
+    exact_match = any(m and m.get('match_type') == 'exact' for m in (sales, purchase))
+    any_match = bool(sales or purchase)
+    notes_substantial = len((notes or '').strip()) >= 40
+
+    points = 0
+    if any_match:
+        points += 2 if exact_match else 1
+    if notes_substantial:
+        points += 1
+    if quotation_signal:
+        points += 1
+
+    if points >= 3:
+        return 'high'
+    if points >= 1:
+        return 'medium'
+    return 'low'

@@ -7,14 +7,6 @@
     <a href="{% url 'customer_add' %}" class="btn btn-primary btn-sm">+ Add Customer</a>
 </div>
 
-{% if messages %}
-{% for msg in messages %}
-<div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endfor %}
-{% endif %}
-
 <!-- Scope tabs -->
 <ul class="nav nav-pills mb-3">
     <li class="nav-item">

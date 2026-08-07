@@ -8,15 +8,6 @@
         <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">+ Add Product</a>
     </div>
 
-    {% if messages %}
-    {% for msg in messages %}
-    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
-
     <form method="get" class="row g-2 mb-3 align-items-end">
         <div class="col-md-4">
             <label class="form-label small mb-1">Search</label>

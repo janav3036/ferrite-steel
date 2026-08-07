@@ -39,14 +39,6 @@
     <a href="{% url 'add_user' %}" class="btn btn-primary btn-sm">+ Add User</a>
 </div>
 
-{% if messages %}
-{% for message in messages %}
-<div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
-    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endfor %}
-{% endif %}
-
 <!-- Active Members -->
 <div class="card mb-4">
     <div class="section-bar">

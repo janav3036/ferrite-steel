@@ -50,6 +50,7 @@ class Notification(models.Model):
         ('market_confirmed',  'Order Confirmed'),
         ('market_do_pending', 'DO Requested'),
         ('market_completed',  'Order Completed'),
+        ('credit_high_risk',  'High Credit Risk'),
         ('general',           'General'),
     ]
 

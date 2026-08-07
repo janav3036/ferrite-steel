@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -6,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 
 from quotations.models import Lead
 from credit_risk.models import CreditAssessment
@@ -164,11 +166,15 @@ def customer_detail(request, pk):
         customer_name__iexact=customer.name,
     ).order_by('-created_at')
     credit_assessments = CreditAssessment.objects.filter(customer=customer).select_related('requested_by').order_by('-created_at')
+    credit_stale = bool(
+        customer.last_assessed_at and customer.last_assessed_at < timezone.now() - timedelta(days=90)
+    )
     return render(request, 'database/customer_detail.html', {
         'customer': customer,
         'leads': leads,
         'team_choices': Customer.TEAM_CHOICES,
         'credit_assessments': credit_assessments,
+        'credit_stale': credit_stale,
     })
 
 

@@ -111,6 +111,7 @@
     .icon-market_confirmed   { background: #DBEAFE; color: #1D4ED8; }
     .icon-market_do_pending  { background: #EDE9FE; color: #6D28D9; }
     .icon-market_completed   { background: #DCFCE7; color: #15803D; }
+    .icon-credit_high_risk   { background: #FEF2F2; color: #DC2626; }
     .icon-general            { background: #F1F5F9; color: #475569; }
 
     .np-title { font-size: .83rem; font-weight: 600; color: var(--text); line-height: 1.35; }
@@ -315,6 +316,7 @@
                         {% elif n.type == 'market_confirmed' %}<i class="bi bi-arrow-left-right"></i>
                         {% elif n.type == 'market_do_pending' %}<i class="bi bi-truck"></i>
                         {% elif n.type == 'market_completed' %}<i class="bi bi-check2-all"></i>
+                        {% elif n.type == 'credit_high_risk' %}<i class="bi bi-exclamation-triangle"></i>
                         {% else %}<i class="bi bi-bell"></i>{% endif %}
                     </div>
                     <div style="flex:1;min-width:0;">

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Void Entry — Credit Risk — Ferrite Steel{% endblock %}
+
+{% block extra_head %}
+{% include "credit_risk/_sb_credit.html" %}
+<style>
+    .cr-void-stamp {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+        color: var(--cr-tarnish-bright);
+        border: 1px solid var(--cr-tarnish);
+        border-radius: 4px;
+        padding: 3px 10px;
+        transform: rotate(-3deg);
+        margin-bottom: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cr-shell">
+<div class="page-hdr mb-3">
+    <div class="cr-eyebrow mb-2">Credit Risk</div>
+    <h1 class="display mb-0" style="font-size:1.8rem;color:var(--text);">Void This Entry</h1>
+</div>
+
+<div class="card shadow-sm mx-auto" style="max-width: 540px;">
+    <div class="card-body">
+        <span class="cr-void-stamp">Irreversible</span>
+        <p style="color:var(--text);">
+            Delete the credit assessment for
+            <strong>{{ assessment.customer.name }}</strong>
+            ({% if assessment.status == 'processing' %}<span class="cr-badge cr-badge-neutral">Assaying</span>
+            {% elif assessment.status == 'failed' %}<span class="cr-badge cr-badge-tarnished">Failed</span>
+            {% else %}<span class="cr-mono">{{ assessment.score }}/10</span>,
+            {% if assessment.risk_level == 'low' %}<span class="cr-badge cr-badge-polished">Polished</span>
+            {% elif assessment.risk_level == 'medium' %}<span class="cr-badge cr-badge-aged">Aged</span>
+            {% elif assessment.risk_level == 'high' %}<span class="cr-badge cr-badge-tarnished">Tarnished</span>
+            {% else %}<span class="text-muted">—</span>{% endif %}{% endif %}
+            , {{ assessment.created_at|date:"d M Y" }})?
+        </p>
+        <p class="text-muted small">
+            This is permanent and cannot be undone. If this is the customer's most recent
+            assessment, their credit status will revert to the next most recent one on file,
+            or to "Not assessed" if none remain.
+        </p>
+        <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">Delete Permanently</button>
+            <a href="{% url 'assessment_detail' assessment.pk %}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}

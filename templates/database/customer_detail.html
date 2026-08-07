@@ -27,15 +27,6 @@
         </div>
     </div>
 
-    {% if messages %}
-    {% for msg in messages %}
-    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-    {% endif %}
-
     <div class="row g-3">
         <!-- Contact -->
         <div class="col-md-4">
@@ -111,7 +102,12 @@
                             {% elif customer.credit_status == 'medium' %}<span class="badge bg-warning text-dark">Medium Risk</span>
                             {% elif customer.credit_status == 'high' %}<span class="badge bg-danger">High Risk</span>
                             {% else %}<span class="text-muted">Not assessed</span>{% endif %}
-                            {% if customer.last_assessed_at %}<div class="text-muted small">as of {{ customer.last_assessed_at|date:"d M Y" }}</div>{% endif %}
+                            {% if customer.last_assessed_at %}
+                            <div class="text-muted small">
+                                as of {{ customer.last_assessed_at|date:"d M Y" }}
+                                {% if credit_stale %}<span class="badge bg-warning text-dark ms-1">Re-run recommended</span>{% endif %}
+                            </div>
+                            {% endif %}
                         </dd>
                         <dt class="text-muted small">Last Updated</dt>
                         <dd class="text-muted small">{{ customer.updated_at|date:"d M Y, H:i" }}</dd>
@@ -196,21 +192,28 @@
                     <th>Recommendation</th>
                     <th>Requested By</th>
                     <th>Date</th>
+                    <th>Status</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for a in credit_assessments %}
                 <tr>
-                    <td>{{ a.score }}/10</td>
+                    <td>{% if a.score %}{{ a.score }}/10{% else %}—{% endif %}</td>
                     <td>
                         {% if a.risk_level == 'low' %}<span class="badge bg-success">Low</span>
                         {% elif a.risk_level == 'medium' %}<span class="badge bg-warning text-dark">Medium</span>
-                        {% else %}<span class="badge bg-danger">High</span>{% endif %}
+                        {% elif a.risk_level == 'high' %}<span class="badge bg-danger">High</span>
+                        {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
-                    <td>{{ a.get_recommendation_display }}</td>
+                    <td>{{ a.get_recommendation_display|default:"—" }}</td>
                     <td class="text-muted small">{{ a.requested_by|default:"—" }}</td>
                     <td class="text-muted small">{{ a.created_at|date:"d M Y" }}</td>
+                    <td>
+                        {% if a.status == 'processing' %}<span class="badge bg-secondary">In Progress</span>
+                        {% elif a.status == 'failed' %}<span class="badge bg-danger">Failed</span>
+                        {% else %}<span class="badge bg-success">Done</span>{% endif %}
+                    </td>
                     <td><a href="{% url 'assessment_detail' a.pk %}" class="btn btn-outline-secondary btn-sm">View</a></td>
                 </tr>
                 {% endfor %}
