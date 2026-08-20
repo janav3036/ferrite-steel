@@ -1,6 +1,6 @@
 import json
 
-from ferite_steel.ai import together_client
+from ferite_steel.ai import chat_completion
 
 TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
@@ -107,7 +107,7 @@ def assess_credit(customer, notes, trading_history, prior_assessment=None, quota
     parts.append(f"Salesperson notes:\n{notes}")
     user_message = "\n\n".join(parts)
 
-    response = together_client.chat.completions.create(
+    response = chat_completion(
         model=TOGETHER_MODEL,
         messages=[{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_message}],
         max_tokens=900,

@@ -69,3 +69,21 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.user} — {self.title}"
+
+
+class LLMApiStatus(models.Model):
+    """
+    Singleton (pk=1) tracking together.ai API health, updated by every call
+    routed through ferite_steel.ai.chat_completion()/create_embeddings().
+    """
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    last_failure_at = models.DateTimeField(null=True, blank=True)
+    last_error_message = models.TextField(blank=True)
+    consecutive_failures = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'LLM API Status'
+        verbose_name_plural = 'LLM API Status'
+
+    def __str__(self):
+        return 'LLM API Status'

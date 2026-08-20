@@ -50,6 +50,12 @@ class QuotationEditForm(forms.ModelForm):
 
 
 class LineItemForm(forms.ModelForm):
+    make = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-sm', 'list': 'make-options', 'autocomplete': 'off'}))
+    length = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-sm', 'list': 'length-options', 'autocomplete': 'off'}))
+    grade = forms.CharField(required=False, widget=forms.TextInput(attrs={
+        'class': 'form-control form-control-sm', 'list': 'grade-options', 'autocomplete': 'off'}))
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['product'].required = False
@@ -62,9 +68,6 @@ class LineItemForm(forms.ModelForm):
             'hsn_code': forms.HiddenInput(),
             'addons': forms.HiddenInput(attrs={'class': 'addons-field'}),
             'product_name': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'make': forms.Select(attrs={'class': 'form-select form-select-sm'}),
-            'length': forms.Select(attrs={'class': 'form-select form-select-sm'}),
-            'grade': forms.Select(attrs={'class': 'form-select form-select-sm'}),
             'site': forms.Select(attrs={'class': 'form-select form-select-sm'}),
             'godown': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'e.g. Plot 557'}),
             'quantity': forms.NumberInput(attrs={'class': 'form-control form-control-sm qty-field', 'step': '0.001', 'style': 'width:75px'}),

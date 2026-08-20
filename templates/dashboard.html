@@ -277,6 +277,35 @@
 
     <!-- Right: notification panel -->
     <div class="col-lg-5">
+        {% if llm_status %}
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">AI Service Status</div>
+            <div class="card-body py-3">
+                {% if llm_status.consecutive_failures > 0 %}
+                <div class="d-flex align-items-start gap-2">
+                    <i class="bi bi-exclamation-triangle-fill text-danger mt-1"></i>
+                    <div>
+                        <div class="fw-semibold text-danger">AI calls are failing</div>
+                        <div class="small text-muted">
+                            {{ llm_status.consecutive_failures }} consecutive failure{{ llm_status.consecutive_failures|pluralize }}
+                            since {{ llm_status.last_failure_at|timesince }} ago
+                        </div>
+                        {% if llm_status.last_error_message %}
+                        <div class="small text-muted mt-1" style="word-break:break-word;">{{ llm_status.last_error_message|truncatechars:200 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% elif llm_status.last_success_at %}
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <div class="small text-muted">Healthy — last successful call {{ llm_status.last_success_at|timesince }} ago</div>
+                </div>
+                {% else %}
+                <div class="small text-muted">No AI calls recorded yet.</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         <div class="notif-panel">
             <div class="notif-panel-header">
                 <span class="notif-panel-title">

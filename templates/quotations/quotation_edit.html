@@ -13,6 +13,15 @@
 
 <form method="post">
     {% csrf_token %}
+    <datalist id="make-options">
+        {% for value, label in make_choices %}<option value="{{ value }}">{% endfor %}
+    </datalist>
+    <datalist id="length-options">
+        {% for value, label in length_choices %}<option value="{{ value }}">{% endfor %}
+    </datalist>
+    <datalist id="grade-options">
+        {% for value, label in grade_choices %}<option value="{{ value }}">{% endfor %}
+    </datalist>
 
     <!-- Quotation header -->
     <div class="card shadow-sm mb-4">

@@ -3,10 +3,13 @@ Wrapper for together.ai LLM calls with tool use / function calling.
 All views must call this service layer — never call together.ai directly.
 """
 import json
-from ferite_steel.ai import together_client
+from ferite_steel.ai import chat_completion
 from .tools.pricing import lookup_pricing, TOOL_DEFINITION as PRICING_TOOL
 
 TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+# Cheap model for trivial yes/no and one-word classification — avoid 70B token cost
+# for high-volume inbound email classification.
+TOGETHER_CLASSIFIER_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
 
 
 def _build_keyword_context() -> str:
@@ -23,8 +26,8 @@ def classify_message(text: str) -> bool:
     Returns True if text is a product inquiry for iron/steel goods, False otherwise.
     Call this before creating a Lead from any inbound message (email, WhatsApp).
     """
-    response = together_client.chat.completions.create(
-        model=TOGETHER_MODEL,
+    response = chat_completion(
+        model=TOGETHER_CLASSIFIER_MODEL,
         messages=[
             {
                 'role': 'system',
@@ -47,8 +50,8 @@ def classify_broker_response(text: str) -> str:
     Returns 'confirmation', 'counter', or 'other'.
     Call this when a broker replies to a rate we sent.
     """
-    response = together_client.chat.completions.create(
-        model=TOGETHER_MODEL,
+    response = chat_completion(
+        model=TOGETHER_CLASSIFIER_MODEL,
         messages=[
             {
                 'role': 'system',
@@ -80,7 +83,7 @@ def cleanup_lead_notes(raw_notes: str) -> str:
     Takes raw salesperson notes (voice transcript or rough text) and returns
     a clean, structured summary suitable for a Case record.
     """
-    response = together_client.chat.completions.create(
+    response = chat_completion(
         model=TOGETHER_MODEL,
         messages=[
             {
@@ -177,7 +180,7 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
         {"role": "user", "content": user_message}
     ]
 
-    response = together_client.chat.completions.create(
+    response = chat_completion(
         model = TOGETHER_MODEL,
         messages = messages,
         tools = [PRICING_TOOL],
@@ -205,7 +208,7 @@ def generate_quotation_draft(lead, entity_notes: str = '') -> dict:
                 'content': json.dumps(result),
             })
 
-        response = together_client.chat.completions.create(
+        response = chat_completion(
             model=TOGETHER_MODEL,
             messages=messages,
             tools=[PRICING_TOOL],

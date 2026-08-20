@@ -256,10 +256,14 @@ class Command(BaseCommand):
                 sender_name, sender_email = _parse_sender(msg.get('From', ''))
                 
                 raw_body = _parse_plain_body(msg).strip()
-                body = _strip_reply_chain(raw_body)
+                # body_text (no attachments) is what gets classified — attachment
+                # extraction can pull in thousands of tokens per PDF/DOCX/XLSX and
+                # a classifier call only needs subject + message text to decide
+                # yes/no. Full `body` (with attachments) is still stored on the
+                # Lead/notes so nothing is lost for later quotation drafting.
+                body_text = _strip_reply_chain(raw_body)
                 attachment_text = _extract_attachments_text(msg)
-                if attachment_text:
-                    body = f'{body}\n\n{attachment_text}'.strip()
+                body = f'{body_text}\n\n{attachment_text}'.strip() if attachment_text else body_text
 
                 # ── Pre-filter: skip automated senders ───────────────────────────
                 if SPAM_PATTERNS.search(sender_email):
@@ -277,7 +281,7 @@ class Command(BaseCommand):
                     ).order_by('-created_at').first()
 
                     if open_order:
-                        response_type = classify_broker_response(body)
+                        response_type = classify_broker_response(body_text)
                         stamp = timezone.now().strftime('%d %b %Y %H:%M')
                         block = (
                             f'\n\n--- Broker reply ({response_type}) on {stamp} ---\n'
@@ -411,9 +415,10 @@ class Command(BaseCommand):
                     continue
 
                 text = f"Subject: {subject}\n\n{body}"
+                classify_text = f"Subject: {subject}\n\n{body_text}"
 
                 # ── LLM classification ────────────────────────────────────────────
-                is_inquiry = classify_message(text)
+                is_inquiry = classify_message(classify_text)
 
                 if not is_inquiry:
                     self.stdout.write(f'  [NOT-INQUIRY]  From: {sender_email} | Subject: {subject[:60]}')

@@ -1,9 +1,9 @@
-from ferite_steel.ai import together_client
+from ferite_steel.ai import create_embeddings
 
 EMBEDDING_MODEL = 'intfloat/multilingual-e5-large-instruct'
 
 def embed_texts(texts):
-    response = together_client.embeddings.create(
+    response = create_embeddings(
         model=EMBEDDING_MODEL,
         input=texts,
     )

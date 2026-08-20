@@ -41,7 +41,13 @@ def dashboard(request):
 
     recent_notifs = request.user.notifications.all()[:12]
 
+    llm_status = None
+    if request.user.role == 'admin':
+        from .models import LLMApiStatus
+        llm_status, _ = LLMApiStatus.objects.get_or_create(pk=1)
+
     context = {
+        'llm_status': llm_status,
         'total_leads': leads.count(),
         'leads_new': leads.filter(status='new').count(),
         'leads_processing': leads.filter(status='processing').count(),

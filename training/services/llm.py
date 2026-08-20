@@ -1,5 +1,5 @@
 import json
-from ferite_steel.ai import together_client
+from ferite_steel.ai import chat_completion
 
 TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
@@ -18,7 +18,7 @@ def judge_quiz_answer(question_text, correct_answer, user_answer):
         f"Correct answer: {correct_answer}\n\n"
         f"User's answer: {user_answer}"
     )
-    response = together_client.chat.completions.create(
+    response = chat_completion(
         model=TOGETHER_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -65,7 +65,7 @@ def answer_question(question, chunks, cases, quiz_questions=None):
         "If the answer is not in the context, say so — do not guess. "
         "Be concise and practical."
     )
-    response = together_client.chat.completions.create(
+    response = chat_completion(
         model=TOGETHER_MODEL,
         messages=[
             {"role": "system", "content": f"{system}\n\nContext:\n{context}"},

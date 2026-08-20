@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'ferite_steel.middleware.LLMUnavailableMiddleware',
 ]
 
 ROOT_URLCONF = 'ferite_steel.urls'

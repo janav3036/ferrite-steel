@@ -281,6 +281,9 @@ def quotation_edit(request, pk):
         'formset': formset,
         'addon_defaults_json': addon_defaults_json,
         'customer_notes': customer.notes if customer else '',
+        'make_choices': QuotationLineItem.MAKE_CHOICES,
+        'length_choices': QuotationLineItem.LENGTH_CHOICES,
+        'grade_choices': QuotationLineItem.GRADE_CHOICES,
     })
 
 
