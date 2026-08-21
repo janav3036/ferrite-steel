@@ -1138,9 +1138,15 @@ def market_order_do_send(request, pk):
 @login_required
 @require_POST
 def poll_emails_now(request):
+    from aegis.models import LLMApiStatus
     try:
         call_command('poll_emails')
-        messages.success(request, 'Inbox polled successfully')
+        status = LLMApiStatus.objects.filter(pk=1).first()
+        if status and status.email_polling_paused:
+            messages.error(request, 'Inbox polled, but together.ai credits are still exhausted — '
+                                     'automatic polling stays paused until a poll succeeds.')
+        else:
+            messages.success(request, 'Inbox polled successfully — automatic polling is active.')
     except Exception as exc:
         messages.error(request, f"Poll failed: {exc}")
     return redirect(request.META.get('HTTP_REFERER', '/'))

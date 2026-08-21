@@ -11,10 +11,11 @@ class LLMUnavailableError(Exception):
     Caught centrally by ferite_steel.middleware.LLMUnavailableMiddleware, which turns
     it into a friendly redirect instead of a 500 page.
     """
-    def __init__(self, user_message, technical_detail=''):
+    def __init__(self, user_message, technical_detail='', status_code=None):
         super().__init__(user_message)
         self.user_message = user_message
         self.technical_detail = technical_detail
+        self.status_code = status_code
 
 
 def _record_llm_result(success: bool, error_message: str = ''):
@@ -24,6 +25,9 @@ def _record_llm_result(success: bool, error_message: str = ''):
     if success:
         status.last_success_at = timezone.now()
         status.consecutive_failures = 0
+        # Any successful call proves the account has credits again — resume
+        # scheduled email polling, which pauses itself on a 402 (see poll_emails).
+        status.email_polling_paused = False
     else:
         status.last_failure_at = timezone.now()
         status.last_error_message = error_message[:2000]
@@ -40,7 +44,7 @@ def _handle_together_error(exc: TogetherError):
         user_message = 'AI credits have run out — please inform your supervisor/admin so they can top up together.ai.'
     else:
         user_message = 'The AI service is temporarily unavailable. Please try again shortly, or contact your supervisor if this continues.'
-    raise LLMUnavailableError(user_message, technical_detail=message) from exc
+    raise LLMUnavailableError(user_message, technical_detail=message, status_code=status_code) from exc
 
 
 def chat_completion(**kwargs):

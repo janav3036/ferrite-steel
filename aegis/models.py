@@ -80,6 +80,7 @@ class LLMApiStatus(models.Model):
     last_failure_at = models.DateTimeField(null=True, blank=True)
     last_error_message = models.TextField(blank=True)
     consecutive_failures = models.IntegerField(default=0)
+    email_polling_paused = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'LLM API Status'

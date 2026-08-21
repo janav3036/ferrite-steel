@@ -19,8 +19,9 @@ from quotations.models import Lead, Quotation, TeamEmailConfig, MarketOrder
 from database.models import Broker
 from quotations.services.llm import classify_message, classify_broker_response
 from training.services.extractor import extract_text
-from aegis.models import CustomUser
+from aegis.models import CustomUser, LLMApiStatus
 from aegis.notifications import notify
+from ferite_steel.ai import LLMUnavailableError
 
 # Senders we never want to create leads from
 SPAM_PATTERNS = re.compile(
@@ -206,6 +207,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         scheduled = options['scheduled']
+
+        # Scheduled (cron-driven) runs respect the pause flag — a manual run
+        # (the "Poll Inbox" button, or a bare terminal invocation) always goes
+        # ahead regardless, so it can both catch up on the backlog and prove
+        # credits are back (which auto-clears the flag — see ferite_steel.ai).
+        if scheduled:
+            llm_status = LLMApiStatus.objects.filter(pk=1).first()
+            if llm_status and llm_status.email_polling_paused:
+                self.stdout.write(self.style.WARNING(
+                    'Email polling is paused (together.ai credits exhausted) — skipping. '
+                    'Use the "Poll Inbox" button once credits are restored to resume.'
+                ))
+                return
+
         configs = TeamEmailConfig.objects.filter(is_active=True)
 
         if not configs.exists():
@@ -222,6 +237,17 @@ class Command(BaseCommand):
             self.stdout.write(f'\n── {config} ──')
             try:
                 self._poll(config, dry_run)
+            except LLMUnavailableError as exc:
+                self.stderr.write(self.style.ERROR(f'  ERROR: {exc.user_message}'))
+                if exc.status_code == 402:
+                    status, _ = LLMApiStatus.objects.get_or_create(pk=1)
+                    status.email_polling_paused = True
+                    status.save(update_fields=['email_polling_paused'])
+                    self.stdout.write(self.style.WARNING(
+                        'together.ai credits exhausted — pausing email polling until credits are '
+                        'restored (remaining inboxes skipped this run; use "Poll Inbox" to resume).'
+                    ))
+                    break
             except Exception as exc:
                 self.stderr.write(self.style.ERROR(f'  ERROR: {exc}'))
 

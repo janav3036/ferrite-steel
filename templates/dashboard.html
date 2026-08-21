@@ -303,6 +303,15 @@
                 {% else %}
                 <div class="small text-muted">No AI calls recorded yet.</div>
                 {% endif %}
+                {% if llm_status.email_polling_paused %}
+                <div class="d-flex align-items-start gap-2 mt-2 pt-2 border-top">
+                    <i class="bi bi-pause-circle-fill text-warning mt-1"></i>
+                    <div class="small text-muted">
+                        Automatic email polling is <strong>paused</strong> (credits exhausted).
+                        Use "Poll Inbox" on the leads page once credits are topped up to resume it.
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
