@@ -29,6 +29,21 @@ SPAM_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+# Subject lines that are always automated noise, never a genuine inquiry —
+# skip these before spending an LLM call on them.
+SUBJECT_SPAM_PATTERNS = re.compile(
+    r'out.?of.?office|automatic reply|auto.?reply|autoreply|'
+    r'undeliverable|undelivered|delivery status notification|mail delivery (failed|failure)|'
+    r'returned mail|non.?delivery report|read.?receipt|'
+    r'away from (my |the )?(desk|office)',
+    re.IGNORECASE,
+)
+
+# Classification only needs enough of the message to judge intent — capping
+# input length keeps the classify_message/classify_broker_response calls
+# cheap regardless of how long the actual email body is.
+CLASSIFY_CHAR_LIMIT = 800
+
 _HEADER_LINE_RE = re.compile(r'^(?:from|to|cc|date|sent|subject)\s*:', re.IGNORECASE)
 _SEPARATOR_LINE_RE = re.compile(r'^[-_=]{3,}')
 
@@ -291,9 +306,13 @@ class Command(BaseCommand):
                 attachment_text = _extract_attachments_text(msg)
                 body = f'{body_text}\n\n{attachment_text}'.strip() if attachment_text else body_text
 
-                # ── Pre-filter: skip automated senders ───────────────────────────
-                if SPAM_PATTERNS.search(sender_email):
-                    self.stdout.write(f'  [SKIP-SPAM]    {sender_email}')
+                # ── Pre-filter: skip automated senders/subjects ────────────────────
+                # Catches these before spending an LLM call — sender check covers
+                # obvious automated addresses, subject check catches auto-replies/
+                # bounces/out-of-office notices that can come from a real person's
+                # address (so the sender check alone wouldn't skip them).
+                if SPAM_PATTERNS.search(sender_email) or SUBJECT_SPAM_PATTERNS.search(subject):
+                    self.stdout.write(f'  [SKIP-SPAM]    {sender_email} | Subject: {subject[:60]}')
                     if not dry_run:
                         imap.store(msg_id, '+FLAGS', '\\Seen')
                     continue
@@ -307,7 +326,7 @@ class Command(BaseCommand):
                     ).order_by('-created_at').first()
 
                     if open_order:
-                        response_type = classify_broker_response(body_text)
+                        response_type = classify_broker_response(body_text[:CLASSIFY_CHAR_LIMIT])
                         stamp = timezone.now().strftime('%d %b %Y %H:%M')
                         block = (
                             f'\n\n--- Broker reply ({response_type}) on {stamp} ---\n'
@@ -441,7 +460,7 @@ class Command(BaseCommand):
                     continue
 
                 text = f"Subject: {subject}\n\n{body}"
-                classify_text = f"Subject: {subject}\n\n{body_text}"
+                classify_text = f"Subject: {subject}\n\n{body_text[:CLASSIFY_CHAR_LIMIT]}"
 
                 # ── LLM classification ────────────────────────────────────────────
                 is_inquiry = classify_message(classify_text)
