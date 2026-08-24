@@ -3,6 +3,7 @@ import json
 import os
 import re
 from decimal import Decimal, InvalidOperation
+from itertools import zip_longest
 from types import SimpleNamespace
 from aegis.notifications import notify
 from aegis.models import CustomUser
@@ -100,7 +101,7 @@ def lead_detail(request, pk):
     keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
     customer = _find_customer(lead)
     addon_marker = '--- Pricing Add-ons ---'
-    raw_notes = customer.notes if customer else ''
+    raw_notes = customer.customer_history if customer else ''
     customer_notes_display = raw_notes.split(addon_marker)[0].strip() if raw_notes else ''
     return render(request, 'quotations/lead_detail.html', {'lead': lead, 'voice_keywords': keywords, 'customer_notes_display': customer_notes_display})
 
@@ -240,7 +241,7 @@ def quotation_edit(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
     lead = quotation.lead
     customer = _find_customer(lead)
-    addon_notes = _parse_addon_notes(customer.notes if customer else '')
+    addon_notes = _parse_addon_notes(customer.customer_history if customer else '')
 
     if request.method == 'POST':
         form = QuotationEditForm(request.POST, instance=quotation)
@@ -280,7 +281,7 @@ def quotation_edit(request, pk):
         'form': form,
         'formset': formset,
         'addon_defaults_json': addon_defaults_json,
-        'customer_notes': customer.notes if customer else '',
+        'customer_notes': customer.customer_history if customer else '',
         'make_choices': QuotationLineItem.MAKE_CHOICES,
         'length_choices': QuotationLineItem.LENGTH_CHOICES,
         'grade_choices': QuotationLineItem.GRADE_CHOICES,
@@ -317,6 +318,85 @@ def _parse_addon_notes(notes: str) -> dict:
         if m:
             result[key] = m.group(1).strip()
     return result
+
+
+_DEFAULT_TNC_LINES = [
+    '18% GST Extra',
+    'Loading Extra',
+    'Transportation Extra',
+    '100% Payment Advance',
+    'Unloading In Your Scope',
+    '**Quotation is Valid for The Day',
+    '**Weight tolerance +/- 0.75%',
+]
+_TNC_MARKER = '--- Terms & Conditions ---'
+_TNC_BLOCK_RE = re.compile(r'---\s*Terms\s*&\s*Conditions\s*---\n?(.*?)(?=\n---|\Z)', re.DOTALL | re.IGNORECASE)
+
+
+def _get_customer_tnc(customer):
+    """Return this customer's saved Terms & Conditions lines, or the standard default list."""
+    if customer and customer.customer_history:
+        match = _TNC_BLOCK_RE.search(customer.customer_history)
+        if match:
+            lines = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+            if lines:
+                return lines
+    return list(_DEFAULT_TNC_LINES)
+
+
+def _set_customer_tnc(customer, lines):
+    """Persist Terms & Conditions lines into customer.customer_history, replacing any prior block."""
+    text = '\n'.join(line.strip() for line in lines if line.strip())
+    history = _TNC_BLOCK_RE.sub('', customer.customer_history or '').rstrip()
+    if history:
+        history += '\n\n'
+    history += f'{_TNC_MARKER}\n{text}'
+    customer.customer_history = history
+    customer.save(update_fields=['customer_history'])
+
+
+def _tnc_rows(lines):
+    """Pair T&C lines into (left, right) tuples for the 2-column PDF layout."""
+    it = iter(lines)
+    return list(zip_longest(it, it, fillvalue=''))
+
+
+_DEFAULT_TERMS_LINES = [
+    'Delivery will be made within 15 days following receipt of payment.',
+    'Validity of the Quotation — 15 Days.',
+    'The Work Shall Commence ONLY After The Written Confirmation Via E-Mail.',
+    'Kindly Mention The Quotation Number in The Subject Line of All of Your E-Mail Communications Related to This Order.',
+    'Material would be dispatched ONLY after the receipt of the technically & commercially confirmed Purchase Order and/or on receipt of the mentioned Advance Amount.',
+    'Billing will be done on actual weight at time of dispatch. The quantities mentioned above are indicative estimates only.',
+    'Any Discrepancy in The Material Should Be Communicated Back To us Within a Period of 3 Days of its Delivery.',
+    'This is a Computer Generated Quotation And Does Not Require a Signature.',
+    'Rates are subject to market fluctuation. Please reconfirm before placing the order.',
+    'All disputes subject to Mumbai jurisdiction only.',
+]
+_TERMS_MARKER = '--- Standard Terms ---'
+_TERMS_BLOCK_RE = re.compile(r'---\s*Standard Terms\s*---\n?(.*?)(?=\n---|\Z)', re.DOTALL | re.IGNORECASE)
+
+
+def _get_customer_terms(customer):
+    """Return this customer's saved numbered-terms lines, or the standard default list."""
+    if customer and customer.customer_history:
+        match = _TERMS_BLOCK_RE.search(customer.customer_history)
+        if match:
+            lines = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+            if lines:
+                return lines
+    return list(_DEFAULT_TERMS_LINES)
+
+
+def _set_customer_terms(customer, lines):
+    """Persist the numbered-terms lines into customer.customer_history, replacing any prior block."""
+    text = '\n'.join(line.strip() for line in lines if line.strip())
+    history = _TERMS_BLOCK_RE.sub('', customer.customer_history or '').rstrip()
+    if history:
+        history += '\n\n'
+    history += f'{_TERMS_MARKER}\n{text}'
+    customer.customer_history = history
+    customer.save(update_fields=['customer_history'])
 
 
 def _apply_catalog_rate_updates(request):
@@ -396,7 +476,7 @@ def _quotation_context(quotation):
     grand_total = taxable_value + sgst + cgst
 
     customer = _find_customer(quotation.lead)
-    raw_notes = customer.notes if customer else ''
+    raw_notes = customer.customer_history if customer else ''
     # Strip the structured pricing add-ons section — that's system-only data
     addon_marker = '--- Pricing Add-ons ---'
     customer_notes_display = raw_notes.split(addon_marker)[0].strip() if raw_notes else ''
@@ -410,6 +490,9 @@ def _quotation_context(quotation):
 
     voice_keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
     valid_until_str = quotation.valid_until.strftime('%d-%b-%Y') if quotation.valid_until else 'Today Only'
+
+    tnc_lines = _get_customer_tnc(customer)
+    terms_lines = _get_customer_terms(customer)
 
     return {
         'quotation': quotation,
@@ -428,6 +511,11 @@ def _quotation_context(quotation):
         'customer_notes_display': customer_notes_display,
         'voice_keywords': voice_keywords,
         'valid_until_str': valid_until_str,
+        'tnc_lines': tnc_lines,
+        'tnc_text': '\n'.join(tnc_lines),
+        'tnc_rows': _tnc_rows(tnc_lines),
+        'terms_lines': terms_lines,
+        'terms_text': '\n'.join(terms_lines),
     }
 
 
@@ -515,6 +603,9 @@ def _build_pdf_context_from_post(post, original):
 
     valid_until_str = _s('valid_until', 'Today Only')
 
+    tnc_lines = [line.strip() for line in _s('tnc_text').splitlines() if line.strip()] or list(_DEFAULT_TNC_LINES)
+    terms_lines = [line.strip() for line in _s('terms_text').splitlines() if line.strip()] or list(_DEFAULT_TERMS_LINES)
+
     # Line items
     items = []
     i = 0
@@ -565,6 +656,9 @@ def _build_pdf_context_from_post(post, original):
         'grand_total': grand_total,
         'total_tons': total_tons,
         'valid_until_str': valid_until_str,
+        'tnc_lines': tnc_lines,
+        'tnc_rows': _tnc_rows(tnc_lines),
+        'terms_lines': terms_lines,
         'logo_b64': _logo_b64(),
         'product_strip_b64': _product_strip_b64(),
     }
@@ -583,6 +677,10 @@ def quotation_pdf_edit(request, pk):
             quotation.sales_order_no = son
             quotation.save(update_fields=['sales_order_no'])
         ctx = _build_pdf_context_from_post(request.POST, quotation)
+        customer = _find_customer(quotation.lead)
+        if customer:
+            _set_customer_tnc(customer, ctx['tnc_lines'])
+            _set_customer_terms(customer, ctx['terms_lines'])
         try:
             html = render_to_string('quotations/quotation_pdf.html', ctx)
             import weasyprint
@@ -861,7 +959,7 @@ def quotation_create(request, lead_pk):
         if lead.broker:
             entity_notes = lead.broker.notes
         else:
-            entity_notes = customer.notes if customer else ''
+            entity_notes = customer.customer_history if customer else ''
 
         # Attempt LLM pre-fill; fall back silently on any failure
         try:

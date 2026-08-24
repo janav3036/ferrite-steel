@@ -81,6 +81,11 @@ class LLMApiStatus(models.Model):
     last_error_message = models.TextField(blank=True)
     consecutive_failures = models.IntegerField(default=0)
     email_polling_paused = models.BooleanField(default=False)
+    # Stamped the moment email_polling_paused flips True -> False (any successful
+    # together.ai call, from anywhere in the app, proves credits are back). Emails
+    # dated before this timestamp are stale outage backlog and get skipped rather
+    # than turned into leads when polling resumes — see poll_emails.py.
+    email_polling_resumed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'LLM API Status'

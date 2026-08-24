@@ -8,8 +8,8 @@ from .tools.pricing import lookup_pricing, TOOL_DEFINITION as PRICING_TOOL
 
 TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 # Cheap model for trivial yes/no and one-word classification — avoid 70B token cost
-# for high-volume inbound email classification.
-TOGETHER_CLASSIFIER_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
+# for high-volume inbound email classification. $0.06/1M vs $0.18/1M for the 8B Turbo.
+TOGETHER_CLASSIFIER_MODEL = 'meta-llama/Llama-3.2-3B-Instruct'
 
 
 def _build_keyword_context() -> str:

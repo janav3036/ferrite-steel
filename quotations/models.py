@@ -245,9 +245,12 @@ class QuotationLineItem(models.Model):
     )
     hsn_code = models.CharField(max_length=20, blank=True)
     product_name = models.CharField(max_length=255)
-    make = models.CharField(max_length=100, choices=MAKE_CHOICES, blank=True)
-    length = models.CharField(max_length=50, choices=LENGTH_CHOICES, blank=True)
-    grade = models.CharField(max_length=50, choices=GRADE_CHOICES, blank=True)
+    # No `choices=` here: make/length/grade are free-text fields with a
+    # datalist of suggestions in the UI (see forms.py), so any custom value
+    # the user types must pass model validation, not just the listed ones.
+    make = models.CharField(max_length=100, blank=True)
+    length = models.CharField(max_length=50, blank=True)
+    grade = models.CharField(max_length=50, blank=True)
     site = models.CharField(max_length=10, choices=SITE_CHOICES, blank=True)
     godown = models.CharField(max_length=100, blank=True)
     pcs = models.IntegerField(null=True, blank=True)

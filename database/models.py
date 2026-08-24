@@ -94,7 +94,7 @@ class Customer(models.Model):
     loading_rate = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.5'))
     is_active = models.BooleanField(default=True)
     sap_created_at = models.DateField(null=True, blank=True, verbose_name='SAP Creation Date')
-    notes = models.TextField(blank=True, help_text='AI context: discount preferences, special terms, etc.')
+    customer_history = models.TextField(blank=True, verbose_name='Customer History', help_text='AI context: discount preferences, special terms, etc.')
     competitors = models.TextField(blank=True, help_text='One competitor per line.')
     rm = models.ForeignKey(
         settings.AUTH_USER_MODEL,

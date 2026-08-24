@@ -29,5 +29,5 @@ class CustomerAdmin(admin.ModelAdmin):
         'customer_code', 'name', 'company', 'phone', 'email',
         'gst_number', 'billing_address', 'shipping_address',
         'payment_terms', 'transport_extra', 'loading_rate',
-        'handling_team', 'notes', 'competitors',
+        'handling_team', 'customer_history', 'competitors',
     )

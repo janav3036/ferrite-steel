@@ -304,24 +304,8 @@ we have received your enquiry and are pleased to offer you our best rates as per
 <!-- TERMS AND CONDITIONS -->
 <div class="remarks-box">
   <span class="remarks-heading">Terms and Conditions</span>
-  <table class="tnc-table">
-    <tr>
-      <td>• 18% GST Extra</td>
-      <td>• Loading Extra</td>
-    </tr>
-    <tr>
-      <td>• Transportation Extra</td>
-      <td>• 100% Payment Advance</td>
-    </tr>
-    <tr>
-      <td>• Unloading In Your Scope</td>
-      <td>• **Quotation is Valid for The Day</td>
-    </tr>
-    <tr>
-      <td>• **Weight tolerance +/- 0.75%</td>
-      <td></td>
-    </tr>
-  </table>
+  <div class="small text-muted mb-1" style="font-size:8px;">One term per line. Saved terms become this customer's default for future quotations.</div>
+  <textarea class="e" name="tnc_text" rows="{{ tnc_lines|length }}" style="width:100%;font-size:9px;line-height:1.5;">{{ tnc_text }}</textarea>
 </div>
 
 <!-- E.&.O.E + BANK -->
@@ -358,18 +342,8 @@ we have received your enquiry and are pleased to offer you our best rates as per
 
 <!-- TERMS -->
 <div class="terms">
-  <ol>
-    <li>Delivery will be made within 15 days following receipt of payment.</li>
-    <li>Validity of the Quotation — 15 Days.</li>
-    <li>The Work Shall Commence ONLY After The Written Confirmation Via E-Mail.</li>
-    <li>Kindly Mention The Quotation Number in The Subject Line of All of Your E-Mail Communications Related to This Order.</li>
-    <li>Material would be dispatched ONLY after the receipt of the technically &amp; commercially confirmed Purchase Order and/or on receipt of the mentioned Advance Amount.</li>
-    <li>Billing will be done on actual weight at time of dispatch. The quantities mentioned above are indicative estimates only.</li>
-    <li>Any Discrepancy in The Material Should Be Communicated Back To us Within a Period of 3 Days of its Delivery.</li>
-    <li>This is a Computer Generated Quotation And Does Not Require a Signature.</li>
-    <li>Rates are subject to market fluctuation. Please reconfirm before placing the order.</li>
-    <li>All disputes subject to Mumbai jurisdiction only.</li>
-  </ol>
+  <div class="small text-muted mb-1" style="font-size:8px;">One term per line. Saved terms become this customer's default for future quotations.</div>
+  <textarea class="e" name="terms_text" rows="{{ terms_lines|length }}" style="width:100%;font-size:8px;line-height:1.5;">{{ terms_text }}</textarea>
 </div>
 
 <p style="font-size:9px;margin:8px 0 2px;">Yours Faithfully,</p>

@@ -32,7 +32,7 @@ class CustomerForm(forms.ModelForm):
             'customer_code', 'name', 'company', 'phone', 'email',
             'gst_number', 'billing_address', 'shipping_address',
             'payment_terms', 'transport_extra', 'loading_rate',
-            'handling_team', 'rm', 'notes', 'competitors',
+            'handling_team', 'rm', 'customer_history', 'competitors',
         ]
         widgets = {
             'customer_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. CUST-001'}),
@@ -48,11 +48,11 @@ class CustomerForm(forms.ModelForm):
             'loading_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'handling_team': forms.Select(attrs={'class': 'form-select'}),
             'rm': forms.Select(attrs={'class': 'form-select'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'customer_history': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'competitors': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'One competitor per line'}),
         }
         labels = {
-            'notes': 'Notes (AI context)',
+            'customer_history': 'Customer History (AI context)',
             'transport_extra': 'Transport Extra (₹/T)',
             'loading_rate': 'Loading Rate (₹/T)',
             'competitors': 'Competitors',

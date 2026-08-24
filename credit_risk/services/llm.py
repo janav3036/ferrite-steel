@@ -86,8 +86,8 @@ def assess_credit(customer, notes, trading_history, prior_assessment=None, quota
         f"Type of business: {customer.get_type_of_business_display() or 'Unknown'}",
         f"Existing payment terms: {customer.get_payment_terms_display() or 'Not set'}",
     ]
-    if customer.notes:
-        parts.append(f"Existing CRM notes on this customer:\n{customer.notes}")
+    if customer.customer_history:
+        parts.append(f"Existing customer history on this customer:\n{customer.customer_history}")
     if company_context:
         parts.append(f"Company-wide context (not customer-specific): {json.dumps(company_context)}")
     if no_history_found:

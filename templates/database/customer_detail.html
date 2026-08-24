@@ -116,15 +116,15 @@
             </div>
         </div>
 
-        <!-- Notes -->
+        <!-- Customer History -->
         <div class="col-md-6">
             <div class="card h-100">
-                <div class="card-header fw-semibold">Notes <small class="text-muted">(AI context)</small></div>
+                <div class="card-header fw-semibold">Customer History <small class="text-muted">(AI context)</small></div>
                 <div class="card-body">
-                    {% if customer.notes %}
-                    <p class="mb-0 small" style="white-space: pre-line;">{{ customer.notes }}</p>
+                    {% if customer.customer_history %}
+                    <p class="mb-0 small" style="white-space: pre-line;">{{ customer.customer_history }}</p>
                     {% else %}
-                    <p class="text-muted small mb-0">No notes.</p>
+                    <p class="text-muted small mb-0">No customer history.</p>
                     {% endif %}
                 </div>
             </div>

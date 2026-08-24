@@ -27,6 +27,10 @@ def _record_llm_result(success: bool, error_message: str = ''):
         status.consecutive_failures = 0
         # Any successful call proves the account has credits again — resume
         # scheduled email polling, which pauses itself on a 402 (see poll_emails).
+        # Stamp the resume moment (only on the actual pause -> resume transition)
+        # so poll_emails can skip stale outage backlog instead of processing it.
+        if status.email_polling_paused:
+            status.email_polling_resumed_at = timezone.now()
         status.email_polling_paused = False
     else:
         status.last_failure_at = timezone.now()

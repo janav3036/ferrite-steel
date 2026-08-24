@@ -241,7 +241,7 @@
     {% if customer_notes %}
     <div class="card mt-3 mb-4">
         <div class="card-header fw-semibold d-flex align-items-center gap-2">
-            <i class="bi bi-person-lines-fill text-muted"></i> Customer Notes
+            <i class="bi bi-person-lines-fill text-muted"></i> Customer History
             <span class="badge bg-light text-muted fw-normal ms-1" style="font-size:.72rem;">from SAP record</span>
         </div>
         <div class="card-body">
@@ -597,7 +597,7 @@
     // Initialise all existing rows
     document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
         // Restore saved per-row add-on values first; only fall back to session
-        // defaults / customer.notes for rows that have nothing saved yet.
+        // defaults / customer.customer_history for rows that have nothing saved yet.
         const restored = loadAddonsFromHidden(row);
         if (!restored) fillAddonDefaults(row);
 

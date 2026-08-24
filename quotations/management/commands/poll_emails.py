@@ -204,6 +204,22 @@ def _extract_referenced_ids(msg):
     return set(_MSGID_RE.findall(raw))
 
 
+def _parse_msg_date(msg):
+    """Return the email's Date header as a tz-aware datetime, or None if missing/unparseable."""
+    raw = msg.get('Date')
+    if not raw:
+        return None
+    try:
+        dt = email.utils.parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.utc)
+    return dt
+
+
 class Command(BaseCommand):
     help = 'Poll active team email inboxes and create Leads for product inquiries.'
 
@@ -288,6 +304,14 @@ class Command(BaseCommand):
 
             self.stdout.write(f'  {len(msg_ids)} unseen message(s).')
 
+            # Emails dated before the last pause->resume transition are stale
+            # outage backlog (they sat UNSEEN because credits were exhausted) —
+            # skip them rather than bursting them all in as leads. Messages dated
+            # after the resume point are genuinely new and are processed as usual.
+            resume_boundary = LLMApiStatus.objects.filter(pk=1).values_list(
+                'email_polling_resumed_at', flat=True
+            ).first()
+
             for msg_id in msg_ids:
                 _, raw = imap.fetch(msg_id, '(BODY.PEEK[])')
                 msg = email.message_from_bytes(raw[0][1])
@@ -295,7 +319,18 @@ class Command(BaseCommand):
                 subject_parts = decode_header(msg.get('Subject', ''))
                 subject = ''.join(_decode(p, enc) for p, enc in subject_parts).strip()
                 sender_name, sender_email = _parse_sender(msg.get('From', ''))
-                
+
+                if resume_boundary:
+                    msg_date = _parse_msg_date(msg)
+                    if msg_date and msg_date < resume_boundary:
+                        self.stdout.write(
+                            f'  [SKIP-BACKLOG] {sender_email} | Subject: {subject[:60]} '
+                            f'(dated {msg_date.strftime("%d %b %H:%M")}, before resume)'
+                        )
+                        if not dry_run:
+                            imap.store(msg_id, '+FLAGS', '\\Seen')
+                        continue
+
                 raw_body = _parse_plain_body(msg).strip()
                 # body_text (no attachments) is what gets classified — attachment
                 # extraction can pull in thousands of tokens per PDF/DOCX/XLSX and
