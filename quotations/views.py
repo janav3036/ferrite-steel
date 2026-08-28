@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import re
+import threading
 from decimal import Decimal, InvalidOperation
 from itertools import zip_longest
 from types import SimpleNamespace
@@ -1233,18 +1234,17 @@ def market_order_do_send(request, pk):
 
     return render(request, 'quotations/market_order_do_send.html', {'order': order})
 
+def _run_poll_emails_bg():
+    from django.db import close_old_connections
+    try:
+        call_command('poll_emails')
+    finally:
+        close_old_connections()
+
+
 @login_required
 @require_POST
 def poll_emails_now(request):
-    from aegis.models import LLMApiStatus
-    try:
-        call_command('poll_emails')
-        status = LLMApiStatus.objects.filter(pk=1).first()
-        if status and status.email_polling_paused:
-            messages.error(request, 'Inbox polled, but together.ai credits are still exhausted — '
-                                     'automatic polling stays paused until a poll succeeds.')
-        else:
-            messages.success(request, 'Inbox polled successfully — automatic polling is active.')
-    except Exception as exc:
-        messages.error(request, f"Poll failed: {exc}")
+    threading.Thread(target=_run_poll_emails_bg, daemon=True).start()
+    messages.success(request, 'Inbox poll started in the background — new leads will appear shortly.')
     return redirect(request.META.get('HTTP_REFERER', '/'))
