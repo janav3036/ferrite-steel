@@ -95,7 +95,11 @@ class Customer(models.Model):
     is_active = models.BooleanField(default=True)
     sap_created_at = models.DateField(null=True, blank=True, verbose_name='SAP Creation Date')
     customer_history = models.TextField(blank=True, verbose_name='Customer History', help_text='AI context: discount preferences, special terms, etc.')
-    competitors = models.TextField(blank=True, help_text='One competitor per line.')
+    competitors = models.TextField(
+        blank=True,
+        help_text="One competitor per line, as 'Name - tier' (tier: good/mid/bad, e.g. "
+                  "'Jindal Steel - good') — used by Credit Risk's Competitor Streak scoring.",
+    )
     rm = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

@@ -98,8 +98,8 @@
                         {{ form.customer_history }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Competitors <small class="text-muted">(one per line)</small></label>
-                        {{ form.competitors }}
+                        <label class="form-label">Competitors</label>
+                        {% include "database/_competitors_widget.html" %}
                     </div>
                 </div>
             </div>

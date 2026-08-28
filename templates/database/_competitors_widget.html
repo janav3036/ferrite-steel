@@ -1,0 +1,95 @@
+<!-- Structured add-row entry for Customer.competitors, so a tier never gets
+     forgotten. Purely a frontend layer: it reads/writes the same hidden
+     textarea the form already posts, serialized as 'Name - tier' lines —
+     no model/view changes needed here. Used by both customer_add.html and
+     customer_edit.html. -->
+<div class="cr-competitor-widget">
+    <table class="table table-sm mb-2" id="competitorTable">
+        <thead>
+            <tr>
+                <th>Competitor</th>
+                <th style="width:140px">Tier</th>
+                <th style="width:40px"></th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="addCompetitorRow">+ Add competitor</button>
+    <div class="text-muted small mt-1">Tier drives Credit Risk's Competitor Streak marks — good/mid/bad is the client's own call.</div>
+    <div style="display:none">{{ form.competitors }}</div>
+</div>
+<script>
+(function () {
+    const hidden = document.getElementById('{{ form.competitors.id_for_label }}');
+    const tbody = document.querySelector('#competitorTable tbody');
+    const addBtn = document.getElementById('addCompetitorRow');
+    if (!hidden || !tbody || !addBtn) return;
+
+    function parseLines(text) {
+        return (text || '').split('\n').map(l => l.trim()).filter(Boolean).map(function (line) {
+            const idx = line.lastIndexOf('-');
+            if (idx > -1) {
+                const tier = line.slice(idx + 1).trim().toLowerCase();
+                if (['good', 'mid', 'bad'].includes(tier)) {
+                    return { name: line.slice(0, idx).trim(), tier: tier };
+                }
+            }
+            return { name: line, tier: 'mid' };
+        });
+    }
+
+    function addRow(name, tier) {
+        const tr = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'form-control form-control-sm comp-name';
+        nameInput.placeholder = 'Competitor name';
+        nameInput.value = name || '';
+        nameTd.appendChild(nameInput);
+
+        const tierTd = document.createElement('td');
+        const tierSelect = document.createElement('select');
+        tierSelect.className = 'form-select form-select-sm comp-tier';
+        ['good', 'mid', 'bad'].forEach(function (t) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+            tierSelect.appendChild(opt);
+        });
+        tierSelect.value = tier || 'mid';
+        tierTd.appendChild(tierSelect);
+
+        const removeTd = document.createElement('td');
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-sm btn-outline-danger';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', function () { tr.remove(); syncHidden(); });
+        removeTd.appendChild(removeBtn);
+
+        tr.append(nameTd, tierTd, removeTd);
+        nameInput.addEventListener('input', syncHidden);
+        tierSelect.addEventListener('change', syncHidden);
+        tbody.appendChild(tr);
+    }
+
+    function syncHidden() {
+        const lines = [];
+        tbody.querySelectorAll('tr').forEach(function (tr) {
+            const name = tr.querySelector('.comp-name').value.trim();
+            const tier = tr.querySelector('.comp-tier').value;
+            if (name) lines.push(name + ' - ' + tier);
+        });
+        hidden.value = lines.join('\n');
+    }
+
+    parseLines(hidden.value).forEach(function (row) { addRow(row.name, row.tier); });
+    if (!tbody.children.length) addRow('', 'mid');
+
+    addBtn.addEventListener('click', function () { addRow('', 'mid'); syncHidden(); });
+
+    const form = hidden.closest('form');
+    if (form) form.addEventListener('submit', syncHidden);
+})();
+</script>

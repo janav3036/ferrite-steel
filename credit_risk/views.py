@@ -14,48 +14,70 @@ from database.models import Customer
 from .forms import CreditAssessmentRequestForm
 from .models import CreditAssessment
 from .services.crm_history import build_quotation_signal
-from .services.extractor import extract_trading_history
-from .services.llm import assess_credit, compute_data_confidence
+from .services.extractor import extract_customer_financials
+from .services.llm import (
+    assess_credit, background_company_notes, compute_data_confidence,
+    _risk_level_for_score, score_from_points, answer_credit_question,
+)
+from .services.scoring import compute_score_breakdown, resolve_weights
 
 
-def _run_assessment(assessment_id, file_bytes, filename, customer_id, notes, requested_by_id):
+def _run_assessment(assessment_id, file_bytes, filename, customer_id, notes, requested_by_id, weight_overrides):
     """Runs on a background thread — Django gives each thread its own DB
     connection automatically, but nothing closes it when the thread ends
     (there's no request_finished signal here), so we must close it ourselves."""
     try:
         customer = Customer.objects.get(pk=customer_id)
-        trading_history = extract_trading_history(io.BytesIO(file_bytes), filename, customer)
+        financials = extract_customer_financials(io.BytesIO(file_bytes), filename)
+        sales, purchase = financials.get('sales'), financials.get('purchase')
+
+        weights = resolve_weights(weight_overrides)
+        score_result = compute_score_breakdown(sales, purchase, customer.competitors, weights)
+        background = background_company_notes(score_result['top_tier_names'])
+
         quotation_signal = build_quotation_signal(customer)
-        if quotation_signal:
-            trading_history['quotation_signal'] = quotation_signal
         prior_assessment = CreditAssessment.objects.filter(
             customer=customer, status='done',
         ).order_by('-created_at').first()
 
         result = assess_credit(
-            customer, notes, trading_history,
+            customer, notes, score_result, background,
             prior_assessment=prior_assessment, quotation_signal=quotation_signal,
         )
-        confidence = compute_data_confidence(trading_history, notes, quotation_signal)
+        confidence = compute_data_confidence(sales, purchase, notes, quotation_signal)
+
+        score = score_from_points(score_result['earned'], score_result['possible'])
+        risk_level = _risk_level_for_score(score) if score else ''
+
+        trading_history = {
+            'sales': sales, 'purchase': purchase,
+            'listed_signal': score_result.get('listed_signal'),
+            'background_notes': background,
+            'competitor_matches': score_result.get('competitor_matches', []),
+        }
+        if quotation_signal:
+            trading_history['quotation_signal'] = quotation_signal
 
         CreditAssessment.objects.filter(pk=assessment_id).update(
             trading_history=trading_history,
-            score=result['score'], risk_level=result['risk_level'], data_confidence=confidence,
+            score=score, risk_level=risk_level, data_confidence=confidence,
+            points_earned=score_result['earned'], points_possible=score_result['possible'],
+            score_breakdown=score_result['breakdown'], weight_overrides=weight_overrides or None,
             recommendation=result['recommendation'], summary=result['summary'],
             factors=result['factors'], llm_raw_response=result['raw_response'],
             status='done',
         )
-        customer.credit_status = result['risk_level']
+        customer.credit_status = risk_level
         customer.last_assessed_at = timezone.now()
         customer.save(update_fields=['credit_status', 'last_assessed_at'])
 
-        if result['risk_level'] == 'high':
+        if risk_level == 'high':
             recipients = CustomUser.objects.filter(role__in=['lead', 'admin'], is_active=True).exclude(pk=requested_by_id)
             if customer.handling_team:
                 recipients = recipients.filter(team=customer.handling_team) | CustomUser.objects.filter(role='admin', is_active=True)
             notify(
                 recipients.distinct(), f'High credit risk: {customer.name}',
-                message=f'{customer.name} scored {result["score"]}/10 (high risk) — '
+                message=f'{customer.name} scored {score_result["earned"]}/{score_result["possible"]} marks (high risk) — '
                         f'recommendation: {result["recommendation"]}.',
                 link=f'/credit-risk/{assessment_id}/', notif_type='credit_high_risk',
             )
@@ -122,13 +144,15 @@ def assessment_create(request):
             filename = file_obj.name
             file_bytes = file_obj.read()
 
+            weight_overrides = form.weight_overrides()
+
             assessment = CreditAssessment.objects.create(
                 customer=customer, requested_by=request.user, notes=notes,
                 trading_history_source_filename=filename, status='processing',
             )
             threading.Thread(
                 target=_run_assessment,
-                args=(assessment.pk, file_bytes, filename, customer.pk, notes, request.user.pk),
+                args=(assessment.pk, file_bytes, filename, customer.pk, notes, request.user.pk, weight_overrides),
                 daemon=True,
             ).start()
 
@@ -165,9 +189,25 @@ def assessment_detail(request, pk):
     if assessment.score:
         ring_offset = round(ring_circumference * (1 - assessment.score / 10))
 
+    # Django templates can't do dict lookups by a variable key — merge listed
+    # status + background note into one list here instead of in the template.
+    top_tier_rows = []
+    th = assessment.trading_history or {}
+    listed = th.get('listed_signal')
+    background = th.get('background_notes') or {}
+    if listed:
+        for c in listed['companies']:
+            note = background.get(c['name'], {})
+            top_tier_rows.append({
+                'name': c['name'], 'listed': c['listed'],
+                'note': note.get('note', ''), 'reputation_flag': note.get('reputation_flag', 'none'),
+            })
+
     return render(request, 'credit_risk/assessment_detail.html', {
         'assessment': assessment, 'prior_assessment': prior_assessment,
         'ring_circumference': ring_circumference, 'ring_offset': ring_offset,
+        'top_tier_rows': top_tier_rows,
+        'pct_of_total_sales_from_listed': listed['pct_of_total_sales_from_listed'] if listed else None,
     })
 
 
@@ -213,3 +253,34 @@ def assessment_delete(request, pk):
         return redirect('customer_detail', pk=customer.pk)
 
     return render(request, 'credit_risk/assessment_confirm_delete.html', {'assessment': assessment})
+
+
+@login_required
+def assessment_ask(request, pk):
+    """Q&A scoped to one customer's assessment history — see
+    services/llm.answer_credit_question for why this doesn't use the
+    embeddings/pgvector RAG pipeline the training app uses."""
+    assessment = get_object_or_404(CreditAssessment.objects.select_related('customer'), pk=pk)
+    if request.user.role not in ('lead', 'admin'):
+        messages.error(request, 'You do not have access to Credit Risk.')
+        return redirect('dashboard')
+    if request.user.role == 'lead' and request.user.team and assessment.customer.handling_team != request.user.team:
+        messages.error(request, 'You do not have access to this assessment.')
+        return redirect('assessment_list')
+
+    answer = None
+    question = ''
+    if request.method == 'POST':
+        question = request.POST.get('question', '').strip()
+        if question:
+            history = list(CreditAssessment.objects.filter(
+                customer=assessment.customer, status='done',
+            ).order_by('-created_at')[:10])
+            try:
+                answer = answer_credit_question(question, assessment.customer, history)
+            except Exception as e:
+                messages.error(request, f'Could not get answer: {e}')
+
+    return render(request, 'credit_risk/assessment_ask.html', {
+        'assessment': assessment, 'question': question, 'answer': answer,
+    })
