@@ -293,6 +293,9 @@
                         {% if llm_status.last_error_message %}
                         <div class="small text-muted mt-1" style="word-break:break-word;">{{ llm_status.last_error_message|truncatechars:200 }}</div>
                         {% endif %}
+                        {% if llm_status.last_success_at %}
+                        <div class="small text-muted mt-1">Last successful call: {{ llm_status.last_success_at|timesince }} ago</div>
+                        {% endif %}
                     </div>
                 </div>
                 {% elif llm_status.last_success_at %}
@@ -303,15 +306,20 @@
                 {% else %}
                 <div class="small text-muted">No AI calls recorded yet.</div>
                 {% endif %}
-                {% if llm_status.email_polling_paused %}
                 <div class="d-flex align-items-start gap-2 mt-2 pt-2 border-top">
+                    {% if llm_status.email_polling_paused %}
                     <i class="bi bi-pause-circle-fill text-warning mt-1"></i>
                     <div class="small text-muted">
                         Automatic email polling is <strong>paused</strong> (credits exhausted).
                         Use "Poll Inbox" on the leads page once credits are topped up to resume it.
                     </div>
+                    {% else %}
+                    <i class="bi bi-play-circle-fill text-success mt-1"></i>
+                    <div class="small text-muted">
+                        Automatic email polling is <strong>active</strong>{% if llm_status.email_polling_resumed_at %} — resumed {{ llm_status.email_polling_resumed_at|timesince }} ago{% endif %}.
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
         </div>
         {% endif %}

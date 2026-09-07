@@ -267,7 +267,7 @@ class Command(BaseCommand):
 
             self.stdout.write(f'\n── {config} ──')
             try:
-                self._poll(config, dry_run)
+                self._poll(config, dry_run, scheduled)
             except LLMUnavailableError as exc:
                 self.stderr.write(self.style.ERROR(f'  ERROR: {exc.user_message}'))
                 if exc.status_code == 402:
@@ -282,7 +282,7 @@ class Command(BaseCommand):
             except Exception as exc:
                 self.stderr.write(self.style.ERROR(f'  ERROR: {exc}'))
 
-    def _poll(self, config, dry_run):
+    def _poll(self, config, dry_run, scheduled):
         if config.use_ssl:
             imap = imaplib.IMAP4_SSL(config.imap_host, config.imap_port)
         else:
@@ -292,7 +292,17 @@ class Command(BaseCommand):
         imap.select('INBOX')
 
         try:
-            _, data = imap.search(None, 'UNSEEN')
+            if scheduled:
+                _, data = imap.search(None, 'UNSEEN')
+            else:
+                # Manual polls (the "Poll Inbox" button, or a bare terminal
+                # invocation) bypass the pause flag so they can catch up and
+                # prove credits are back — but with no date bound that could
+                # mean running the whole mailbox's backlog through the
+                # classifier in one go. Cap manual polls to the last day so
+                # they can't bottleneck the system or exhaust credits.
+                since_date = (timezone.now() - timedelta(days=1)).strftime('%d-%b-%Y')
+                _, data = imap.search(None, f'(UNSEEN SINCE "{since_date}")')
             msg_ids = data[0].split()
 
             if not msg_ids:
@@ -302,7 +312,8 @@ class Command(BaseCommand):
                     config.save(update_fields=['last_polled_at'])
                 return
 
-            self.stdout.write(f'  {len(msg_ids)} unseen message(s).')
+            scope_note = '' if scheduled else ' (last 24h only — manual poll)'
+            self.stdout.write(f'  {len(msg_ids)} unseen message(s){scope_note}.')
 
             # Emails dated before the last pause->resume transition are stale
             # outage backlog (they sat UNSEEN because credits were exhausted) —
