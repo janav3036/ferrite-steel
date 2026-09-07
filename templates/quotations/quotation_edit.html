@@ -2,9 +2,10 @@
 {% block title %}Edit {{ quotation.quotation_number }} — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+<div class="d-flex justify-content-between align-items-end page-hdr">
     <div>
-        <h2 class="mb-0">Edit {{ quotation.quotation_number }}</h2>
+        <span class="fs-eyebrow">Pipeline / Quotations / Editor</span>
+        <h2 class="mb-0 fs-id" style="font-family:inherit;">Edit {{ quotation.quotation_number }}</h2>
         {% if lead.customer_name %}<span class="text-muted fs-6">{{ lead.customer_name }}{% if lead.company %} — {{
             lead.company }}{% endif %}</span>{% endif %}
     </div>
@@ -24,8 +25,8 @@
     </datalist>
 
     <!-- Quotation header -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header fw-semibold">Quotation Details</div>
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">Quotation details</div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-sm-4">
@@ -75,15 +76,15 @@
         }
         .li-table th.col-num, .li-table td.col-num { left: 0; }
         .li-table th.col-product, .li-table td.col-product { left: 44px; }
-        .li-table thead th.col-num, .li-table thead th.col-product { background: #18273E; }
+        .li-table thead th.col-num, .li-table thead th.col-product { background: #241D16; }
         .li-table tbody td.col-num, .li-table tbody td.col-product { background: #fff; }
-        .li-table tbody td.col-product { border-right: 1px solid var(--border, #E1E9F0); }
-        .li-table .subrow-td { background: #F8FAFC; }
+        .li-table tbody td.col-product { border-right: 1px solid var(--border, #E4DCC9); }
+        .li-table .subrow-td { background: #F8F4EA; }
     </style>
-    <div class="card shadow-sm mb-4">
+    <div class="card fs-card-accent mb-4">
         <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-            Line Items
-            <button type="button" id="add-row" class="btn btn-sm btn-outline-primary">+ Add Item</button>
+            Line items
+            <button type="button" id="add-row" class="btn btn-sm btn-outline-primary">+ Add item</button>
         </div>
         <div class="card-body p-0">
             {{ formset.management_form }}
@@ -211,29 +212,29 @@
     </div>
 
     <!-- Live cost summary -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header fw-semibold">Cost Summary</div>
+    <div class="card fs-card-accent mb-4">
+        <div class="card-header fw-semibold">Cost summary</div>
         <div class="card-body p-0">
             <table class="table table-sm mb-0">
                 <tr>
-                    <td class="text-end fw-semibold" style="width:70%">Total TON</td>
-                    <td class="text-end" id="summary-tons">0.000</td>
+                    <td class="text-end fw-semibold" style="width:70%">Total tonnage</td>
+                    <td class="text-end fs-num" id="summary-tons">0.000</td>
                 </tr>
                 <tr>
-                    <td class="text-end fw-semibold">Item Value (₹)</td>
-                    <td class="text-end" id="summary-item-value">0.00</td>
+                    <td class="text-end fw-semibold">Item value (₹)</td>
+                    <td class="text-end fs-num" id="summary-item-value">0.00</td>
                 </tr>
                 <tr>
-                    <td class="text-end fw-semibold">Loading Extra (₹)</td>
-                    <td class="text-end" id="summary-loading">0.00</td>
+                    <td class="text-end fw-semibold">Loading extra (₹)</td>
+                    <td class="text-end fs-num" id="summary-loading">0.00</td>
                 </tr>
                 <tr>
-                    <td class="text-end fw-semibold">Transport Extra (₹)</td>
-                    <td class="text-end" id="summary-transport">0.00</td>
+                    <td class="text-end fw-semibold">Transport extra (₹)</td>
+                    <td class="text-end fs-num" id="summary-transport">0.00</td>
                 </tr>
-                <tr class="table-light fw-semibold">
-                    <td class="text-end">Taxable Value (₹)</td>
-                    <td class="text-end" id="summary-taxable">0.00</td>
+                <tr class="fs-total-row">
+                    <td class="text-end" style="font-family:var(--font-mono);letter-spacing:.03em;">Taxable value (₹)</td>
+                    <td class="text-end fs-num" id="summary-taxable">0.00</td>
                 </tr>
             </table>
         </div>
@@ -241,11 +242,11 @@
     {% if customer_notes %}
     <div class="card mt-3 mb-4">
         <div class="card-header fw-semibold d-flex align-items-center gap-2">
-            <i class="bi bi-person-lines-fill text-muted"></i> Customer History
+            <i class="bi bi-person-lines-fill text-muted"></i> Customer history
             <span class="badge bg-light text-muted fw-normal ms-1" style="font-size:.72rem;">from SAP record</span>
         </div>
         <div class="card-body">
-            <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{
+            <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#4A3F34;">{{
                 customer_notes }}</p>
         </div>
     </div>
@@ -253,7 +254,7 @@
 
     <div class="d-flex gap-2 justify-content-end">
         <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
-        <button type="submit" class="btn btn-dark">Save Quotation</button>
+        <button type="submit" class="btn btn-dark">Save quotation</button>
     </div>
 </form>
 
@@ -354,7 +355,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="productPickerLabel">Pick Product from Catalog</h5>
+                <h5 class="modal-title" id="productPickerLabel">Pick product from catalog</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -387,7 +388,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Update Catalog Rates?</h5>
+                <h5 class="modal-title">Update catalog rates?</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="rate-change-list"></div>

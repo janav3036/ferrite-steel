@@ -1,33 +1,52 @@
 {% extends "base.html" %}
 {% block title %}Edit Product — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .fs-formsec { margin-bottom: 18px; }
+    .fs-formsec .card-header { font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; color: var(--muted); background: var(--card-bg); border-bottom-color: var(--border); }
+    .fs-actionbar {
+        position: sticky; bottom: 0;
+        background: color-mix(in srgb, var(--page-bg) 92%, transparent);
+        backdrop-filter: blur(3px);
+        border-top: 1px solid var(--border);
+        padding: 14px 2px 22px;
+        margin-top: 4px;
+        display: flex; gap: 8px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4" style="max-width: 720px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Edit Product</h4>
-        <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">← Back to Catalog</a>
+<div class="container mt-4" style="max-width: 760px;">
+    <div class="page-hdr d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="fs-eyebrow">Database / Catalog</span>
+            <h4 class="mb-0">Edit product{% if form.instance.product_name %} — {{ form.instance.product_name }}{% endif %}</h4>
+        </div>
+        <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">← Back to catalog</a>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
+    <form method="post" id="product-form">
+        {% csrf_token %}
 
+        <div class="card fs-formsec">
+            <div class="card-header">01 · Identity</div>
+            <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">Item No.</label>
+                        <label class="form-label">Item no.</label>
                         {{ form.item_no }}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Product Name <span class="text-danger">*</span></label>
+                        <label class="form-label">Product name <span class="text-danger">*</span></label>
                         {{ form.product_name }}
                         {% if form.product_name.errors %}<div class="text-danger small">{{ form.product_name.errors.0 }}</div>{% endif %}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">HSN Code</label>
+                        <label class="form-label">HSN code</label>
                         {{ form.hsn_code }}
                     </div>
-
                     <div class="col-md-4">
                         <label class="form-label">Category</label>
                         {{ form.category }}
@@ -37,45 +56,58 @@
                         <label class="form-label">Unit</label>
                         {{ form.unit }}
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <div class="form-check mt-4">
+                            {{ form.is_active }}
+                            <label class="form-check-label ms-1">Active — visible in the catalog</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card fs-formsec">
+            <div class="card-header">02 · Stock &amp; pricing</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Quantity in stock <span class="text-danger">*</span></label>
                         {{ form.quantity }}
                         {% if form.quantity.errors %}<div class="text-danger small">{{ form.quantity.errors.0 }}</div>{% endif %}
                     </div>
-
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label">Rate (₹/unit) <span class="text-danger">*</span></label>
                         {{ form.rate }}
                         {% if form.rate.errors %}<div class="text-danger small">{{ form.rate.errors.0 }}</div>{% endif %}
                     </div>
+                </div>
+            </div>
+        </div>
 
+        <div class="card fs-formsec">
+            <div class="card-header">03 · Relational pricing (optional)</div>
+            <div class="card-body">
+                <div class="row g-3">
                     <div class="col-md-8">
-                        <label class="form-label">Base Product</label>
+                        <label class="form-label">Base product</label>
                         <input type="text" id="base_product_search" class="form-control form-control-sm mb-1" placeholder="Search to filter…" autocomplete="off">
                         {{ form.base_product }}
-                        <div class="form-text">If set, effective rate = base product rate + offset. Leave blank for a standalone product.</div>
+                        <div class="form-text">If set, this product's rate becomes the base product's rate plus the offset below — leave blank to price it standalone.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Rate Offset (₹/unit)</label>
+                        <label class="form-label">Rate offset (₹/unit)</label>
                         {{ form.rate_offset }}
-                        <div class="form-text">Added to base product rate.</div>
-                    </div>
-
-                    <div class="col-md-4 d-flex align-items-end">
-                        <div class="form-check mb-2">
-                            {{ form.is_active }}
-                            <label class="form-check-label ms-2">Active</label>
-                        </div>
+                        <div class="form-text">Added on top of the base product's rate.</div>
                     </div>
                 </div>
-
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">Cancel</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <div class="fs-actionbar">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
 </div>
 
 <script>

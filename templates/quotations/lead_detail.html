@@ -2,17 +2,26 @@
 {% block title %}Lead #{{ lead.pk }} — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
-    <h2 class="mb-0">Lead #{{ lead.pk }}</h2>
-    <div class="d-flex gap-2">
+<div class="d-flex justify-content-between align-items-end page-hdr">
+    <div>
+        <span class="fs-eyebrow">Pipeline / Leads</span>
+        <h2 class="mb-0">Lead #{{ lead.pk }}{% if lead.customer_name %} — {{ lead.customer_name }}{% endif %}</h2>
+    </div>
+    <div class="fs-toolbar">
+        <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary btn-sm">← Back to leads</a>
+        <span class="fs-toolbar-div"></span>
         <button type="button" class="btn btn-outline-secondary btn-sm"
             onclick="openShareModal('lead', '{{ lead.pk }}', '{{ lead.company|default:lead.customer_name }} (Lead #{{ lead.pk }})')">
             <i class="bi bi-share"></i> Share
         </button>
         <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
-            data-bs-target="#deleteLeadModal">Delete Lead</button>
-        <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
+            data-bs-target="#deleteLeadModal">Delete</button>
     </div>
+</div>
+<div class="fs-metastrip">
+    <span>Source <strong>{{ lead.get_source_display }}</strong></span>
+    <span>Status <strong>{{ lead.get_status_display }}</strong></span>
+    <span>Logged <strong class="fs-num">{{ lead.created_at|date:"d M Y" }}</strong></span>
 </div>
 {% include 'chat/_share_modal.html' %}
 
@@ -47,51 +56,38 @@
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header fw-semibold">Customer Details</div>
+<div class="row g-4 mt-1">
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Customer details</div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">Name</dt>
                     <dd class="col-sm-8">{{ lead.customer_name|default:"—" }}</dd>
                     <dt class="col-sm-4">Phone</dt>
-                    <dd class="col-sm-8">{{ lead.customer_phone|default:"—" }}</dd>
+                    <dd class="col-sm-8 fs-num">{{ lead.customer_phone|default:"—" }}</dd>
                     <dt class="col-sm-4">Email</dt>
                     <dd class="col-sm-8">{{ lead.customer_email|default:"—" }}</dd>
-                    <dt class="col-sm-4">Source</dt>
-                    <dd class="col-sm-8">{{ lead.get_source_display }}</dd>
-                    <dt class="col-sm-4">Status</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge
-                            {% if lead.status == 'new' %}bg-secondary
-                            {% elif lead.status == 'processing' %}bg-warning text-dark
-                            {% elif lead.status == 'quoted' %}bg-success
-                            {% elif lead.status == 'closed' %}bg-primary
-                            {% else %}bg-danger{% endif %}">
-                            {{ lead.get_status_display }}
-                        </span>
-                    </dd>
                     {% if lead.created_by %}
-                    <dt class="col-sm-4">Created By</dt>
+                    <dt class="col-sm-4">Created by</dt>
                     <dd class="col-sm-8">{{ lead.created_by.username }}</dd>
                     {% elif lead.received_via %}
-                    <dt class="col-sm-4">Received Via</dt>
-                    <dd class="col-sm-8">{{ lead.received_via.email_address }}</dd>
+                    <dt class="col-sm-4">Received via</dt>
+                    <dd class="col-sm-8 fs-id">{{ lead.received_via.email_address }}</dd>
                     {% else %}
-                    <dt class="col-sm-4">Created By</dt>
+                    <dt class="col-sm-4">Created by</dt>
                     <dd class="col-sm-8">—</dd>
                     {% endif %}
-                    <dt class="col-sm-4">Date</dt>
-                    <dd class="col-sm-8">{{ lead.created_at|date:"d M Y, H:i" }}</dd>
+                    <dt class="col-sm-4">Logged</dt>
+                    <dd class="col-sm-8 fs-num">{{ lead.created_at|date:"d M Y, H:i" }}</dd>
                 </dl>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header fw-semibold">Enquiry Text</div>
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Enquiry text</div>
             <div class="card-body">
                 <p class="mb-0" style="white-space: pre-wrap;">{{ lead.raw_text }}</p>
             </div>
@@ -100,7 +96,7 @@
 
     {% if lead.notes %}
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="card-header fw-semibold">Notes</div>
             <div class="card-body">
                 <p class="mb-0">{{ lead.notes }}</p>
@@ -110,10 +106,10 @@
     {% endif %}
 
     <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Case Notes</div>
+        <div class="card fs-card-accent">
+            <div class="card-header fw-semibold">Case notes</div>
             <div class="card-body">
-                <form method="post" action="{% url 'lead_save_notes' lead.pk %}">
+                <form method="post" action="{% url 'lead_save_notes' lead.pk %}" id="leadNotesForm">
                     {% csrf_token %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -125,49 +121,49 @@
                             placeholder="Type, paste, or dictate rough notes here…">{{ lead.lead_notes_raw }}</textarea>
                         <div id="micStatus" class="form-text text-danger d-none"></div>
                     </div>
-                    <div class="d-flex gap-2 mb-0">
+                    <div class="d-flex gap-2 mb-0 align-items-center">
                         <button type="submit" name="action" value="save"
                             class="btn btn-sm btn-outline-secondary">Save</button>
-                        <button type="submit" name="action" value="cleanup" class="btn btn-sm btn-primary">✦ Clean up
+                        <button type="submit" name="action" value="cleanup" id="cleanupBtn" class="btn btn-sm btn-primary">✦ Clean up
                             with AI</button>
                     </div>
                 </form>
 
-                {% if lead.lead_notes_clean %}
+                <div id="cleanedNotesWrap" class="{% if not lead.lead_notes_clean %}d-none{% endif %}">
                 <hr>
                 <form method="post" action="{% url 'lead_save_notes' lead.pk %}">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-muted small">Cleaned Notes <span
+                        <label class="form-label fw-semibold text-muted small">Cleaned notes <span
                                 class="badge bg-success ms-1">AI</span></label>
-                        <textarea name="lead_notes_clean" class="form-control"
+                        <textarea name="lead_notes_clean" id="leadNotesClean" class="form-control"
                             rows="4">{{ lead.lead_notes_clean }}</textarea>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" name="action" value="save_clean"
-                            class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
+                            class="btn btn-sm btn-outline-secondary">Save cleaned notes</button>
                         {% if perms.training.add_case %}
                         <a href="{% url 'case_create' %}?lead={{ lead.pk }}&notes={{ lead.lead_notes_clean|urlencode }}"
-                            class="btn btn-sm btn-success">→ Convert to Case</a>
+                            id="convertCaseLink" class="btn btn-sm btn-success">→ Convert to case</a>
                         {% else %}
                         <a href="#" class="btn btn-sm btn-success disabled"
-                            title="Only team leads and admins can create cases">→ Convert to Case</a>
+                            title="Only team leads and admins can create cases">→ Convert to case</a>
                         {% endif %}
                     </div>
                 </form>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
     {% if customer_notes_display %}
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="card-header fw-semibold d-flex align-items-center gap-2">
-                <i class="bi bi-person-lines-fill text-muted"></i> Customer History
+                <i class="bi bi-person-lines-fill text-muted"></i> Customer history
                 <span class="badge bg-light text-muted fw-normal ms-1" style="font-size:.72rem;">from SAP record</span>
             </div>
             <div class="card-body">
-                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{
+                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#4A3F34;">{{
                     customer_notes_display }}</p>
             </div>
         </div>
@@ -175,12 +171,12 @@
     {% endif %}
 
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card fs-card-accent">
             <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
                 <span>Quotations <span class="badge bg-secondary ms-1">{{ lead.quotations.count }}</span></span>
-                <form method="post" action="{% url 'quotation_create' lead.pk %}">
+                <form method="post" action="{% url 'quotation_create' lead.pk %}" data-fs-fetch-loading="Generating draft quotation…">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-primary">+ Create Quotation</button>
+                    <button type="submit" class="btn btn-sm btn-primary">+ Create quotation</button>
                 </form>
             </div>
             <div class="card-body">
@@ -188,7 +184,7 @@
                 <ul class="list-group list-group-flush">
                     {% for q in lead.quotations.all %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{% url 'quotation_detail' q.pk %}">{{ q }}</a>
+                        <a href="{% url 'quotation_detail' q.pk %}" class="fs-id">{{ q }}</a>
                         <span class="badge
                             {% if q.status == 'draft' %}bg-secondary
                             {% elif q.status == 'approved' %}bg-success
@@ -235,8 +231,7 @@
         ];
 
         // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
-        const KEYWORDS = {{ voice_keywords| safe
-    }};
+        const KEYWORDS = {{ voice_keywords|safe }};
     KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 
     function postProcess(text) {
@@ -302,5 +297,58 @@
         listening ? stopListening() : startListening();
     });
 }) ();
+
+// "Clean up with AI" — fetch-based, page stays put. Anti-flicker: only
+// swap to the spinner if the response hasn't come back within ~300ms.
+(function () {
+    const form = document.getElementById('leadNotesForm');
+    const cleanupBtn = document.getElementById('cleanupBtn');
+    if (!form || !cleanupBtn) return;
+
+    form.addEventListener('submit', function (e) {
+        if (e.submitter !== cleanupBtn) return; // let "Save" submit normally
+        e.preventDefault();
+
+        const originalLabel = cleanupBtn.innerHTML;
+        const flickerTimer = setTimeout(function () {
+            cleanupBtn.disabled = true;
+            cleanupBtn.setAttribute('aria-busy', 'true');
+            cleanupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Cleaning up…';
+        }, 300);
+
+        const fd = new FormData(form);
+        fd.set('action', 'cleanup');
+        // NOTE: not form.action — this form has a button named "action",
+        // which shadows the form.action IDL property with a RadioNodeList.
+        // getAttribute() always reads the literal attribute instead.
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd,
+        }).then(function (r) { return r.json(); })
+          .then(function (data) {
+              clearTimeout(flickerTimer);
+              cleanupBtn.disabled = false;
+              cleanupBtn.removeAttribute('aria-busy');
+              cleanupBtn.innerHTML = originalLabel;
+              if (!data.ok) { alert(data.error || 'No notes to clean up.'); return; }
+              const wrap = document.getElementById('cleanedNotesWrap');
+              const cleanTa = document.getElementById('leadNotesClean');
+              cleanTa.value = data.clean_text;
+              wrap.classList.remove('d-none');
+              const link = document.getElementById('convertCaseLink');
+              if (link) {
+                  link.href = data.case_base_url + '?lead=' + data.lead_pk + '&notes=' + encodeURIComponent(data.clean_text);
+              }
+          })
+          .catch(function () {
+              clearTimeout(flickerTimer);
+              cleanupBtn.disabled = false;
+              cleanupBtn.removeAttribute('aria-busy');
+              cleanupBtn.innerHTML = originalLabel;
+              alert('Could not clean up notes. Please try again.');
+          });
+    });
+})();
 </script>
 {% endblock %}

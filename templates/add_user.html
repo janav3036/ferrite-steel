@@ -4,11 +4,14 @@
 {% block extra_head %}
 <style>
     .form-wrap { max-width: 680px; }
-    .section-divider { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
+    .section-divider { border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 4px; }
     .section-label {
-        font-size: .69rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: .09em; color: var(--muted); margin-bottom: 14px;
+        font-family: var(--font-mono);
+        font-size: .66rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: .1em; color: var(--accent); margin-bottom: 14px;
+        display: flex; align-items: center; gap: 8px;
     }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 </style>
 {% endblock %}
 
@@ -16,8 +19,9 @@
 <div class="form-wrap">
     <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
         <div>
-            <h4 class="mb-0">Add New User</h4>
-            <small class="text-muted">Create a team member account</small>
+            <span class="fs-eyebrow">Admin</span>
+            <h4 class="mb-0">Add a new user</h4>
+            <small class="text-muted">Set up login credentials and assign a team + role</small>
         </div>
         <a href="{% url 'user_directory' %}" class="btn btn-outline-secondary btn-sm">← Directory</a>
     </div>
@@ -28,7 +32,7 @@
                 {% csrf_token %}
 
                 <!-- Identity -->
-                <div class="section-label">Identity</div>
+                <div class="section-label">01 · Identity</div>
                 <div class="row g-3 mb-4">
                     <div class="col-12">
                         <label for="{{ form.username.id_for_label }}" class="form-label">Username <span class="text-danger">*</span></label>
@@ -66,7 +70,7 @@
 
                 <!-- Access -->
                 <div class="section-divider">
-                    <div class="section-label">Access & Assignment</div>
+                    <div class="section-label">02 · Access &amp; assignment</div>
                 </div>
                 <div class="row g-3 mb-4">
                     <div class="col-sm-6">
@@ -130,7 +134,7 @@
 
                 <!-- Credentials -->
                 <div class="section-divider">
-                    <div class="section-label">Credentials</div>
+                    <div class="section-label">03 · Credentials</div>
                 </div>
                 <div class="row g-3 mb-4">
                     <div class="col-sm-6">
@@ -149,8 +153,9 @@
                     </div>
                 </div>
 
-                <div class="pt-3 border-top">
-                    <button type="submit" class="btn btn-primary px-4">Create User</button>
+                <div class="pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">Create user</button>
+                    <a href="{% url 'user_directory' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
 
             </form>

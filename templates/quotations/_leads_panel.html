@@ -15,12 +15,12 @@
         <tbody>
             {% for lead in leads_page_obj %}
             <tr>
-                <td>{{ lead.pk }}</td>
+                <td class="fs-id">{{ lead.pk }}</td>
                 <td>{{ lead.customer_name|default:"—" }}</td>
                 <td>{{ lead.get_source_display }}</td>
                 <td>{{ lead.created_by.username|default:"—" }}</td>
-                <td>{{ lead.created_at|date:"d M Y" }}</td>
-                <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-warning">View Lead</a></td>
+                <td class="fs-num">{{ lead.created_at|date:"d M Y" }}</td>
+                <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-warning">View lead</a></td>
             </tr>
             {% endfor %}
         </tbody>

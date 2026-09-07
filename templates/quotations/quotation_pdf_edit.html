@@ -7,28 +7,28 @@
 <style>
 /* ── Page chrome ── */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: #475569; font-family: Arial, sans-serif; }
+html, body { margin: 0; padding: 0; background: #6B5F52; font-family: Arial, sans-serif; }
 
 /* ── Toolbar ── */
 .tb {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  background: #1E293B; color: #fff;
+  background: #2A231C; color: #fff;
   padding: 10px 22px;
   display: flex; align-items: center; justify-content: space-between;
   box-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
 .tb-left { display: flex; flex-direction: column; }
 .tb-title { font-size: 13px; font-weight: 700; }
-.tb-sub   { font-size: 11px; color: #94A3B8; margin-top: 2px; }
+.tb-sub   { font-size: 11px; color: #A79A89; margin-top: 2px; }
 .tb-right { display: flex; align-items: center; gap: 10px; }
 .btn-dl {
-  background: #2563EB; color: #fff; border: none;
+  background: #B8481B; color: #fff; border: none;
   padding: 8px 22px; font-size: 13px; font-weight: 600;
   border-radius: 6px; cursor: pointer; white-space: nowrap;
 }
-.btn-dl:hover { background: #1D4ED8; }
+.btn-dl:hover { background: #953A15; }
 .btn-cancel {
-  color: #94A3B8; border: 1px solid #475569; background: transparent;
+  color: #A79A89; border: 1px solid #6B5F52; background: transparent;
   padding: 8px 16px; font-size: 13px; border-radius: 6px;
   cursor: pointer; text-decoration: none; white-space: nowrap;
 }
@@ -92,8 +92,8 @@ html, body { margin: 0; padding: 0; background: #475569; font-family: Arial, san
   color: #000; padding: 0; margin: 0; outline: none;
   width: 100%; line-height: 1.4;
 }
-.e:hover  { background: rgba(37,99,235,.07); border-radius: 2px; }
-.e:focus  { background: rgba(37,99,235,.13); outline: 1px solid #2563EB; border-radius: 2px; }
+.e:hover  { background: rgba(184,72,27,.07); border-radius: 2px; }
+.e:focus  { background: rgba(184,72,27,.13); outline: 1px solid #B8481B; border-radius: 2px; }
 .e.num    { text-align: right; }
 .e.ctr    { text-align: center; }
 .e.bold   { font-weight: bold; font-size: inherit; }
@@ -102,9 +102,31 @@ html, body { margin: 0; padding: 0; background: #475569; font-family: Arial, san
 .e.ro:hover, .e.ro:focus { background: #f1f5f9 !important; outline: none; }
 textarea.e { resize: none; overflow: hidden; display: block; }
 select.e   { cursor: pointer; }
+
+/* ── Download overlay ── shown immediately on click (no anti-flicker delay —
+   this is a hard file-download action; the alternative is a frozen toolbar
+   with no feedback while WeasyPrint renders server-side). Hidden again once
+   the download-ready cookie appears (see downloadPDF() below), with a
+   generous fallback timeout as a safety net. */
+#dl-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(30,41,59,.82); backdrop-filter: blur(2px);
+    flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    color: #fff;
+}
+#dl-overlay.active { display: flex; }
+#dl-overlay .spinner-border { color: #B8481B; width: 2.5rem; height: 2.5rem; }
+#dl-overlay-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.92); }
 </style>
 </head>
 <body>
+
+<!-- ════ DOWNLOAD OVERLAY ════ -->
+<div id="dl-overlay" role="status" aria-live="polite" tabindex="-1">
+    <div class="spinner-border" role="status"></div>
+    <div id="dl-overlay-label">Preparing PDF…</div>
+</div>
 
 <!-- ════ TOOLBAR ════ -->
 <div class="tb">
@@ -431,6 +453,39 @@ function downloadPDF() {
     el.removeAttribute('readonly');
     el.setAttribute('data-was-ro', '1');
   });
+
+  // Full-viewport overlay, shown immediately (a plain form download has no
+  // JS "response received" hook of its own to defer on). Hidden again once
+  // the fs_pdf_ready cookie set by the server response appears, polled via
+  // a small interval, with a fallback timeout as a safety net.
+  const token = String(Date.now());
+  const tokenInput = document.getElementById('dl-token-input') || (() => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'dl_token'; inp.id = 'dl-token-input';
+    document.getElementById('pdf-form').appendChild(inp);
+    return inp;
+  })();
+  tokenInput.value = token;
+
+  const dlOverlay = document.getElementById('dl-overlay');
+  dlOverlay.classList.add('active');
+  dlOverlay.focus();
+
+  let elapsed = 0;
+  const poll = setInterval(() => {
+    elapsed += 250;
+    const match = document.cookie.split('; ').find(c => c.startsWith('fs_pdf_ready='));
+    if (match && decodeURIComponent(match.split('=')[1]) === token) {
+      document.cookie = 'fs_pdf_ready=; Max-Age=0; path=/';
+      document.getElementById('dl-overlay').classList.remove('active');
+      clearInterval(poll);
+    } else if (elapsed >= 20000) {
+      // Fallback safety net — download almost certainly finished by now.
+      document.getElementById('dl-overlay').classList.remove('active');
+      clearInterval(poll);
+    }
+  }, 250);
+
   document.getElementById('pdf-form').submit();
 }
 

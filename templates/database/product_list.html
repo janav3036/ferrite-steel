@@ -1,21 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Products — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .fs-filterbar {
+        display: flex; flex-wrap: wrap; align-items: end; gap: 10px;
+        background: var(--card-bg-tint);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+    }
+    .fs-filterbar .fld label {
+        display: block; font-size: .68rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: .06em; color: var(--muted); margin-bottom: 3px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3 page-hdr">
-        <h4 class="mb-0">Product Catalog</h4>
-        <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">+ Add Product</a>
+    <div class="d-flex justify-content-between align-items-center page-hdr">
+        <div>
+            <span class="fs-eyebrow">Database / Catalog</span>
+            <h4 class="mb-0">Products</h4>
+        </div>
+        <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">+ Add product</a>
+    </div>
+    <div class="fs-metastrip mb-3">
+        <span><strong>{{ total_count }}</strong> product{{ total_count|pluralize }}</span>
+        {% if page_obj.paginator.num_pages > 1 %}<span>page <strong>{{ page_obj.number }}</strong> of {{ page_obj.paginator.num_pages }}</span>{% endif %}
+        {% if status == "active" or not status %}<span>showing active only</span>{% endif %}
     </div>
 
-    <form method="get" class="row g-2 mb-3 align-items-end">
-        <div class="col-md-4">
-            <label class="form-label small mb-1">Search</label>
+    <form method="get" class="fs-filterbar mb-3">
+        <div class="fld" style="min-width:240px;flex:2;">
+            <label>Search</label>
             <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
                    placeholder="Item no, product name, HSN code…">
         </div>
-        <div class="col-auto">
-            <label class="form-label small mb-1">Category</label>
+        <div class="fld">
+            <label>Category</label>
             <select name="category" class="form-select form-select-sm">
                 <option value="">All</option>
                 {% for value, label in category_choices %}
@@ -24,8 +48,8 @@
                 <option value="none" {% if category == "none" %}selected{% endif %}>Unclassified</option>
             </select>
         </div>
-        <div class="col-auto">
-            <label class="form-label small mb-1">Unit</label>
+        <div class="fld">
+            <label>Unit</label>
             <select name="unit" class="form-select form-select-sm">
                 <option value="">All</option>
                 {% for value, label in unit_choices %}
@@ -33,32 +57,28 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-auto">
-            <label class="form-label small mb-1">Status</label>
+        <div class="fld">
+            <label>Status</label>
             <select name="status" class="form-select form-select-sm">
                 <option value="active" {% if status == "active" %}selected{% endif %}>Active</option>
                 <option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option>
                 <option value="all" {% if status == "all" %}selected{% endif %}>All</option>
             </select>
         </div>
-        <div class="col-auto">
+        <div class="fld d-flex gap-1">
             <button type="submit" class="btn btn-outline-primary btn-sm">Apply</button>
-        </div>
-        {% if q or category or unit or status != "active" %}
-        <div class="col-auto">
+            {% if q or category or unit or status != "active" %}
             <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+            {% endif %}
         </div>
-        {% endif %}
     </form>
-
-    <p class="text-muted small mb-2">{{ total_count }} product{{ total_count|pluralize }}{% if page_obj.paginator.num_pages > 1 %} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}{% endif %}</p>
 
     <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th style="width:120px">Item No.</th>
-                    <th>Product Name</th>
+                    <th style="width:120px">Item no.</th>
+                    <th>Product name</th>
                     <th style="width:110px">HSN</th>
                     <th style="width:90px">Category</th>
                     <th style="width:80px">Unit</th>
@@ -70,13 +90,13 @@
             <tbody>
                 {% for product in page_obj %}
                 <tr class="product-row" style="cursor:pointer" onclick="window.location='{% url 'product_edit' product.pk %}'">
-                    <td>{{ product.item_no|default:"—" }}</td>
+                    <td class="fs-id">{{ product.item_no|default:"—" }}</td>
                     <td class="fw-semibold">{{ product.product_name }}</td>
-                    <td class="text-muted small">{{ product.hsn_code|default:"—" }}</td>
+                    <td class="fs-id text-muted small">{{ product.hsn_code|default:"—" }}</td>
                     <td>{{ product.get_category_display|default:"—" }}</td>
                     <td>{{ product.get_unit_display }}</td>
-                    <td class="text-end fw-semibold">₹{{ product.effective_rate|floatformat:2 }}</td>
-                    <td class="text-end text-muted small">{{ product.quantity|floatformat:3 }}</td>
+                    <td class="text-end fw-semibold fs-num">₹{{ product.effective_rate|floatformat:2 }}</td>
+                    <td class="text-end text-muted small fs-num">{{ product.quantity|floatformat:3 }}</td>
                     <td class="text-nowrap" onclick="event.stopPropagation()">
                         <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-secondary btn-sm me-1">Edit</a>
                         <form method="post" action="{% url 'product_delete' product.pk %}" class="d-inline"
@@ -87,7 +107,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-3">No products found.</td></tr>
+                <tr><td colspan="8" class="text-center text-muted py-3">No products match these filters.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

@@ -6,291 +6,266 @@
     <title>Sign In — Ferrite Steel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <style>
+        /* ── Login — "Sign-in manifest" ──
+           The prior pass was a stock 44/56 dark-brand-panel / white-form
+           split — the single most common SaaS auth layout, just recolored.
+           This version drops the split entirely: one centered document,
+           built like a mill certificate — heavy top rule, registration
+           ticks at the corners, mono ledger footer — so it reads as an
+           access credential for an industrial system rather than a
+           marketing sign-up card. */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DM Sans', system-ui, sans-serif; background: #EDF1F8; }
-
-        @keyframes panelIn {
-            from { opacity: 0; transform: translateX(12px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-
-        .auth-wrap { min-height: 100vh; display: flex; }
-
-        /* ── Brand panel ── */
-        .auth-brand {
-            width: 44%;
-            background: #080F1C;
-            display: flex;
-            flex-direction: column;
-            padding: 52px 48px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Grid dot pattern */
-        .auth-brand::before {
-            content: '';
-            position: absolute; inset: 0;
-            background-image: radial-gradient(circle, rgba(255,255,255,.045) 1px, transparent 1px);
-            background-size: 28px 28px;
-            pointer-events: none;
-        }
-
-        /* Blue glow */
-        .auth-brand::after {
-            content: '';
-            position: absolute;
-            width: 560px; height: 560px;
-            background: radial-gradient(circle, rgba(37,99,235,.18) 0%, transparent 65%);
-            bottom: -180px; right: -160px;
-            pointer-events: none;
-        }
-
-        /* Diagonal accent stripe */
-        .auth-brand-stripe {
-            position: absolute;
-            top: -60px; right: -80px;
-            width: 220px; height: 600px;
-            background: linear-gradient(180deg, rgba(37,99,235,.06) 0%, transparent 70%);
-            transform: rotate(-18deg);
-            pointer-events: none;
-        }
-
-        .brand-content {
-            position: relative; z-index: 1;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .brand-mark {
-            width: 46px; height: 46px;
-            background: #2563EB;
-            border-radius: 11px;
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'Outfit', sans-serif;
-            font-size: .82rem; font-weight: 700; color: white;
-            letter-spacing: .04em;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 16px rgba(37,99,235,.4);
-        }
-
-        .brand-name {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.8rem; font-weight: 700;
-            color: white;
-            letter-spacing: -.04em;
-            line-height: 1.1;
-            margin-bottom: 8px;
-        }
-
-        .brand-tagline {
-            color: rgba(255,255,255,.38);
-            font-size: .83rem;
-            line-height: 1.6;
-            margin-bottom: 40px;
-        }
-
-        /* Feature list */
-        .brand-features { display: flex; flex-direction: column; gap: 14px; }
-        .brand-feat {
-            display: flex; align-items: center; gap: 12px;
-        }
-        .brand-feat-icon {
-            width: 30px; height: 30px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.08);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: .82rem;
-            color: #60A5FA;
-            flex-shrink: 0;
-        }
-        .brand-feat-text {
-            font-size: .82rem;
-            color: rgba(255,255,255,.52);
-            line-height: 1.4;
-        }
-        .brand-feat-text strong {
-            color: rgba(255,255,255,.78);
-            font-weight: 500;
-        }
-
-        .brand-footer {
-            position: relative; z-index: 1;
-            color: rgba(255,255,255,.18);
-            font-size: .72rem;
-        }
-
-        /* ── Form panel ── */
-        .auth-form-side {
-            flex: 1;
+        html { background: #EFE9DA; }
+        body {
+            font-family: 'Manrope', system-ui, sans-serif;
+            background: #EFE9DA;
+            background-image:
+                radial-gradient(circle, rgba(34,25,18,.05) 1px, transparent 1px);
+            background-size: 26px 26px;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #EDF1F8;
-            padding: 48px 40px;
+            padding: 40px 20px;
         }
-        .auth-box {
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .sheet {
             width: 100%;
-            max-width: 360px;
-            animation: panelIn .28s ease both .05s;
+            max-width: 420px;
+            animation: cardIn .32s ease both;
         }
 
-        .auth-card {
-            background: #FFFFFF;
-            border: 1px solid #E1E9F0;
-            border-radius: 14px;
-            padding: 32px 30px;
-            box-shadow: 0 2px 8px rgba(15,23,42,.06), 0 8px 32px rgba(15,23,42,.04);
+        /* Compact inline brand bar — replaces the old vertical stacked
+           brand block; sits above the certificate, not inside a colored
+           panel next to it. */
+        .sheet-brand {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px;
+            padding: 0 4px;
+        }
+        .sheet-brand .mark {
+            width: 30px; height: 30px;
+            background: #B8481B;
+            border-radius: var(--r-tight, 4px);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Big Shoulders Display', sans-serif;
+            font-size: .72rem; font-weight: 700; color: #fff;
+            flex-shrink: 0;
+        }
+        .sheet-brand .name {
+            font-family: 'Big Shoulders Display', sans-serif;
+            font-size: 1.02rem; font-weight: 700;
+            letter-spacing: .01em;
+            text-transform: uppercase;
+            color: #221D18;
+        }
+        .sheet-brand .sys {
+            margin-left: auto;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: .64rem; letter-spacing: .06em;
+            color: #A79A89;
+            text-transform: uppercase;
         }
 
-        .auth-card h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.38rem; font-weight: 700;
-            letter-spacing: -.03em;
-            color: #0F172A;
+        /* The certificate card itself */
+        .cert {
+            position: relative;
+            background: #FFFDF8;
+            border: 1px solid #DED4BC;
+            border-top: 4px solid #221D18;
+            padding: 30px 30px 26px;
+            box-shadow: 0 1px 2px rgba(34,25,18,.05), 0 18px 40px -14px rgba(34,25,18,.16);
+        }
+        /* Registration ticks — a light nod to technical-document framing,
+           kept small and quiet rather than a full brutalist crosshair set. */
+        .cert::before, .cert::after,
+        .cert .tick-bl, .cert .tick-br {
+            content: '';
+            position: absolute;
+            width: 9px; height: 9px;
+            border-color: #C9BFAE;
+        }
+        .cert::before      { top: -1px; left: -1px; border-top: 2px solid #221D18; border-left: 2px solid #221D18; }
+        .cert::after        { top: -1px; right: -1px; border-top: 2px solid #221D18; border-right: 2px solid #221D18; }
+        .cert .tick-bl      { position: absolute; bottom: -1px; left: -1px; border-bottom: 2px solid #DED4BC; border-left: 2px solid #DED4BC; }
+        .cert .tick-br      { position: absolute; bottom: -1px; right: -1px; border-bottom: 2px solid #DED4BC; border-right: 2px solid #DED4BC; }
+
+        .cert-kicker {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: .66rem; font-weight: 500;
+            letter-spacing: .12em; text-transform: uppercase;
+            color: #B8481B;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .cert h1 {
+            font-family: 'Big Shoulders Display', sans-serif;
+            font-size: 1.55rem; font-weight: 700;
+            letter-spacing: -.01em;
+            color: #221D18;
             margin-bottom: 4px;
         }
-        .auth-sub { color: #64748B; font-size: .83rem; margin-bottom: 26px; }
+        .cert-sub { color: #7C7167; font-size: .82rem; margin-bottom: 22px; line-height: 1.5; }
 
-        .form-label { font-size: .82rem; font-weight: 500; color: #334155; margin-bottom: 5px; display: block; }
-        .form-control {
-            font-family: 'DM Sans', sans-serif;
-            font-size: .87rem;
-            border: 1px solid #E1E9F0;
-            border-radius: 8px;
-            padding: 10px 13px;
-            color: #0F172A;
+        .field { margin-bottom: 15px; }
+        .field label {
+            display: flex; align-items: baseline; justify-content: space-between;
+            font-size: .74rem; font-weight: 600; letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #4A3F34; margin-bottom: 6px;
+        }
+        .field input {
+            font-family: 'Manrope', sans-serif;
+            font-size: .88rem;
+            border: 1px solid #DED4BC;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #221D18;
             width: 100%;
             outline: none;
-            transition: border-color .15s, box-shadow .15s;
+            background: #FBF8F0;
+            transition: border-color .15s, box-shadow .15s, background .15s;
         }
-        .form-control:focus {
-            border-color: #2563EB;
-            box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+        .field input:focus {
+            border-color: #B8481B;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(184,72,27,.13);
         }
-        .mb-3 { margin-bottom: 14px; }
-        .mb-4 { margin-bottom: 20px; }
 
-        .btn-primary {
-            display: block; width: 100%;
-            background: #2563EB; border: none;
-            font-family: 'DM Sans', sans-serif;
-            font-size: .87rem; font-weight: 600;
+        .cert-submit {
+            display: flex; width: 100%; align-items: center; justify-content: center;
+            gap: 8px;
+            background: #221D18; border: none;
+            font-family: 'Manrope', sans-serif;
+            font-size: .86rem; font-weight: 700;
             padding: 11px 16px;
-            border-radius: 8px;
-            color: white;
+            border-radius: 6px;
+            color: #F5EFE4;
             cursor: pointer;
-            transition: background .15s, box-shadow .15s, transform .08s ease;
-            box-shadow: 0 1px 3px rgba(37,99,235,.3);
-            letter-spacing: -.01em;
+            margin-top: 6px;
+            transition: background .15s, transform .08s ease;
         }
-        .btn-primary:hover {
-            background: #1D4ED8;
-            box-shadow: 0 3px 10px rgba(37,99,235,.35);
-        }
-        .btn-primary:active { transform: scale(.98); }
+        .cert-submit:hover { background: #B8481B; }
+        .cert-submit:active { transform: scale(.98); }
 
-        .alert-danger {
-            background: #FEF2F2; border: 1px solid #FECACA;
-            border-radius: 8px; padding: 10px 14px;
-            font-size: .82rem; color: #B91C1C;
-            margin-bottom: 18px;
+        .cert-alert {
+            background: #FBEAE7; border: 1px solid #EBC3BC;
+            border-radius: 6px; padding: 9px 12px;
+            font-size: .8rem; color: #7E281E;
+            margin-bottom: 16px;
+            display: flex; gap: 7px; align-items: flex-start;
         }
 
-        .auth-links { margin-top: 18px; text-align: center; }
-        .auth-links a {
-            font-size: .8rem; color: #64748B;
-            text-decoration: none; display: block; margin-bottom: 6px;
+        .cert-foot {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px dashed #DED4BC;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 8px;
         }
-        .auth-links a:hover { color: #2563EB; }
-        .auth-links a.dimmer { color: #94A3B8; }
+        .cert-foot a { font-size: .78rem; color: #7C7167; text-decoration: none; }
+        .cert-foot a:hover { color: #B8481B; text-decoration: underline; }
+        .cert-foot a.dimmer { color: #A79A89; }
 
-        /* Divider */
-        .auth-divider {
-            height: 1px;
-            background: #E1E9F0;
-            margin: 22px 0;
+        /* Capability strip — replaces the old vertical icon+text sidebar
+           list; sits *below* the certificate as three quiet columns
+           instead of stacked rows inside the dark panel. */
+        .capstrip {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            background: #DED4BC;
+            margin-top: 14px;
+            border: 1px solid #DED4BC;
+        }
+        .capstrip > div {
+            background: #F5F0E4;
+            padding: 12px 10px;
+            text-align: center;
+        }
+        .capstrip .ci { font-size: 1rem; color: #B8481B; margin-bottom: 5px; }
+        .capstrip .ct {
+            font-size: .68rem; font-weight: 600; color: #4A3F34;
+            letter-spacing: .01em; line-height: 1.3;
         }
 
-        @media (max-width: 640px) {
-            .auth-brand { display: none; }
-            .auth-form-side { background: white; }
-            .auth-card { border: none; box-shadow: none; padding: 28px 20px; }
+        .page-foot {
+            text-align: center;
+            margin-top: 16px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: .64rem; letter-spacing: .04em;
+            color: #A79A89;
         }
     </style>
 </head>
 <body>
-    <div class="auth-wrap">
-        <div class="auth-brand">
-            <div class="auth-brand-stripe"></div>
-
-            <div class="brand-content">
-                <div class="brand-mark">FS</div>
-                <div class="brand-name">Ferrite Steel</div>
-                <p class="brand-tagline">Distribution Management System</p>
-
-                <div class="brand-features">
-                    <div class="brand-feat">
-                        <div class="brand-feat-icon"><i class="bi bi-file-earmark-text"></i></div>
-                        <div class="brand-feat-text"><strong>AI Quotation Engine</strong><br>Draft quotations from leads automatically</div>
-                    </div>
-                    <div class="brand-feat">
-                        <div class="brand-feat-icon"><i class="bi bi-envelope"></i></div>
-                        <div class="brand-feat-text"><strong>Live Email Pipeline</strong><br>Inbound inquiries processed in real time</div>
-                    </div>
-                    <div class="brand-feat">
-                        <div class="brand-feat-icon"><i class="bi bi-book"></i></div>
-                        <div class="brand-feat-text"><strong>Training &amp; Knowledge Base</strong><br>Cases, quizzes, and RAG Q&amp;A</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="brand-footer">© Ferrite Steel &amp; Distributions</div>
+    <div class="sheet">
+        <div class="sheet-brand">
+            <div class="mark">FS</div>
+            <div class="name">Ferrite Steel</div>
+            <div class="sys">CRM · SIGN-IN</div>
         </div>
 
-        <div class="auth-form-side">
-            <div class="auth-box">
-                <div class="auth-card">
-                    <h2>Sign in</h2>
-                    <p class="auth-sub">Enter your credentials to continue.</p>
+        <div class="cert">
+            <span class="tick-bl"></span><span class="tick-br"></span>
+            <span class="cert-kicker">Restricted access · staff only</span>
+            <h1>Sign in</h1>
+            <p class="cert-sub">Enter your staff credentials to open the distribution system.</p>
 
-                    {% if form.errors %}
-                    <div class="alert-danger">
-                        <i class="bi bi-exclamation-circle me-1"></i>
-                        Invalid username or password. Please try again.
-                    </div>
-                    {% endif %}
+            {% if form.errors %}
+            <div class="cert-alert">
+                <i class="bi bi-exclamation-circle mt-1"></i>
+                <span>That username and password combination wasn't recognized. Check for typos and try again.</span>
+            </div>
+            {% endif %}
 
-                    <form method="POST">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" name="username" class="form-control" placeholder="Enter username" autofocus required>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" placeholder="Enter password" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Sign in →</button>
-                    </form>
-
-                    <div class="auth-divider"></div>
-
-                    <div class="auth-links">
-                        <a href="{% url 'register' %}">New employee? Request an account</a>
-                        <a href="{% url 'password_reset' %}" class="dimmer">Forgot password?</a>
-                    </div>
+            <form method="POST">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="id_username">Username</label>
+                    <input type="text" id="id_username" name="username" placeholder="e.g. j.shah" autofocus required>
                 </div>
+                <div class="field">
+                    <label for="id_password">
+                        <span>Password</span>
+                        <a href="{% url 'password_reset' %}" style="font-size:.68rem;font-weight:500;text-transform:none;color:#A79A89;">forgot?</a>
+                    </label>
+                    <input type="password" id="id_password" name="password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="cert-submit">Sign in <i class="bi bi-arrow-right"></i></button>
+            </form>
+
+            <div class="cert-foot">
+                <a href="{% url 'register' %}"><i class="bi bi-person-plus me-1"></i>New employee? Request an account</a>
             </div>
         </div>
+
+        <div class="capstrip">
+            <div>
+                <div class="ci"><i class="bi bi-file-earmark-text"></i></div>
+                <div class="ct">AI quotation<br>drafting</div>
+            </div>
+            <div>
+                <div class="ci"><i class="bi bi-envelope"></i></div>
+                <div class="ct">Live email<br>intake</div>
+            </div>
+            <div>
+                <div class="ci"><i class="bi bi-book"></i></div>
+                <div class="ct">Training &amp;<br>case Q&amp;A</div>
+            </div>
+        </div>
+
+        <div class="page-foot">© FERRITE STEEL &amp; DISTRIBUTIONS — INTERNAL SYSTEM</div>
     </div>
 </body>
 </html>

@@ -1,22 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Edit {{ customer.name }} — Ferrite Steel{% endblock %}
 
+{% block extra_head %}
+<style>
+    .fs-formsec .card-header { font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; color: var(--muted); background: var(--card-bg); }
+    .fs-actionbar {
+        position: sticky; bottom: 0;
+        background: color-mix(in srgb, var(--page-bg) 92%, transparent);
+        backdrop-filter: blur(3px);
+        border-top: 1px solid var(--border);
+        padding: 14px 2px 22px;
+        display: flex; gap: 8px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4" style="max-width: 860px;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Edit Customer</h4>
+<div class="container mt-4" style="max-width: 900px;">
+    <div class="page-hdr d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="fs-eyebrow">Database / Accounts</span>
+            <h4 class="mb-0">Edit {{ customer.name }}</h4>
+        </div>
         <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-secondary btn-sm">← Back</a>
     </div>
 
     <form method="post" id="customer-form">
         {% csrf_token %}
 
-        <div class="card mb-4">
-            <div class="card-header fw-semibold">Identity</div>
+        <div class="card fs-formsec mb-3">
+            <div class="card-header">01 · Identity &amp; contact</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">Customer Code</label>
+                        <label class="form-label">Customer code</label>
                         {{ form.customer_code }}
                         {% if form.customer_code.errors %}<div class="text-danger small">{{ form.customer_code.errors.0 }}</div>{% endif %}
                     </div>
@@ -38,63 +55,63 @@
                         {{ form.email }}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">GST Number</label>
+                        <label class="form-label">GST number</label>
                         {{ form.gst_number }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header fw-semibold">Addresses</div>
+        <div class="card fs-formsec mb-3">
+            <div class="card-header">02 · Addresses</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Billing Address</label>
+                        <label class="form-label">Billing address</label>
                         {{ form.billing_address }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Shipping Address</label>
+                        <label class="form-label">Shipping address</label>
                         {{ form.shipping_address }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header fw-semibold">Commercial</div>
+        <div class="card fs-formsec mb-3">
+            <div class="card-header">03 · Commercial terms</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label">Payment Terms</label>
+                        <label class="form-label">Payment terms</label>
                         {{ form.payment_terms }}
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Transport Extra (₹/T)</label>
+                        <label class="form-label">Transport extra (₹/T)</label>
                         {{ form.transport_extra }}
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Loading Rate (₹/T)</label>
+                        <label class="form-label">Loading rate (₹/T)</label>
                         {{ form.loading_rate }}
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Handling Team</label>
+                        <label class="form-label">Handling team</label>
                         {{ form.handling_team }}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Relationship Manager</label>
+                        <label class="form-label">Relationship manager</label>
                         {{ form.rm }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header fw-semibold">Customer History & Competitors</div>
+        <div class="card fs-formsec mb-3">
+            <div class="card-header">04 · History &amp; competitors</div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Customer History <small class="text-muted">(AI context)</small></label>
+                        <label class="form-label">Customer history <small class="text-muted fw-normal">(used as AI context)</small></label>
                         {{ form.customer_history }}
                     </div>
                     <div class="col-md-6">
@@ -105,8 +122,8 @@
             </div>
         </div>
 
-        <div class="d-flex gap-2 mb-5">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
+        <div class="fs-actionbar">
+            <button type="submit" class="btn btn-primary">Save changes</button>
             <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-secondary">Cancel</a>
         </div>
     </form>

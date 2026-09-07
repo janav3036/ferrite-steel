@@ -8,55 +8,61 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Stat cards ── */
-    .stat-card {
+    /* ── Stat ledger ──
+       Replaces four separate boxed stat cards (the most generic dashboard
+       pattern — equal cards in a row) with one continuous strip: a single
+       bordered panel divided by hairlines, each segment carrying an icon,
+       label and a big tabular number. Reads as one instrument panel rather
+       than four unrelated tiles, and the accent lives on the icon chip
+       only — not a full-width color bar per card. */
+    .stat-ledger {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         background: var(--card-bg);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 20px 22px 18px;
-        box-shadow: var(--shadow-sm);
-        position: relative;
+        box-shadow: var(--shadow-xs);
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
     }
-    .stat-card::after {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        border-radius: var(--radius) var(--radius) 0 0;
+    .stat-seg {
+        display: flex; align-items: center; gap: 12px;
+        padding: 18px 18px;
+        border-right: 1px solid var(--border);
+        position: relative;
     }
-    .stat-card.c-default::after { background: #CBD5E1; }
-    .stat-card.c-warning::after { background: #F59E0B; }
-    .stat-card.c-success::after { background: #22C55E; }
-    .stat-card.c-accent::after  { background: var(--accent); }
+    .stat-seg:last-child { border-right: none; }
 
     .stat-icon {
-        width: 36px; height: 36px;
-        border-radius: 9px;
+        width: 34px; height: 34px;
+        border-radius: var(--radius-sm);
         display: flex; align-items: center; justify-content: center;
-        font-size: 1rem;
+        font-size: .95rem;
         flex-shrink: 0;
     }
-    .stat-card.c-default .stat-icon { background: #F1F5F9; color: #64748B; }
-    .stat-card.c-warning .stat-icon { background: #FEF9C3; color: #B45309; }
-    .stat-card.c-success .stat-icon { background: #DCFCE7; color: #15803D; }
-    .stat-card.c-accent  .stat-icon { background: #EFF6FF; color: var(--accent); }
+    .stat-seg.c-default .stat-icon { background: #F1ECDF; color: #7C7167; }
+    .stat-seg.c-warning .stat-icon { background: #FAF0DA; color: #7A4E0E; }
+    .stat-seg.c-success .stat-icon { background: #E4F0E7; color: #275735; }
+    .stat-seg.c-accent  .stat-icon { background: #F7E7DD; color: var(--accent); }
 
-    .stat-body { display: flex; align-items: flex-end; justify-content: space-between; }
-    .stat-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 4px; }
+    .stat-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 2px; }
     .stat-value {
-        font-family: 'Outfit', sans-serif;
-        font-size: 2.1rem; font-weight: 700;
-        letter-spacing: -.05em; line-height: 1;
+        font-family: 'Big Shoulders Display', sans-serif;
+        font-size: 1.85rem; font-weight: 700;
+        letter-spacing: -.02em; line-height: 1;
         color: var(--text);
         animation: countUp .3s ease both;
+        font-variant-numeric: tabular-nums;
     }
-    .stat-card.c-accent .stat-value { color: var(--accent); }
-    .stat-card.c-success .stat-value { color: #16A34A; }
-    .stat-card.c-warning .stat-value { color: #D97706; }
+    .stat-seg.c-accent .stat-value { color: var(--accent); }
+    .stat-seg.c-success .stat-value { color: #275735; }
+    .stat-seg.c-warning .stat-value { color: #8A5A0F; }
+
+    @media (max-width: 767.98px) {
+        .stat-ledger { grid-template-columns: repeat(2, 1fr); }
+        .stat-seg:nth-child(2) { border-right: none; }
+        .stat-seg { border-bottom: 1px solid var(--border); padding: 14px; }
+        .stat-seg:nth-last-child(-n+2) { border-bottom: none; }
+    }
 
     /* ── Notification panel ── */
     .notif-panel {
@@ -77,8 +83,8 @@
         flex-shrink: 0;
     }
     .notif-panel-title {
-        font-family: 'Outfit', sans-serif;
-        font-size: .875rem; font-weight: 600;
+        font-family: 'Manrope', sans-serif;
+        font-size: .875rem; font-weight: 800;
         letter-spacing: -.01em;
     }
     .notif-panel-body  { overflow-y: auto; flex: 1; }
@@ -91,9 +97,9 @@
         transition: background var(--t);
     }
     .np-item:last-child { border-bottom: none; }
-    .np-item:hover { background: #F8FAFC; text-decoration: none; }
-    .np-item.unread { background: #F0F7FF; }
-    .np-item.unread:hover { background: #E8F2FF; }
+    .np-item:hover { background: var(--card-bg-tint); text-decoration: none; }
+    .np-item.unread { background: #FBF0E7; }
+    .np-item.unread:hover { background: #F7E7D8; }
 
     .np-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
     .np-dot.read { background: transparent; }
@@ -103,20 +109,20 @@
         display: flex; align-items: center; justify-content: center;
         font-size: .82rem; flex-shrink: 0;
     }
-    .icon-lead_created       { background: #EFF6FF; color: #2563EB; }
-    .icon-quotation_approved { background: #F0FDF4; color: #15803D; }
-    .icon-quotation_win      { background: #F0FDF4; color: #15803D; }
-    .icon-quotation_loss     { background: #FEF2F2; color: #DC2626; }
-    .icon-case_created       { background: #FFF7ED; color: #C2410C; }
-    .icon-market_confirmed   { background: #DBEAFE; color: #1D4ED8; }
-    .icon-market_do_pending  { background: #EDE9FE; color: #6D28D9; }
-    .icon-market_completed   { background: #DCFCE7; color: #15803D; }
-    .icon-credit_high_risk   { background: #FEF2F2; color: #DC2626; }
-    .icon-general            { background: #F1F5F9; color: #475569; }
+    .icon-lead_created       { background: #F7E7DD; color: #B8481B; }
+    .icon-quotation_approved { background: #E4F0E7; color: #275735; }
+    .icon-quotation_win      { background: #E4F0E7; color: #275735; }
+    .icon-quotation_loss     { background: #FBEAE7; color: #B23A2E; }
+    .icon-case_created       { background: #F3E3C2; color: #7A4E0E; }
+    .icon-market_confirmed   { background: #DCE7EE; color: #3E6E8E; }
+    .icon-market_do_pending  { background: #E9E1F0; color: #6D4E9C; }
+    .icon-market_completed   { background: #E4F0E7; color: #275735; }
+    .icon-credit_high_risk   { background: #FBEAE7; color: #B23A2E; }
+    .icon-general            { background: #F1ECDF; color: #6B5F52; }
 
     .np-title { font-size: .83rem; font-weight: 600; color: var(--text); line-height: 1.35; }
     .np-msg   { font-size: .77rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
-    .np-time  { font-size: .69rem; color: #94A3B8; margin-top: 3px; }
+    .np-time  { font-size: .69rem; color: #A79A89; margin-top: 3px; }
 
     /* ── Weekly breakdown card ── */
     .breakdown-row {
@@ -129,12 +135,13 @@
     }
     .breakdown-row:last-child { border-bottom: none; }
     .breakdown-row .bd-label { color: var(--muted); }
-    .breakdown-row .bd-val { font-weight: 600; color: var(--text); font-family: 'Outfit', sans-serif; font-size: .92rem; }
+    .breakdown-row .bd-val { font-weight: 700; color: var(--text); font-family: 'Big Shoulders Display', sans-serif; font-size: 1rem; }
 
-    /* ── Market orders card ── */
+    /* ── Market orders card — dark graphite-to-ember gradient, matching the
+       core sidebar's material rather than the old navy-to-brown mix. ── */
     .market-card {
-        background: linear-gradient(135deg, #0F172A 0%, #1E1208 100%);
-        border: 1px solid rgba(255,210,150,.1);
+        background: linear-gradient(135deg, #1E1913 0%, #2A1608 100%);
+        border: 1px solid rgba(242,147,77,.14);
         border-radius: var(--radius);
         box-shadow: var(--shadow-sm);
         overflow: hidden;
@@ -142,21 +149,21 @@
     }
     .market-card-hdr {
         padding: 14px 18px;
-        border-bottom: 1px solid rgba(255,210,150,.08);
+        border-bottom: 1px solid rgba(242,147,77,.1);
         display: flex; align-items: center; gap: 9px;
     }
     .market-card-hdr .mci {
         width: 28px; height: 28px;
-        background: rgba(240,160,80,.15);
+        background: rgba(242,147,77,.16);
         border-radius: 7px;
         display: flex; align-items: center; justify-content: center;
         font-size: .8rem;
-        color: #F0A050;
+        color: #F2934D;
     }
     .market-card-hdr span {
-        font-family: 'Outfit', sans-serif;
-        font-size: .84rem; font-weight: 600;
-        color: rgba(255,232,200,.88);
+        font-family: 'Manrope', sans-serif;
+        font-size: .84rem; font-weight: 700;
+        color: rgba(245,235,222,.9);
         letter-spacing: -.01em;
     }
     .market-card-body { padding: 14px 18px; display: flex; gap: 8px; flex-wrap: wrap; }
@@ -166,22 +173,25 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
+        <span class="fs-eyebrow">Overview</span>
         <h4 class="mb-0">Dashboard</h4>
-        <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Welcome back, {{ request.user.get_full_name|default:request.user.username }}</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Welcome back, {{ request.user.get_full_name|default:request.user.username }} — here's where the pipeline stands.</div>
     </div>
-    <div class="d-flex gap-2">
+    <div class="fs-toolbar">
         {% if request.user.team == 'market' or request.user.role == 'admin' %}
-        <a href="{% url 'market_order_create' %}" class="btn btn-outline-dark btn-sm">+ Market Order</a>
+        <a href="{% url 'market_order_create' %}" class="btn btn-outline-dark btn-sm">+ Market order</a>
         {% endif %}
-        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm">+ New Lead</a>
-        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary btn-sm">+ New Quotation</a>
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm">+ New lead</a>
+        <span class="fs-toolbar-div"></span>
+        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary btn-sm">+ New quotation</a>
     </div>
 </div>
 
 {% if request.user.role == 'admin' %}
-<form method="get" class="d-flex align-items-center gap-2 mb-4">
+<form method="get" class="d-flex align-items-center gap-2 mt-3">
+    <label class="text-muted small mb-0" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;">Scope</label>
     <select name="team" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-        <option value="">All Teams</option>
+        <option value="">All teams</option>
         {% for val, label in team_choices %}
         <option value="{{ val }}" {% if team_f == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -192,42 +202,34 @@
 </form>
 {% endif %}
 
-<!-- Stats row -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
-        <div class="stat-card c-default">
-            <div class="stat-icon"><i class="bi bi-funnel"></i></div>
-            <div>
-                <div class="stat-label">Leads this week</div>
-                <div class="stat-value">{{ total_leads }}</div>
-            </div>
+<!-- Stat ledger — one instrument panel instead of four boxed cards -->
+<div class="stat-ledger mt-4 mb-4">
+    <div class="stat-seg c-default">
+        <div class="stat-icon"><i class="bi bi-funnel"></i></div>
+        <div>
+            <div class="stat-label">Leads this week</div>
+            <div class="stat-value">{{ total_leads }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="stat-card c-warning">
-            <div class="stat-icon"><i class="bi bi-clock"></i></div>
-            <div>
-                <div class="stat-label">Processing</div>
-                <div class="stat-value">{{ leads_processing }}</div>
-            </div>
+    <div class="stat-seg c-warning">
+        <div class="stat-icon"><i class="bi bi-clock"></i></div>
+        <div>
+            <div class="stat-label">Processing</div>
+            <div class="stat-value">{{ leads_processing }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="stat-card c-success">
-            <div class="stat-icon"><i class="bi bi-file-earmark-check"></i></div>
-            <div>
-                <div class="stat-label">Quoted</div>
-                <div class="stat-value">{{ leads_quoted }}</div>
-            </div>
+    <div class="stat-seg c-success">
+        <div class="stat-icon"><i class="bi bi-file-earmark-check"></i></div>
+        <div>
+            <div class="stat-label">Quoted</div>
+            <div class="stat-value">{{ leads_quoted }}</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
-        <div class="stat-card c-accent">
-            <div class="stat-icon"><i class="bi bi-send"></i></div>
-            <div>
-                <div class="stat-label">Quotations sent</div>
-                <div class="stat-value">{{ quotations_sent }}</div>
-            </div>
+    <div class="stat-seg c-accent">
+        <div class="stat-icon"><i class="bi bi-send"></i></div>
+        <div>
+            <div class="stat-label">Quotations sent</div>
+            <div class="stat-value">{{ quotations_sent }}</div>
         </div>
     </div>
 </div>
@@ -267,7 +269,7 @@
         {% else %}
         <div class="card">
             <div class="card-body py-5 text-center">
-                <i class="bi bi-graph-up-arrow" style="font-size:2rem;color:#CBD5E1;"></i>
+                <i class="bi bi-graph-up-arrow" style="font-size:2rem;color:#C9BFAE;"></i>
                 <p class="text-muted mt-3 mb-2" style="font-size:.84rem;">Your activity this week</p>
                 <p class="fw-semibold mb-0">{{ total_leads }} lead{{ total_leads|pluralize }} · {{ quotations_sent }} sent</p>
             </div>
@@ -328,7 +330,7 @@
                 <span class="notif-panel-title">
                     Notifications
                     {% if unread_notification_count > 0 %}
-                    <span style="background:#EF4444;color:white;font-size:.62rem;font-weight:700;
+                    <span style="background:#C0392B;color:white;font-size:.62rem;font-weight:700;
                                  padding:1px 7px;border-radius:100px;margin-left:6px;">
                         {{ unread_notification_count }}
                     </span>
@@ -374,7 +376,7 @@
                 {% endfor %}
                 {% else %}
                 <div class="py-5 text-center">
-                    <i class="bi bi-bell" style="font-size:1.8rem;color:#CBD5E1;display:block;margin-bottom:8px;"></i>
+                    <i class="bi bi-bell" style="font-size:1.8rem;color:#C9BFAE;display:block;margin-bottom:8px;"></i>
                     <p class="text-muted small mb-0">No notifications yet.</p>
                 </div>
                 {% endif %}

@@ -2,11 +2,11 @@
 {% block title %}New Market Order — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div style="max-width:680px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div style="max-width:680px;" class="mx-auto">
+    <div class="page-hdr d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-0">New Market Order</h4>
-            <small class="text-muted">Log an incoming broker order</small>
+            <span class="fs-eyebrow">Market / New order</span>
+            <h4 class="mb-0">Log an incoming broker order</h4>
         </div>
         <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
     </div>
@@ -22,7 +22,7 @@
                         {{ form.broker }}
                         {% for e in form.broker.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
                         <div class="form-text">
-                            <a href="{% url 'broker_create' %}" target="_blank">+ Add new broker</a>
+                            <a href="{% url 'broker_create' %}" target="_blank">+ Add new broker ↗</a>
                         </div>
                     </div>
                     <div class="col-sm-4">
@@ -33,7 +33,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Product Details <span class="text-danger">*</span></label>
+                    <label class="form-label">Product details <span class="text-danger">*</span></label>
                     {{ form.product_details }}
                     {% for e in form.product_details.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
                 </div>
@@ -49,7 +49,7 @@
                 </div>
 
                 <div class="pt-3 border-top d-flex gap-2">
-                    <button type="submit" class="btn btn-dark">Create Order</button>
+                    <button type="submit" class="btn btn-dark">Create order</button>
                     <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>

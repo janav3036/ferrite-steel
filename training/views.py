@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db.models import Count, Q
 from pgvector.django import CosineDistance
 from .models import Case, QuizSet, QuizAttempt, KnowledgeDocument, DocumentChunk, Question, QuestionAttempt
@@ -296,6 +297,7 @@ def question_practice(request, pk):
             return redirect('quiz_list')
     verdict = None
     user_answer = ''
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if request.method == 'POST':
         user_answer = request.POST.get('user_answer', '').strip()
         if user_answer:
@@ -308,6 +310,14 @@ def question_practice(request, pk):
             )
         else:
             verdict = {'correct': False, 'explanation': 'No answer provided.'}
+        if is_ajax:
+            # Minimal JSON branch — lets the answer form judge in place
+            # (button-triggered, page stays put) instead of a full reload.
+            return JsonResponse({
+                'correct': verdict['correct'],
+                'explanation': verdict['explanation'],
+                'user_answer': user_answer,
+            })
     return render(request, 'training/question_practice.html', {
         'question': question,
         'user_answer': user_answer,
@@ -429,6 +439,8 @@ def document_ask(request):
     answer = None
     question = ''
     selected_docs = []
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    error_msg = None
 
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
@@ -467,7 +479,19 @@ def document_ask(request):
                 )[:3])
                 answer = answer_question(question, chunks, cases, quiz_questions)
             except Exception as e:
-                messages.error(request, f'Could not get answer: {e}')
+                error_msg = f'Could not get answer: {e}'
+                if not is_ajax:
+                    messages.error(request, error_msg)
+
+        if is_ajax:
+            # Minimal JSON branch — lets the Ask panel redraw itself (answer,
+            # scope header, hints) via fetch instead of a full page reload.
+            return JsonResponse({
+                'question': question,
+                'answer': answer,
+                'error': error_msg,
+                'selected_docs': selected_docs,
+            })
     import json as _json
     return render(request, 'training/document_ask.html', {
         'question': question,

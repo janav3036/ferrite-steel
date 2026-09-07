@@ -1,87 +1,121 @@
 {% extends "base.html" %}
 {% block title %}New Lead — Ferrite Steel{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <h2 class="mb-4">New Lead</h2>
+{% block extra_head %}
+<style>
+    .lc-wrap { max-width: 760px; }
+    .lc-section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+    .lc-section:last-of-type { border-bottom: none; }
+    .lc-section-title {
+        font-family: var(--font-mono);
+        font-size: .68rem; font-weight: 500; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--muted);
+        margin-bottom: 12px;
+    }
+    .lc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 575.98px) { .lc-grid { grid-template-columns: 1fr; } }
+    .lc-actions {
+        display: flex; gap: 8px; align-items: center;
+        padding: 16px 20px; background: var(--card-bg-tint);
+        border-top: 1px solid var(--border);
+    }
+</style>
+{% endblock %}
 
-        <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">Find Customer</div>
-            <div class="card-body">
-                <div class="position-relative">
-                    <input type="text" id="customer-search" class="form-control"
-                           placeholder="Search by name or company…" autocomplete="off">
-                    <div id="customer-results" class="list-group position-absolute w-100 shadow"
-                         style="display:none;z-index:1050;top:calc(100% + 2px);left:0"></div>
-                </div>
-                <div class="mt-2 text-muted small">
-                    Select an existing customer to auto-fill the fields below.
-                    Customer not here?
-                    <a href="{% url 'customer_add' %}" target="_blank">Add New Customer ↗</a>
-                </div>
+{% block content %}
+<div class="lc-wrap mx-auto">
+    <div class="page-hdr mb-4">
+        <span class="fs-eyebrow">Pipeline / New lead</span>
+        <h4 class="mb-0">Log a new lead</h4>
+    </div>
+
+    <div class="card fs-card-accent mb-3">
+        <div class="card-header">Match an existing customer</div>
+        <div class="card-body">
+            <div class="position-relative">
+                <input type="text" id="customer-search" class="form-control"
+                       placeholder="Search by name or company…" autocomplete="off">
+                <div id="customer-results" class="list-group position-absolute w-100 shadow"
+                     style="display:none;z-index:1050;top:calc(100% + 2px);left:0"></div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Picking a result fills in the contact fields below automatically.
+                Don't see them? <a href="{% url 'customer_add' %}" target="_blank">Add a new customer ↗</a>
             </div>
         </div>
+    </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Lead Details</div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
+    <div class="card">
+        <div class="card-header">Lead details</div>
+        <form method="post">
+            {% csrf_token %}
 
-                    <div class="mb-3">
-                        <label for="{{ form.customer_name.id_for_label }}" class="form-label fw-semibold">{{ form.customer_name.label }}</label>
+            <div class="lc-section">
+                <div class="lc-section-title">Contact</div>
+                <div class="lc-grid">
+                    <div>
+                        <label for="{{ form.customer_name.id_for_label }}" class="form-label">{{ form.customer_name.label }}</label>
                         {{ form.customer_name }}
                         {% for error in form.customer_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.customer_phone.id_for_label }}" class="form-label fw-semibold">{{ form.customer_phone.label }}</label>
+                    <div>
+                        <label for="{{ form.customer_phone.id_for_label }}" class="form-label">{{ form.customer_phone.label }}</label>
                         {{ form.customer_phone }}
                         {% for error in form.customer_phone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.customer_email.id_for_label }}" class="form-label fw-semibold">{{ form.customer_email.label }}</label>
+                    <div>
+                        <label for="{{ form.customer_email.id_for_label }}" class="form-label">{{ form.customer_email.label }}</label>
                         {{ form.customer_email }}
                         {% for error in form.customer_email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.company.id_for_label }}" class="form-label fw-semibold">{{ form.company.label }}</label>
+                    <div>
+                        <label for="{{ form.company.id_for_label }}" class="form-label">{{ form.company.label }}</label>
                         {{ form.company }}
                         {% for error in form.company.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.industry.id_for_label }}" class="form-label fw-semibold">{{ form.industry.label }}</label>
+                </div>
+            </div>
+
+            <div class="lc-section">
+                <div class="lc-section-title">Where &amp; what</div>
+                <div class="lc-grid">
+                    <div>
+                        <label for="{{ form.industry.id_for_label }}" class="form-label">{{ form.industry.label }}</label>
                         {{ form.industry }}
                         {% for error in form.industry.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.location.id_for_label }}" class="form-label fw-semibold">{{ form.location.label }}</label>
+                    <div>
+                        <label for="{{ form.location.id_for_label }}" class="form-label">{{ form.location.label }}</label>
                         {{ form.location }}
                         {% for error in form.location.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.broker.id_for_label }}" class="form-label fw-semibold">{{ form.broker.label }}</label>
-                        {{ form.broker }}
-                        {% for error in form.broker.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-                    <div class="mb-3">
-                        <label for="{{ form.raw_text.id_for_label }}" class="form-label fw-semibold">{{ form.raw_text.label }}</label>
-                        {{ form.raw_text }}
-                        {% for error in form.raw_text.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-                    <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">{{ form.notes.label }}</label>
-                        {{ form.notes }}
-                        {% for error in form.notes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Save Lead</button>
-                        <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary">Cancel</a>
-                    </div>
-                </form>
+                </div>
+                <div class="mt-3">
+                    <label for="{{ form.broker.id_for_label }}" class="form-label">{{ form.broker.label }} <span class="text-muted fw-normal">(only if sourced via a broker)</span></label>
+                    {{ form.broker }}
+                    {% for error in form.broker.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                </div>
             </div>
-        </div>
+
+            <div class="lc-section">
+                <div class="lc-section-title">Original enquiry</div>
+                <div class="mb-3">
+                    <label for="{{ form.raw_text.id_for_label }}" class="form-label">{{ form.raw_text.label }}</label>
+                    {{ form.raw_text }}
+                    {% for error in form.raw_text.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                </div>
+                <div>
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                    {% for error in form.notes.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="lc-actions">
+                <button type="submit" class="btn btn-primary">Create lead</button>
+                <a href="{% url 'lead_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -131,7 +165,7 @@ function renderResults(results) {
     addBtn.href = '{% url "customer_add" %}';
     addBtn.target = '_blank';
     addBtn.className = 'list-group-item list-group-item-action py-2 text-primary fw-semibold';
-    addBtn.textContent = '+ Add New Customer';
+    addBtn.textContent = '+ Add new customer';
     resultsBox.appendChild(addBtn);
 
     resultsBox.style.display = '';

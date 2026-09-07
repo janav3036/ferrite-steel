@@ -28,14 +28,7 @@
         gap: 20px;
     }
     #loading-overlay.active { display: flex; }
-    .loading-spinner {
-        width: 46px; height: 46px;
-        border: 3px solid #E8E2D8;
-        border-top-color: #C2670B;
-        border-radius: 50%;
-        animation: spin .75s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-overlay .spinner-border { color: #C2670B; width: 2.75rem; height: 2.75rem; border-width: 3px; }
     .loading-title {
         font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: #1C1917;
     }
@@ -157,8 +150,8 @@
 </div>
 
 <!-- Loading overlay -->
-<div id="loading-overlay">
-    <div class="loading-spinner"></div>
+<div id="loading-overlay" role="status" aria-live="polite" tabindex="-1">
+    <div class="spinner-border" role="status"></div>
     <div class="text-center">
         <div class="loading-title">Evaluating your answers…</div>
         <div class="loading-sub">The AI is reviewing each response. This may take a moment.</div>
@@ -233,7 +226,9 @@ function updateProgress() {
 document.getElementById('quiz-form').addEventListener('submit', function(e) {
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Submitting…';
-    document.getElementById('loading-overlay').classList.add('active');
+    const loadingOv = document.getElementById('loading-overlay');
+    loadingOv.classList.add('active');
+    loadingOv.focus();
     document.getElementById('progressFill').style.width = '100%';
 });
 </script>

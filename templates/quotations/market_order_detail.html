@@ -49,14 +49,14 @@
         border: 2px solid #BBF7D0;
     }
     .step-node.active {
-        background: #EFF6FF;
+        background: #DCE7EE;
         color: var(--accent);
-        border: 2px solid #BFDBFE;
-        box-shadow: 0 0 0 4px rgba(37,99,235,.08);
+        border: 2px solid #BBD0DB;
+        box-shadow: 0 0 0 4px rgba(184,72,27,.08);
     }
     .step-node.pending {
-        background: #F8FAFC;
-        color: #94A3B8;
+        background: #F8F4EA;
+        color: #A79A89;
         border: 2px solid var(--border);
     }
 
@@ -70,7 +70,7 @@
     }
     .step-label.done { color: #16A34A; }
     .step-label.active { color: var(--accent); }
-    .step-label.pending { color: #94A3B8; }
+    .step-label.pending { color: #A79A89; }
 
     .step-body {
         font-size: .84rem;
@@ -90,7 +90,7 @@
         font-size: .76rem;
         font-weight: 600;
         padding: 4px 12px;
-        border-radius: 100px;
+        border-radius: var(--radius-tight);
         letter-spacing: .02em;
     }
     .status-pill .dot {
@@ -98,12 +98,12 @@
         border-radius: 50%;
         flex-shrink: 0;
     }
-    .status-new        { background: #F1F5F9; color: #475569; }
-    .status-new .dot   { background: #94A3B8; }
+    .status-new        { background: #F1ECDF; color: #6B5F52; }
+    .status-new .dot   { background: #A79A89; }
     .status-rate_sent        { background: #FFFBEB; color: #92400E; }
     .status-rate_sent .dot   { background: #F59E0B; }
-    .status-broker_confirmed        { background: #EFF6FF; color: #1D4ED8; }
-    .status-broker_confirmed .dot   { background: #3B82F6; }
+    .status-broker_confirmed        { background: #DCE7EE; color: #2F5670; }
+    .status-broker_confirmed .dot   { background: #3E6E8E; }
     .status-do_pending        { background: #F5F3FF; color: #6D28D9; }
     .status-do_pending .dot   { background: #8B5CF6; }
     .status-completed        { background: #F0FDF4; color: #15803D; }
@@ -118,23 +118,26 @@
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-        <h4 class="mb-0">MO-{{ order.pk|stringformat:"05d" }}</h4>
-        <span class="status-pill status-{{ order.status }}">
-            <span class="dot"></span>
-            {{ order.get_status_display }}
-        </span>
+    <div>
+        <span class="fs-eyebrow">Market / Order</span>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <h4 class="mb-0 fs-id" style="font-family:var(--font-mono);">MO-{{ order.pk|stringformat:"05d" }}</h4>
+            <span class="status-pill status-{{ order.status }}">
+                <span class="dot"></span>
+                {{ order.get_status_display }}
+            </span>
+        </div>
     </div>
-    <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    <a href="{% url 'market_order_list' %}" class="btn btn-outline-secondary btn-sm">← Back to orders</a>
 </div>
 
 <div class="row g-4">
     <!-- Left column: details -->
     <div class="col-md-5">
-        <div class="card shadow-sm mb-4">
+        <div class="card fs-card-accent mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Order Details</span>
-                <span class="text-muted" style="font-size:.74rem;font-weight:400;">{{ order.created_at|date:"d M Y" }}</span>
+                <span>Order details</span>
+                <span class="text-muted fs-num" style="font-size:.74rem;font-weight:400;">{{ order.created_at|date:"d M Y" }}</span>
             </div>
             <div class="card-body">
                 <dl class="info-grid">
@@ -160,7 +163,7 @@
 
         {% if order.quotation %}
         <div class="card shadow-sm">
-            <div class="card-header">Linked Quotation</div>
+            <div class="card-header">Linked quotation</div>
             <div class="card-body">
                 <a href="{% url 'quotation_detail' order.quotation.pk %}" class="btn btn-sm btn-outline-primary w-100">
                     <i class="bi bi-file-text me-1"></i>{{ order.quotation }} (Internal)
@@ -173,7 +176,7 @@
     <!-- Right column: pipeline -->
     <div class="col-md-7">
         <div class="card shadow-sm">
-            <div class="card-header">Order Pipeline</div>
+            <div class="card-header">Order pipeline</div>
             <div class="card-body" style="padding: 20px 20px 16px;">
                 <ol class="pipeline">
 
@@ -196,7 +199,7 @@
                                 {% csrf_token %}
                                 <div class="d-flex gap-2 align-items-center">
                                     <div style="width:160px;">{{ rate_form.rate }}</div>
-                                    <button type="submit" class="btn btn-warning btn-sm">Send Rate</button>
+                                    <button type="submit" class="btn btn-warning btn-sm">Send rate</button>
                                 </div>
                             </form>
                             {% else %}
@@ -221,7 +224,7 @@
                             {% elif order.status == 'rate_sent' %}
                             <form method="post" action="{% url 'market_order_confirm' order.pk %}" class="mt-1">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-primary btn-sm">Mark Confirmed</button>
+                                <button type="submit" class="btn btn-primary btn-sm">Mark confirmed</button>
                             </form>
                             {% else %}
                             <div class="step-body text-muted">Awaiting rate</div>

@@ -134,7 +134,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Knowledge Base</h4>
+        <span class="fs-eyebrow" style="font-family:'Syne',sans-serif;letter-spacing:.14em;">Module 3C</span>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Knowledge base</h4>
         <small class="text-muted">Documents and text available for Q&amp;A</small>
     </div>
     <div class="d-flex gap-2">
@@ -142,11 +143,14 @@
             <i class="bi bi-stars me-1"></i>Ask a question
         </a>
         {% if perms.training.add_case %}
-        <a href="{% url 'document_create' %}" class="btn-amber">+ Add Document</a>
+        <a href="{% url 'document_create' %}" class="btn-amber">+ Add document</a>
         {% endif %}
         <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
     </div>
 </div>
+{% if docs %}
+<div class="fs-metastrip"><span><strong>{{ docs|length }}</strong> document{{ docs|length|pluralize }} in the base</span></div>
+{% endif %}
 
 {% if docs %}
 <div class="doc-grid">

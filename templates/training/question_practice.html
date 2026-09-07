@@ -121,8 +121,8 @@
         <div class="q-text">{{ question.question_text }}</div>
     </div>
 
+    <div id="verdictContainer" role="status" aria-live="polite">
     {% if verdict %}
-
     <div class="verdict-card {% if verdict.correct %}verdict-correct{% else %}verdict-wrong{% endif %}">
         <div class="verdict-hdr">
             <span class="verdict-icon">
@@ -138,54 +138,99 @@
             {{ verdict.explanation }}
         </div>
     </div>
-
-    <form method="post">
-        {% csrf_token %}
-        <div class="answer-card">
-            <div class="answer-hdr">Try Again</div>
-            <div class="answer-body">
-                <textarea name="user_answer" class="answer-textarea"
-                          placeholder="Type a new answer…" autofocus></textarea>
-            </div>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn-amber" id="submitBtn">
-                <i class="bi bi-send"></i> Submit
-            </button>
-            <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">Back to Quizzes</a>
-        </div>
-    </form>
-
-    {% else %}
+    {% endif %}
+    </div>
 
     <form method="post" id="practiceForm">
         {% csrf_token %}
         <div class="answer-card">
-            <div class="answer-hdr">Your Answer</div>
+            <div class="answer-hdr" id="answerHdr">{% if verdict %}Try Again{% else %}Your Answer{% endif %}</div>
             <div class="answer-body">
-                <textarea name="user_answer" class="answer-textarea"
-                          placeholder="Type your answer here…" autofocus></textarea>
+                <textarea name="user_answer" id="answerInput" class="answer-textarea"
+                          placeholder="{% if verdict %}Type a new answer…{% else %}Type your answer here…{% endif %}" autofocus></textarea>
             </div>
         </div>
         <div class="d-flex gap-2">
             <button type="submit" class="btn-amber" id="submitBtn">
-                <i class="bi bi-send"></i> Submit
+                <i class="bi bi-send" id="submitIcon"></i> <span id="submitLabel">Submit</span>
             </button>
-            <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <a href="{% url 'quiz_list' %}" class="btn btn-outline-secondary" id="cancelLink">{% if verdict %}Back to Quizzes{% else %}Cancel{% endif %}</a>
         </div>
     </form>
-
-    {% endif %}
 
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.getElementById('practiceForm')?.addEventListener('submit', function() {
+// Judge answer — fetch-based, page stays put. Anti-flicker: only swap to
+// the spinner if the response hasn't come back within ~300ms.
+(function () {
+    const form = document.getElementById('practiceForm');
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Evaluating…';
-});
+    const icon = document.getElementById('submitIcon');
+    const label = document.getElementById('submitLabel');
+    const input = document.getElementById('answerInput');
+    const verdictContainer = document.getElementById('verdictContainer');
+    if (!form) return;
+
+    function escHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const originalLabel = label.textContent;
+        const flickerTimer = setTimeout(function () {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            icon.classList.add('d-none');
+            label.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Evaluating…';
+        }, 300);
+
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form),
+        }).then(function (r) { return r.json(); })
+          .then(function (data) {
+              clearTimeout(flickerTimer);
+              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
+              icon.classList.remove('d-none');
+              label.textContent = originalLabel;
+
+              const cls = data.correct ? 'verdict-correct' : 'verdict-wrong';
+              const iconCls = data.correct ? 'bi-check-circle-fill' : 'bi-x-circle-fill';
+              const vLabel = data.correct ? 'Correct' : 'Incorrect';
+              verdictContainer.innerHTML =
+                  '<div class="verdict-card ' + cls + '">' +
+                      '<div class="verdict-hdr">' +
+                          '<span class="verdict-icon"><i class="bi ' + iconCls + '"></i></span>' +
+                          '<span class="verdict-label">' + vLabel + '</span>' +
+                      '</div>' +
+                      '<div class="verdict-body">' +
+                          '<div class="your-answer-block"><strong>Your answer</strong>' + escHtml(data.user_answer) + '</div>' +
+                          escHtml(data.explanation) +
+                      '</div>' +
+                  '</div>';
+
+              document.getElementById('answerHdr').textContent = 'Try Again';
+              input.placeholder = 'Type a new answer…';
+              document.getElementById('cancelLink').textContent = 'Back to Quizzes';
+              input.value = '';
+              input.focus();
+          })
+          .catch(function () {
+              clearTimeout(flickerTimer);
+              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
+              icon.classList.remove('d-none');
+              label.textContent = originalLabel;
+              alert('Could not evaluate your answer. Please try again.');
+          });
+    });
+})();
 </script>
 {% endblock %}
