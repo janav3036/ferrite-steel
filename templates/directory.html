@@ -8,7 +8,7 @@
     .dir-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
     .user-avatar {
         width: 34px; height: 34px; border-radius: 50%;
-        background: #EFF6FF; color: #2563EB;
+        background: #F7E7DD; color: #B8481B;
         display: flex; align-items: center; justify-content: center;
         font-size: .71rem; font-weight: 700; flex-shrink: 0;
         letter-spacing: .02em;
@@ -17,32 +17,37 @@
         display: inline-block; font-size: .7rem; font-weight: 600;
         padding: 2px 9px; border-radius: 100px;
     }
-    .chip-admin  { background: #EFF6FF; color: #1D4ED8; }
-    .chip-lead   { background: #F0FDF4; color: #15803D; }
-    .chip-member { background: #F1F5F9; color: #475569; }
-    .chip-other  { background: #FFF7ED; color: #C2410C; }
+    .chip-admin  { background: #F7E7DD; color: #953A15; }
+    .chip-lead   { background: #E4F0E7; color: #275735; }
+    .chip-member { background: #F1ECDF; color: #6B5F52; }
+    .chip-other  { background: #DCE7EE; color: #2F5670; }
     .section-bar {
         display: flex; align-items: center; gap: 10px;
         padding: 13px 16px; border-bottom: 1px solid var(--border);
     }
-    .section-bar-title { font-size: .875rem; font-weight: 600; margin: 0; color: var(--text); }
-    .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: #F59E0B; flex-shrink: 0; }
+    .section-bar-title {
+        font-family: var(--font-mono); font-size: .68rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .1em;
+        margin: 0; color: var(--muted);
+    }
+    .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: #C68A1D; flex-shrink: 0; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0">User Directory</h4>
-        <small class="text-muted">Manage team members and role assignments</small>
+        <span class="fs-eyebrow">Admin</span>
+        <h4 class="mb-0">User directory</h4>
+        <small class="text-muted">Every staff account, their team, and their access level</small>
     </div>
-    <a href="{% url 'add_user' %}" class="btn btn-primary btn-sm">+ Add User</a>
+    <a href="{% url 'add_user' %}" class="btn btn-primary btn-sm">+ Add user</a>
 </div>
 
 <!-- Active Members -->
 <div class="card mb-4">
     <div class="section-bar">
-        <span class="section-bar-title">Active Members</span>
+        <span class="section-bar-title">Active members</span>
     </div>
     <div class="table-responsive">
         <table class="table table-hover dir-table mb-0">
@@ -63,7 +68,7 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="user-avatar">{{ user.username|slice:":2"|upper }}</div>
-                            <span class="fw-semibold">{{ user.username }}</span>
+                            <span class="fw-semibold fs-id" style="color:var(--text);">{{ user.username }}</span>
                         </div>
                     </td>
                     <td class="hide-xs">{{ user.get_full_name|default:"—" }}</td>
@@ -102,7 +107,7 @@
 <div class="card">
     <div class="section-bar">
         <div class="pending-dot"></div>
-        <span class="section-bar-title">Pending Approvals</span>
+        <span class="section-bar-title">Pending approvals</span>
     </div>
     <div class="table-responsive">
         <table class="table table-hover dir-table mb-0">

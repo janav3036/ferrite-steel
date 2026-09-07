@@ -3,11 +3,14 @@
 {% block title %}{{ quotation }} — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
-    <h2 class="mb-0">{{ quotation }}</h2>
+<div class="d-flex justify-content-between align-items-end page-hdr">
+    <div>
+        <span class="fs-eyebrow">Pipeline / Quotations</span>
+        <h2 class="mb-0 fs-id" style="font-family:inherit;">{{ quotation }}</h2>
+    </div>
     <div class="d-flex gap-2 wrap-actions">
         <a href="{% url 'quotation_edit' quotation.pk %}" class="btn btn-outline-primary">Edit</a>
-        <a href="{% url 'quotation_pdf_edit' quotation.pk %}" class="btn btn-outline-secondary">Edit &amp; Download PDF</a>
+        <a href="{% url 'quotation_pdf_edit' quotation.pk %}" class="btn btn-outline-secondary">Edit &amp; download PDF</a>
         <form method="post" action="{% url 'quotation_revise' quotation.pk %}" class="d-inline">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-warning">Revise</button>
@@ -21,6 +24,7 @@
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-danger">Delete</button>
         </form>
+        <span class="fs-toolbar-div"></span>
         <button type="button" class="btn btn-outline-secondary"
             onclick="openShareModal('quotation', '{{ quotation.pk }}', '{{ quotation.quotation_number }} — {{ quotation.lead.company|default:quotation.lead.customer_name }}')">
             <i class="bi bi-share"></i> Share
@@ -28,11 +32,17 @@
         <a href="{% url 'quotation_list' %}" class="btn btn-outline-secondary">← Back</a>
     </div>
 </div>
+<div class="fs-metastrip">
+    <span>Status <strong>{{ quotation.get_status_display }}</strong></span>
+    <span>Outcome <strong>{{ root.get_outcome_display|default:"—" }}</strong></span>
+    {% if items %}<span>Grand total <strong class="fs-num">{{ grand_total|inr }}</strong></span>{% endif %}
+    {% if versions|length > 1 %}<span>v{{ quotation.version }} of {{ versions|length }}</span>{% endif %}
+</div>
 {% include 'chat/_share_modal.html' %}
 
-<div class="row g-4">
+<div class="row g-4 mt-1">
     <div class="col-md-5">
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="card-header fw-semibold">Details</div>
             <div class="card-body">
                 <dl class="row mb-0">
@@ -108,51 +118,51 @@
         </div>
 
         {% if customer_notes_display %}
-        <div class="card shadow-sm mt-3">
+        <div class="card mt-3">
             <div class="card-header fw-semibold d-flex align-items-center gap-2" style="font-size:.84rem;">
                 <i class="bi bi-person-lines-fill text-muted"></i>
-                Customer History
+                Customer history
             </div>
-            <div class="card-body" style="background:#FAFBFC;">
-                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#374151;">{{ customer_notes_display }}</p>
+            <div class="card-body" style="background:#F8F4EA;">
+                <p class="mb-0" style="white-space:pre-wrap;font-size:.86rem;line-height:1.6;color:#4A3F34;">{{ customer_notes_display }}</p>
             </div>
         </div>
         {% endif %}
     </div>
 
     <div class="col-md-7">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header fw-semibold">Line Items</div>
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Line items</div>
             {% if items %}
             <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>HSN Code</th>
+                            <th>HSN</th>
                             <th>Product</th>
                             <th>Length</th>
                             <th>Qty</th>
-                            <th>PCS</th>
-                            <th>Rate (₹)</th>
-                            <th>Amount (₹)</th>
-                            <th>Disc %</th>
-                            <th>Final (₹)</th>
+                            <th>Pcs</th>
+                            <th class="text-end">Rate ₹</th>
+                            <th class="text-end">Amount ₹</th>
+                            <th class="text-end">Disc %</th>
+                            <th class="text-end">Final ₹</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in items %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td class="text-muted small">{{ item.hsn_code|default:"—" }}</td>
+                            <td class="text-muted small fs-id">{{ item.hsn_code|default:"—" }}</td>
                             <td>{{ item.product_name }}</td>
                             <td>{{ item.length|default:"—" }}</td>
-                            <td>{{ item.quantity }} <span class="text-muted small">{{ item.get_uom_display }}</span></td>
-                            <td>{{ item.pcs|default:"—" }}</td>
-                            <td>{{ item.unit_price|inr }}</td>
-                            <td>{{ item.total_price|inr }}</td>
-                            <td>{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
-                            <td>{{ item.final_price|inr }}</td>
+                            <td class="fs-num">{{ item.quantity }} <span class="text-muted small">{{ item.get_uom_display }}</span></td>
+                            <td class="fs-num">{{ item.pcs|default:"—" }}</td>
+                            <td class="text-end fs-num">{{ item.unit_price|inr }}</td>
+                            <td class="text-end fs-num">{{ item.total_price|inr }}</td>
+                            <td class="text-end fs-num">{% if item.discount_pct %}{{ item.discount_pct|floatformat:2 }}%{% else %}—{% endif %}</td>
+                            <td class="text-end fs-num fw-semibold">{{ item.final_price|inr }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -160,24 +170,24 @@
             </div>
             {% else %}
             <div class="card-body">
-                <p class="text-muted mb-0">No line items yet. <a href="{% url 'quotation_edit' quotation.pk %}">Edit quotation</a> to add items.</p>
+                <p class="text-muted mb-0">No line items yet. <a href="{% url 'quotation_edit' quotation.pk %}">Open the editor</a> to add products.</p>
             </div>
             {% endif %}
         </div>
 
         {% if items %}
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">Totals</div>
+        <div class="card fs-card-accent">
+            <div class="card-header fw-semibold">Cost summary</div>
             <div class="card-body p-0">
                 <table class="table table-sm mb-0">
-                    <tr><td class="text-end fw-semibold">Total TON</td><td class="text-end">{{ total_tons|floatformat:2 }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Total Item Value</td><td class="text-end">{{ item_value|inr }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Loading Extra</td><td class="text-end">{{ loading_extra|inr }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Transport Extra</td><td class="text-end">{{ transport_extra|inr }}</td></tr>
-                    <tr><td class="text-end fw-semibold">Total Taxable Value</td><td class="text-end">{{ taxable_value|inr }}</td></tr>
-                    <tr><td class="text-end fw-semibold">SGST {{ quotation.sgst_percent }}%</td><td class="text-end">{{ sgst|inr }}</td></tr>
-                    <tr><td class="text-end fw-semibold">CGST {{ quotation.cgst_percent }}%</td><td class="text-end">{{ cgst|inr }}</td></tr>
-                    <tr class="table-dark fw-bold"><td class="text-end">Grand Total</td><td class="text-end">{{ grand_total|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Total tonnage</td><td class="text-end fs-num">{{ total_tons|floatformat:2 }} T</td></tr>
+                    <tr><td class="text-end fw-semibold">Total item value</td><td class="text-end fs-num">{{ item_value|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Loading extra</td><td class="text-end fs-num">{{ loading_extra|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Transport extra</td><td class="text-end fs-num">{{ transport_extra|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">Total taxable value</td><td class="text-end fs-num">{{ taxable_value|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">SGST {{ quotation.sgst_percent }}%</td><td class="text-end fs-num">{{ sgst|inr }}</td></tr>
+                    <tr><td class="text-end fw-semibold">CGST {{ quotation.cgst_percent }}%</td><td class="text-end fs-num">{{ cgst|inr }}</td></tr>
+                    <tr class="fs-total-row"><td class="text-end" style="font-family:var(--font-mono);letter-spacing:.04em;">GRAND TOTAL</td><td class="text-end fs-num" style="font-size:1.05rem;color:var(--accent);">{{ grand_total|inr }}</td></tr>
                 </table>
             </div>
         </div>
@@ -185,13 +195,13 @@
     </div>
 
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card fs-card-accent">
             <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-                <span>Quotation Notes</span>
+                <span>Quotation notes</span>
                 <span class="text-muted fw-normal" style="font-size:.75rem;">Not printed on PDF</span>
             </div>
             <div class="card-body">
-                <form method="post" action="{% url 'quotation_save_notes' quotation.pk %}">
+                <form method="post" action="{% url 'quotation_save_notes' quotation.pk %}" id="quotNotesForm">
                     {% csrf_token %}
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -206,32 +216,32 @@
                     <div class="d-flex gap-2">
                         <button type="submit" name="action" value="save"
                             class="btn btn-sm btn-outline-secondary">Save</button>
-                        <button type="submit" name="action" value="cleanup"
+                        <button type="submit" name="action" value="cleanup" id="quotCleanupBtn"
                             class="btn btn-sm btn-primary">✦ Clean up with AI</button>
                     </div>
                 </form>
 
-                {% if quotation.quotation_notes_clean %}
+                <div id="quotCleanedNotesWrap" class="{% if not quotation.quotation_notes_clean %}d-none{% endif %}">
                 <hr>
                 <form method="post" action="{% url 'quotation_save_notes' quotation.pk %}">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold text-muted small">Cleaned Notes <span class="badge bg-success ms-1">AI</span></label>
-                        <textarea name="quotation_notes_clean" class="form-control" rows="4">{{ quotation.quotation_notes_clean }}</textarea>
+                        <label class="form-label fw-semibold text-muted small">Cleaned notes <span class="badge bg-success ms-1">AI</span></label>
+                        <textarea name="quotation_notes_clean" id="quotNotesClean" class="form-control" rows="4">{{ quotation.quotation_notes_clean }}</textarea>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" name="action" value="save_clean"
-                            class="btn btn-sm btn-outline-secondary">Save Cleaned Notes</button>
+                            class="btn btn-sm btn-outline-secondary">Save cleaned notes</button>
                         {% if perms.training.add_case %}
                         <a href="{% url 'case_create' %}?lead={{ quotation.lead.pk }}&notes={{ quotation.quotation_notes_clean|urlencode }}"
-                            class="btn btn-sm btn-success">→ Convert to Case</a>
+                            id="quotConvertCaseLink" class="btn btn-sm btn-success">→ Convert to case</a>
                         {% else %}
                         <span class="btn btn-sm btn-success disabled"
-                            title="Only team leads and admins can create cases">→ Convert to Case</span>
+                            title="Only team leads and admins can create cases">→ Convert to case</span>
                         {% endif %}
                     </div>
                 </form>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -240,14 +250,14 @@
     <div class="col-12">
         <form method="post" action="{% url 'quotation_approve' quotation.pk %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success">Approve Quotation</button>
+            <button type="submit" class="btn btn-success">Approve quotation</button>
         </form>
     </div>
     {% endif %}
 
     {% if versions|length > 1 %}
     <div class="col-12">
-        <div class="card shadow-sm">
+        <div class="card">
             <div class="card-header fw-semibold">Versions</div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
@@ -376,6 +386,59 @@
     }
 
     btn.addEventListener('click', function () { listening ? stopListening() : startListening(); });
+})();
+
+// "Clean up with AI" — fetch-based, page stays put. Anti-flicker: only
+// swap to the spinner if the response hasn't come back within ~300ms.
+(function () {
+    const form = document.getElementById('quotNotesForm');
+    const cleanupBtn = document.getElementById('quotCleanupBtn');
+    if (!form || !cleanupBtn) return;
+
+    form.addEventListener('submit', function (e) {
+        if (e.submitter !== cleanupBtn) return; // let "Save" submit normally
+        e.preventDefault();
+
+        const originalLabel = cleanupBtn.innerHTML;
+        const flickerTimer = setTimeout(function () {
+            cleanupBtn.disabled = true;
+            cleanupBtn.setAttribute('aria-busy', 'true');
+            cleanupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Cleaning up…';
+        }, 300);
+
+        const fd = new FormData(form);
+        fd.set('action', 'cleanup');
+        // NOTE: not form.action — this form has a button named "action",
+        // which shadows the form.action IDL property with a RadioNodeList.
+        // getAttribute() always reads the literal attribute instead.
+        fetch(form.getAttribute('action'), {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd,
+        }).then(function (r) { return r.json(); })
+          .then(function (data) {
+              clearTimeout(flickerTimer);
+              cleanupBtn.disabled = false;
+              cleanupBtn.removeAttribute('aria-busy');
+              cleanupBtn.innerHTML = originalLabel;
+              if (!data.ok) { alert(data.error || 'No notes to clean up.'); return; }
+              const wrap = document.getElementById('quotCleanedNotesWrap');
+              const cleanTa = document.getElementById('quotNotesClean');
+              cleanTa.value = data.clean_text;
+              wrap.classList.remove('d-none');
+              const link = document.getElementById('quotConvertCaseLink');
+              if (link) {
+                  link.href = data.case_base_url + '?lead=' + data.lead_pk + '&notes=' + encodeURIComponent(data.clean_text);
+              }
+          })
+          .catch(function () {
+              clearTimeout(flickerTimer);
+              cleanupBtn.disabled = false;
+              cleanupBtn.removeAttribute('aria-busy');
+              cleanupBtn.innerHTML = originalLabel;
+              alert('Could not clean up notes. Please try again.');
+          });
+    });
 })();
 </script>
 {% endblock %}

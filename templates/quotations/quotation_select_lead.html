@@ -5,12 +5,13 @@
 <style>
     .sel-table { font-size: .9rem; }
     .sel-table td, .sel-table th { padding: 12px 16px; }
-    .sel-table th { font-size: .71rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; }
+    .sel-table tbody tr { transition: box-shadow var(--t); }
+    .sel-table tbody tr:hover { box-shadow: inset 3px 0 0 var(--accent); }
     .lead-status {
         display: inline-block; font-size: .69rem; font-weight: 600;
-        padding: 2px 8px; border-radius: 100px;
+        padding: 2px 8px; border-radius: var(--radius-tight);
     }
-    .st-new        { background: #F1F5F9; color: #475569; }
+    .st-new        { background: #F1ECDF; color: #6B5F52; }
     .st-processing { background: #FEF3C7; color: #92400E; }
     .st-quoted     { background: #DCFCE7; color: #15803D; }
     .st-closed     { background: #FEE2E2; color: #DC2626; }
@@ -18,13 +19,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
+<div class="d-flex justify-content-between align-items-center mb-1 page-hdr">
     <div>
-        <h4 class="mb-0">Select a Lead</h4>
-        <small class="text-muted">Choose the lead to create a quotation for</small>
+        <span class="fs-eyebrow">Quotations / New</span>
+        <h4 class="mb-0">Pick a lead to quote</h4>
     </div>
     <a href="{% url 'quotation_list' %}" class="btn btn-outline-secondary btn-sm">← Back</a>
 </div>
+{% if leads %}
+<p class="text-muted small mt-3 mb-2">{{ leads|length }} lead{{ leads|length|pluralize }} on file — pick one to draft a quotation for it.</p>
+{% endif %}
 
 {% if leads %}
 <div class="card">
@@ -45,7 +49,7 @@
             <tbody>
                 {% for lead in leads %}
                 <tr>
-                    <td class="text-muted">{{ lead.pk }}</td>
+                    <td class="fs-id">{{ lead.pk }}</td>
                     <td class="fw-semibold">{{ lead.customer_name|default:"—" }}</td>
                     <td class="text-muted">{{ lead.company|default:"—" }}</td>
                     <td>{{ lead.get_source_display }}</td>
@@ -58,12 +62,12 @@
                             {{ lead.get_status_display }}
                         </span>
                     </td>
-                    <td class="text-muted">{{ lead.quotations.count }}</td>
-                    <td class="text-muted">{{ lead.created_at|date:"d M Y" }}</td>
+                    <td class="text-muted fs-num">{{ lead.quotations.count }}</td>
+                    <td class="text-muted fs-num">{{ lead.created_at|date:"d M Y" }}</td>
                     <td>
-                        <form method="post" action="{% url 'quotation_create' lead.pk %}">
+                        <form method="post" action="{% url 'quotation_create' lead.pk %}" data-fs-fetch-loading="Generating draft quotation…">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-primary">Create Quote</button>
+                            <button type="submit" class="btn btn-sm btn-primary">Create quote</button>
                         </form>
                     </td>
                 </tr>
@@ -75,9 +79,9 @@
 {% else %}
 <div class="card">
     <div class="card-body py-5 text-center">
-        <i class="bi bi-funnel" style="font-size:2rem;color:#CBD5E1;"></i>
-        <p class="text-muted mt-3 mb-0">No leads yet.</p>
-        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm mt-3">Create a lead first</a>
+        <i class="bi bi-funnel" style="font-size:2rem;color:#C9BFAE;"></i>
+        <p class="text-muted mt-3 mb-0">No leads in the system yet.</p>
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm mt-3">Log a new lead first</a>
     </div>
 </div>
 {% endif %}

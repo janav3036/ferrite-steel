@@ -8,53 +8,119 @@
     <script>try{if(localStorage.getItem('sb')==='1')document.documentElement.classList.add('sb-collapsed');}catch(e){}</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <style>
-        /* ── Design tokens ── */
+        /* ── Design tokens — "Foundry" palette ──
+           Warm graphite + hot-ember copper, in place of the old default-blue-
+           on-navy look. Rationale: an iron/steel distributor's tool should
+           feel like tempered metal and mill paper, not another generic blue
+           SaaS dashboard. Ember (#B8481B) reads clearly on both white cards
+           and the near-black sidebar (verified ~5.3:1 contrast on white),
+           and pairs with a cool "blued-steel" secondary (--steel) used for
+           informational/neutral states so the two materials — hot metal,
+           cold metal — read as a deliberate pair rather than a clash. */
         :root {
             /* Sidebar */
-            --sb-bg:          #0B1223;
+            --sb-bg:          #16130F;
             --sb-w:           220px;
             --sb-w-col:       52px;
-            --sb-link:        rgba(255,255,255,.5);
-            --sb-hover:       rgba(255,255,255,.9);
-            --sb-active-bg:   rgba(96,165,250,.1);
-            --sb-active:      #60A5FA;
-            --sb-border:      rgba(255,255,255,.065);
-            --sb-section:     rgba(255,255,255,.25);
-            --sb-hover-bg:    rgba(255,255,255,.055);
-            --sb-btn-bg:      rgba(255,255,255,.055);
-            --sb-btn-border:  rgba(255,255,255,.1);
-            --sb-btn-color:   rgba(255,255,255,.36);
-            --sb-btn-bg2:     rgba(255,255,255,.1);
-            --sb-btn-color2:  rgba(255,255,255,.68);
-            --sb-avatar-bg:   rgba(255,255,255,.1);
-            --sb-avatar-text: rgba(255,255,255,.8);
-            --sb-user-name:   rgba(255,255,255,.82);
-            --sb-user-meta:   rgba(255,255,255,.34);
-            --sb-mob-text:    rgba(255,255,255,.74);
-            --sb-brand-mark:  #2563EB;
-            --sb-brand-name:  rgba(255,255,255,.9);
+            --sb-link:        rgba(240,231,219,.52);
+            --sb-hover:       rgba(240,231,219,.92);
+            --sb-active-bg:   rgba(242,147,77,.14);
+            --sb-active:      #F2934D;
+            --sb-border:      rgba(240,200,160,.08);
+            --sb-section:     rgba(240,200,160,.32);
+            --sb-hover-bg:    rgba(240,200,160,.06);
+            --sb-btn-bg:      rgba(240,200,160,.06);
+            --sb-btn-border:  rgba(240,200,160,.12);
+            --sb-btn-color:   rgba(240,200,160,.4);
+            --sb-btn-bg2:     rgba(240,200,160,.12);
+            --sb-btn-color2:  rgba(240,231,219,.72);
+            --sb-avatar-bg:   rgba(242,147,77,.14);
+            --sb-avatar-text: rgba(240,231,219,.85);
+            --sb-user-name:   rgba(240,231,219,.85);
+            --sb-user-meta:   rgba(240,200,160,.38);
+            --sb-mob-text:    rgba(240,231,219,.76);
+            --sb-brand-mark:  #B8481B;
+            --sb-brand-name:  rgba(240,231,219,.92);
             /* Page & content */
-            --page-bg:        #EDF1F8;
+            --page-bg:        #F4F0E7;
             --card-bg:        #FFFFFF;
-            --border:         #E1E9F0;
-            --text:           #0F172A;
-            --muted:          #64748B;
-            --accent:         #2563EB;
-            --accent-h:       #1D4ED8;
-            /* Elevation */
-            --shadow-xs:      0 1px 2px rgba(15,23,42,.06);
-            --shadow-sm:      0 1px 3px rgba(15,23,42,.07), 0 4px 14px rgba(15,23,42,.04);
-            --shadow-md:      0 4px 20px rgba(15,23,42,.1), 0 1px 4px rgba(15,23,42,.06);
-            /* Radius */
+            --card-bg-tint:   #F8F4EA;
+            --border:         #E4DCC9;
+            --text:           #221D18;
+            --muted:          #7C7167;
+            --accent:         #B8481B;
+            --accent-h:       #953A15;
+            /* Secondary "blued steel" — cool counterpoint used for
+               informational states, the login glow, and any place a warm
+               ember reads as an alert rather than neutral emphasis. */
+            --steel:          #3E6E8E;
+            --steel-h:        #2F5670;
+            /* Elevation — tinted to the page's own dark tone, not flat grey.
+               Sub-themes (amber/forest/vault/etc.) override --shadow-tint so
+               shadows carry each theme's hue instead of inheriting graphite's. */
+            --shadow-tint:    34,25,18;
+            --shadow-xs:      0 1px 2px rgba(var(--shadow-tint),.07);
+            --shadow-sm:      0 1px 3px rgba(var(--shadow-tint),.08), 0 4px 14px rgba(var(--shadow-tint),.05);
+            --shadow-md:      0 4px 20px rgba(var(--shadow-tint),.12), 0 1px 4px rgba(var(--shadow-tint),.07);
+            --shadow-lg:      0 12px 36px rgba(var(--shadow-tint),.16), 0 2px 8px rgba(var(--shadow-tint),.08);
+            /* Radius — deliberately varied rather than one value everywhere:
+               tight/near-square on dense inner controls (chips, table
+               pills, index tags) so the UI reads as engineered rather than
+               "rounded-corners-on-everything"; softer on outer containers. */
             --radius:         10px;
             --radius-sm:      7px;
+            --radius-lg:      14px;
+            --radius-tight:   4px;
+            /* Spacing rhythm — used for page-level composition (header,
+               toolbar, metastrip) so vertical rhythm is consistent instead
+               of ad hoc per-page margin values. */
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 14px; --sp-4: 22px; --sp-5: 34px; --sp-6: 52px;
+            /* Data / ledger typeface — used for anything tabular or
+               identifier-shaped (quantities, rates, dates, record IDs,
+               status codes, sidebar index numbers) so numeric columns
+               align on fixed-width digits and read as a manifest rather
+               than prose set in the display/body faces. */
+            --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
             /* Transition */
             --t:              .15s ease;
+
+            /* ── Bootstrap variable overrides ──
+               Bootstrap 5.3 utility classes (bg-primary, text-primary,
+               border-primary, form-check accent, badges, progress bars,
+               spinners) read these CSS custom properties directly rather
+               than our own --accent/--text tokens, so both sets must be
+               kept in sync or a handful of components would silently keep
+               Bootstrap's stock blue no matter what the rest of the page
+               does. */
+            --bs-primary:      #B8481B;
+            --bs-primary-rgb:  184,72,27;
+            --bs-secondary:      #7C7167;
+            --bs-secondary-rgb:  124,113,103;
+            --bs-success:      #3F7D52;
+            --bs-success-rgb:  63,125,82;
+            --bs-info:      #3E6E8E;
+            --bs-info-rgb:  62,110,142;
+            --bs-warning:      #C68A1D;
+            --bs-warning-rgb:  198,138,29;
+            --bs-danger:      #B23A2E;
+            --bs-danger-rgb:  178,58,46;
+            --bs-light:      #F8F4EA;
+            --bs-light-rgb:  248,244,234;
+            --bs-dark:      #221D18;
+            --bs-dark-rgb:  34,29,24;
+            --bs-link-color: #B8481B;
+            --bs-link-color-rgb: 184,72,27;
+            --bs-link-hover-color: #953A15;
+            --bs-link-hover-color-rgb: 149,58,21;
+            --bs-body-color: #221D18;
+            --bs-body-bg: #F4F0E7;
+            --bs-border-color: #E4DCC9;
+            --bs-focus-ring-color: rgba(184,72,27,.25);
         }
 
         /* ── Page entrance animation ── */
@@ -66,7 +132,7 @@
         /* ── Reset & base ── */
         *, *::before, *::after { box-sizing: border-box; }
         body {
-            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+            font-family: 'Manrope', system-ui, -apple-system, sans-serif;
             font-size: 0.9rem;
             line-height: 1.55;
             background: var(--page-bg);
@@ -74,21 +140,60 @@
             margin: 0;
         }
 
-        /* ── Heading font ── */
-        h1, h2, h3, h4, h5 {
-            font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
-            font-weight: 600;
-            letter-spacing: -.025em;
+        /* ── Heading font ──
+           Big Shoulders Display is a condensed, industrial letterform family
+           literally modelled on ironwork/skyscraper signage — used only at
+           the top of the hierarchy (page titles, brand, big stat numbers)
+           where its character reads clearly. Smaller in-card headings stay
+           on Manrope Extrabold so dense table/card UI never gets cramped. */
+        h1, h2 {
+            font-family: 'Big Shoulders Display', 'Manrope', system-ui, sans-serif;
+            font-weight: 700;
+            letter-spacing: -.01em;
         }
-        h2 { font-size: 1.38rem; }
+        h3, h4, h5, h6 {
+            font-family: 'Manrope', system-ui, sans-serif;
+            font-weight: 800;
+            letter-spacing: -.015em;
+        }
+        /* Full scale — h2/h4 sizes were already load-bearing across pages;
+           h1/h3/h5/h6 filled in to match the same restrained ratio. */
+        h1 { font-size: 2rem; }
+        h2 { font-size: 1.6rem; }
+        h3 { font-size: 1.2rem; }
         h4 { font-size: 1.08rem; }
+        h5 { font-size: .95rem; }
+        h6 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
+
+        html { scroll-behavior: smooth; }
+
+        /* ── Press-state utility for custom (non-.btn) clickable elements ──
+           Pages with their own hero cards, hint chips, tab links, picker rows,
+           etc. can opt in with class="fs-interactive" to get the same
+           scale(.97) press feedback + consistent transition timing that
+           .btn already has, without redefining it per template. */
+        .fs-interactive {
+            transition: transform .08s ease, background var(--t), color var(--t),
+                        border-color var(--t), box-shadow var(--t);
+        }
+        .fs-interactive:active { transform: scale(.97); }
+
+        /* ── Visible keyboard focus — covers custom interactive elements
+           (picker rows, tab links, hint cards) that aren't native <button>/<a>
+           with a browser default outline app developers didn't strip. ── */
+        a:focus-visible, button:focus-visible, [tabindex]:focus-visible,
+        .fs-link:focus-visible, .fs-interactive:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 3px;
+        }
 
         /* ── Sidebar ── */
         .fs-sidebar {
             position: fixed;
             top: 0; left: 0; bottom: 0;
             width: var(--sb-w);
-            background: linear-gradient(175deg, #0C1424 0%, #080F1C 100%);
+            background: linear-gradient(175deg, #1C1712 0%, #100D0A 100%);
             display: flex;
             flex-direction: column;
             z-index: 200;
@@ -120,17 +225,18 @@
             color: white;
             letter-spacing: .04em;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(37,99,235,.35);
+            box-shadow: 0 2px 8px rgba(184,72,27,.4);
             transition: box-shadow var(--t);
         }
         .fs-brand:hover .fs-brand-mark {
-            box-shadow: 0 2px 14px rgba(37,99,235,.55);
+            box-shadow: 0 2px 14px rgba(184,72,27,.6);
         }
         .fs-brand-name {
-            font-family: 'Outfit', sans-serif;
-            font-size: .88rem; font-weight: 600;
+            font-family: 'Big Shoulders Display', sans-serif;
+            font-size: 1.02rem; font-weight: 700;
             color: var(--sb-brand-name);
-            letter-spacing: -.01em;
+            letter-spacing: .005em;
+            text-transform: uppercase;
             transition: opacity .15s, width .2s;
         }
 
@@ -138,49 +244,74 @@
         .fs-nav { padding: 10px 8px; flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
         .fs-nav::-webkit-scrollbar { display: none; }
 
+        /* Section dividers read as manifest headings — label runs into a
+           hairline rule rather than sitting alone in space, so the sidebar
+           reads as one continuous indexed document (brand → sections →
+           footer) instead of stacked unrelated blocks. */
         .fs-section-label {
-            display: block;
-            font-size: .6rem; font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: .58rem; font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: .12em;
+            letter-spacing: .14em;
             color: var(--sb-section);
-            padding: 14px 8px 5px;
+            padding: 16px 8px 6px;
             white-space: nowrap;
             overflow: hidden;
             transition: opacity .15s;
         }
+        .fs-section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--sb-border);
+            min-width: 8px;
+        }
+
+        /* Nav items are numbered like manifest line-items (01, 02, 03…) —
+           a deliberate structural/formatting change, not a color swap: the
+           counter is real CSS state, not decorative markup, so it stays
+           correct as roles hide/show conditional links. */
+        .fs-nav { counter-reset: navidx; }
 
         .fs-link {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border-radius: var(--radius-sm);
+            gap: 9px;
+            padding: 7px 10px 7px 7px;
+            border-left: 3px solid transparent;
             color: var(--sb-link);
             text-decoration: none;
             font-size: .84rem;
             font-weight: 400;
             margin-bottom: 1px;
-            transition: background var(--t), color var(--t), padding .2s;
+            transition: background var(--t), color var(--t), border-color var(--t), padding .2s;
             white-space: nowrap;
             overflow: hidden;
             position: relative;
+            counter-increment: navidx;
+        }
+        .fs-link::before {
+            content: counter(navidx, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: .6rem;
+            letter-spacing: 0;
+            color: var(--sb-section);
+            opacity: .65;
+            width: 15px;
+            flex-shrink: 0;
+            text-align: right;
         }
         .fs-link:hover { background: var(--sb-hover-bg); color: var(--sb-hover); }
         .fs-link.active {
             background: var(--sb-active-bg);
             color: var(--sb-active);
             font-weight: 500;
+            border-left-color: var(--sb-active);
         }
-        /* Left-border active indicator */
-        .fs-link.active::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 3px; bottom: 3px;
-            width: 3px;
-            background: var(--sb-active);
-            border-radius: 0 3px 3px 0;
-        }
+        .fs-link.active::before { color: var(--sb-active); opacity: .85; }
         .fs-link .bi { font-size: .9rem; flex-shrink: 0; }
         .fs-link-text { transition: opacity .15s; }
         .fs-link-dim { opacity: .28; pointer-events: none; cursor: default; }
@@ -221,11 +352,46 @@
             animation: fsPageIn .22s ease;
         }
 
-        /* ── Page header ── */
+        /* ── Page header ──
+           Structural upgrade over a bare title+buttons row: an optional
+           small-caps mono "eyebrow" names the section (like a document
+           header), and an optional metastrip below the divider carries
+           quick ledger stats (counts, filters-applied, freshness) so the
+           header does real information work instead of just holding a
+           heading. Both are opt-in classes — pages that don't use them
+           still get the plain title+actions row unchanged. */
         .page-hdr {
-            padding-bottom: 18px;
+            padding-bottom: var(--sp-3);
             border-bottom: 1px solid var(--border);
         }
+        .fs-eyebrow {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: .68rem;
+            font-weight: 500;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 3px;
+        }
+        .fs-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .fs-toolbar-div { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+        .fs-metastrip {
+            display: flex; flex-wrap: wrap; align-items: center;
+            gap: 0;
+            margin-top: var(--sp-3);
+            font-family: var(--font-mono);
+            font-size: .72rem;
+            color: var(--muted);
+        }
+        .fs-metastrip > span {
+            padding: 0 var(--sp-3);
+            border-right: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+        }
+        .fs-metastrip > span:first-child { padding-left: 0; }
+        .fs-metastrip > span:last-child { border-right: none; }
+        .fs-metastrip strong { color: var(--text); font-weight: 600; }
 
         /* ── Collapsed state ── */
         html.sb-collapsed .fs-sidebar { width: var(--sb-w-col); }
@@ -246,53 +412,79 @@
         html.sb-collapsed .fs-user-name,
         html.sb-collapsed .fs-user-meta { display: none; }
 
-        /* ── Cards ── */
+        /* ── Cards ──
+           Flatter than the previous shadow-heavy pass (redesign-skill flags
+           "border + shadow + white bg" as the single most generic card
+           treatment) — a hairline border carries the shape, a much lighter
+           shadow only hints at lift, and a left rule on the header ties it
+           back to the ledger/ruled-page language used in the sidebar and
+           page header rather than a separate floating panel look. */
         .card {
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-xs);
             background: var(--card-bg);
         }
         .card-header {
-            background: #F7FAFC;
+            background: var(--card-bg-tint);
             border-bottom: 1px solid var(--border);
-            padding: 12px 16px;
-            font-size: .84rem;
-            font-weight: 600;
+            border-left: 3px solid transparent;
+            padding: 11px 15px 11px 13px;
+            font-size: .82rem;
+            font-weight: 700;
             border-radius: var(--radius) var(--radius) 0 0 !important;
-            color: #1E293B;
+            color: #2A231C;
             letter-spacing: -.01em;
         }
         .card-body { padding: 16px; }
+        /* Opt-in emphasis variants — used in place of "everything gets a
+           shadow", per section priority rather than uniformly. */
+        .card.fs-card-accent > .card-header { border-left-color: var(--accent); }
+        .card.fs-card-raised { box-shadow: var(--shadow-sm); }
 
-        /* ── Tables ── */
-        .table { font-size: .84rem; margin-bottom: 0; }
+        /* ── Tables ──
+           Column headers move to the mono/tracked treatment used for the
+           sidebar index + page eyebrow (one consistent "label" voice across
+           the app), and numeric-shaped cells get tabular figures so
+           quantities/rates/amounts actually line up in a column instead of
+           drifting with proportional digit widths. */
+        .table { font-size: .84rem; margin-bottom: 0; font-variant-numeric: tabular-nums; }
         .table thead.table-dark th {
-            background: #18273E;
-            color: #8FAFC8;
-            font-weight: 600;
-            font-size: .69rem;
+            background: #241D16;
+            color: #D6B692;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            font-size: .66rem;
             text-transform: uppercase;
-            letter-spacing: .07em;
+            letter-spacing: .08em;
             border: none;
             padding: 10px 14px;
         }
         .table td {
             padding: 10px 14px;
             vertical-align: middle;
-            border-color: #EDF1F8;
+            border-color: #EDE6D6;
         }
         .table-hover > tbody > tr { transition: background var(--t); }
-        .table-hover > tbody > tr:hover > td { background: #F2F6FF; }
+        .table-hover > tbody > tr:hover > td { background: #FAF5EB; }
         .table thead.table-warning th {
-            background: #FEF3C7;
-            color: #92400E;
-            font-size: .69rem;
+            background: #F3E3C2;
+            color: #7A4E0E;
+            font-family: var(--font-mono);
+            font-size: .66rem;
             text-transform: uppercase;
-            letter-spacing: .07em;
-            font-weight: 600;
+            letter-spacing: .08em;
+            font-weight: 500;
             padding: 10px 14px;
         }
+        /* Ledger total/footer rows — a real invoice/manifest convention
+           (double rule above the sum) rather than just bolding a <tr>. */
+        .table tfoot tr:first-child td, .table tr.fs-total-row {
+            border-top: 3px double #C9BFAE;
+            font-weight: 700;
+        }
+        .fs-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+        .fs-id  { font-family: var(--font-mono); font-size: .92em; color: var(--muted); }
 
         /* ── Buttons ── */
         .btn {
@@ -307,29 +499,36 @@
         .btn-sm { font-size: .77rem; padding: 4px 10px; }
         .btn-primary {
             background: var(--accent); border-color: var(--accent);
-            box-shadow: 0 1px 3px rgba(37,99,235,.28);
+            box-shadow: 0 1px 3px rgba(184,72,27,.3);
         }
         .btn-primary:hover {
             background: var(--accent-h); border-color: var(--accent-h);
-            box-shadow: 0 3px 10px rgba(37,99,235,.32);
+            box-shadow: 0 3px 10px rgba(184,72,27,.34);
         }
         .btn-outline-primary { color: var(--accent); border-color: var(--accent); }
         .btn-outline-primary:hover { background: var(--accent); border-color: var(--accent); color: white; }
-        .btn-dark, .btn-outline-dark:hover { background: #0B1223; border-color: #0B1223; }
-        .btn-outline-dark { border-color: #2D3A4E; color: #334155; }
+        .btn-dark, .btn-outline-dark:hover { background: #221D18; border-color: #221D18; }
+        .btn-outline-dark { border-color: #3A322A; color: #4A3F34; }
+        .btn-info { background: var(--steel); border-color: var(--steel); color: white; }
+        .btn-info:hover { background: var(--steel-h); border-color: var(--steel-h); color: white; }
+        .btn-outline-info { color: var(--steel); border-color: var(--steel); }
+        .btn-outline-info:hover { background: var(--steel); border-color: var(--steel); color: white; }
 
-        /* ── Badges ── */
+        /* ── Badges ──
+           Square-ish rather than full pill — a small deliberate break from
+           "everything is a pill", reads more like a stamped status code on
+           a shipping ledger than a chat-app tag. */
         .badge {
-            font-size: .69rem;
+            font-size: .68rem;
             font-weight: 600;
-            padding: 3px 9px;
-            border-radius: 100px;
-            letter-spacing: .01em;
+            padding: 3px 8px;
+            border-radius: var(--radius-tight);
+            letter-spacing: .02em;
         }
 
         /* ── Forms ── */
         .form-control, .form-select {
-            font-family: 'DM Sans', system-ui, sans-serif;
+            font-family: 'Manrope', system-ui, sans-serif;
             font-size: .84rem;
             border-color: var(--border);
             border-radius: var(--radius-sm);
@@ -339,18 +538,18 @@
         .form-control-sm, .form-select-sm { font-size: .79rem; }
         .form-control:focus, .form-select:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+            box-shadow: 0 0 0 3px rgba(184,72,27,.14);
         }
         .form-label {
             font-size: .82rem;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 5px;
-            color: #334155;
+            color: #4A3F34;
         }
         .invalid-feedback { font-size: .77rem; }
 
         /* ── Typography ── */
-        /* (h* handled above with Outfit) */
+        /* (h* handled above with Big Shoulders Display / Manrope) */
 
         /* ── Links ── */
         a:not(.btn):not([class*="btn-"]):not(.fs-link):not(.fs-brand):not(.fs-user-row):not(.page-link):not(.nav-link):not(.dropdown-item):not(.list-group-item):not(.badge) {
@@ -378,10 +577,21 @@
             border-color: var(--border);
         }
         .pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); }
-        .pagination .page-item.disabled .page-link { color: #CBD5E1; }
+        .pagination .page-item.disabled .page-link { color: #C9BFAE; }
 
-        /* ── Alerts ── */
-        .alert { font-size: .84rem; border-radius: var(--radius-sm); }
+        /* ── Alerts ──
+           Bootstrap 5.3's alert colors come from precomputed --bs-*-bg-subtle
+           / -border-subtle / -text-emphasis hexes, not derived from
+           --bs-success etc. at runtime, so they need their own override to
+           stay in the Foundry palette rather than reverting to stock
+           Bootstrap green/red/yellow. */
+        .alert { font-size: .84rem; border-radius: var(--radius-sm); border-width: 1px; }
+        .alert-success { background: #EAF4EC; border-color: #C7DDC9; color: #275735; }
+        .alert-danger  { background: #FBEAE7; border-color: #EBC3BC; color: #7E281E; }
+        .alert-warning { background: #FAF0DA; border-color: #E9CE93; color: #6E4A0E; }
+        .alert-info     { background: #E7EEF2; border-color: #BBD0DB; color: #234358; }
+        .alert-secondary,
+        .alert-light { background: var(--card-bg-tint); border-color: var(--border); color: var(--muted); }
 
         /* ── dl rows ── */
         dl.row dt { font-weight: 500; color: var(--muted); font-size: .79rem; }
@@ -389,6 +599,57 @@
 
         /* ── List groups ── */
         .list-group-item { font-size: .84rem; }
+
+        /* ── Skip-to-content link (keyboard/screen-reader users) ── */
+        .fs-skip-link {
+            position: absolute; left: 8px; top: -48px;
+            background: var(--accent); color: #fff;
+            padding: 9px 16px; border-radius: var(--radius-sm);
+            font-size: .82rem; font-weight: 600; text-decoration: none;
+            z-index: 2000; transition: top .15s ease;
+        }
+        .fs-skip-link:focus { top: 8px; color: #fff; text-decoration: none; }
+
+        /* ══════════════════════════════════════════════════════════════
+           Shared loading-state primitives (indeterminate only — Bootstrap
+           spinner-border / progress-bar-animated, no fake percentages).
+           Colour inherits currentColor / var(--accent) so it auto-adapts
+           to whichever sub-theme (navy/amber/forest) is active.
+           ══════════════════════════════════════════════════════════════ */
+
+        /* Full-viewport overlay — for hard-redirect form submits where the
+           browser is about to navigate away and there'd otherwise be a
+           blank/frozen moment. Shown immediately, no anti-flicker delay. */
+        .fs-page-overlay {
+            position: fixed; inset: 0; z-index: 3000;
+            background: rgba(var(--shadow-tint),.82);
+            backdrop-filter: blur(2px);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center; gap: 16px;
+            color: #fff;
+        }
+        .fs-page-overlay.active { display: flex; }
+        .fs-page-overlay .spinner-border { color: var(--accent); width: 2.5rem; height: 2.5rem; }
+        .fs-page-overlay-label { font-size: .88rem; font-weight: 500; color: rgba(255,255,255,.92); }
+
+        /* Contained panel overlay — for actions that redraw one content
+           area (an "Ask" answer, a draft, a preview) while the rest of the
+           page (sidebar/nav) stays interactive. Host element needs
+           position:relative; overlay is an absolutely-positioned child. */
+        .fs-panel-overlay {
+            position: absolute; inset: 0; z-index: 50;
+            background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+            backdrop-filter: blur(1px);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px;
+            border-radius: inherit;
+        }
+        .fs-panel-overlay.active { display: flex; }
+        .fs-panel-overlay .spinner-border { color: var(--accent); }
+        .fs-panel-overlay-label { font-size: .82rem; font-weight: 500; color: var(--muted); }
+
+        /* Inline button spinner — label swap + disable, no overlay. */
+        .btn .spinner-border-sm { margin-right: 2px; }
 
 
         /* ── Medium screens: auto-collapse sidebar to icon-only ── */
@@ -539,6 +800,8 @@
 </head>
 <body>
 
+<a href="#main-content" class="fs-skip-link">Skip to main content</a>
+
 {% with url=request.resolver_match.url_name %}
 <aside class="fs-sidebar" id="fs-sidebar">
     <a href="/dashboard/" class="fs-brand" id="fs-brand">
@@ -627,7 +890,7 @@
             <span class="fs-link-text" style="display:flex;align-items:center;gap:6px;">
                 Notifications
                 {% if unread_notification_count > 0 %}
-                <span style="background:#EF4444;color:white;font-size:.62rem;font-weight:700;
+                <span style="background:#C0392B;color:white;font-size:.62rem;font-weight:700;
                              padding:1px 6px;border-radius:100px;line-height:1.4;flex-shrink:0;">
                     {{ unread_notification_count }}
                 </span>
@@ -689,7 +952,7 @@
 <div id="fs-overlay" onclick="closeSidebar()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:198;"></div>
 
-<main class="fs-main">
+<main class="fs-main" id="main-content" tabindex="-1">
     {% if messages %}
     <div class="mb-3">
         {% for message in messages %}
@@ -730,6 +993,84 @@
                 ov.style.display = '';
             }
         }
+    });
+
+    /* ══════════════════════════════════════════════════════════════
+       Shared loading-state helpers (see .fs-page-overlay /
+       .fs-panel-overlay in the <style> block above). Vanilla JS,
+       same pattern as chat's fetch-based polling — no framework.
+       ══════════════════════════════════════════════════════════════ */
+
+    // Full-viewport overlay for hard-redirect navigations (form submits or
+    // links that must leave/reload the page). Shown immediately — no
+    // anti-flicker delay — since the alternative is a blank/frozen tab.
+    function fsShowPageOverlay(label) {
+        let ov = document.getElementById('fsPageOverlay');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.id = 'fsPageOverlay';
+            ov.className = 'fs-page-overlay';
+            ov.setAttribute('role', 'status');
+            ov.setAttribute('aria-live', 'polite');
+            ov.tabIndex = -1;
+            ov.innerHTML = '<div class="spinner-border" role="status"></div>' +
+                            '<div class="fs-page-overlay-label" id="fsPageOverlayLabel"></div>';
+            document.body.appendChild(ov);
+        }
+        document.getElementById('fsPageOverlayLabel').textContent = label || 'Working…';
+        ov.classList.add('active');
+        // Move focus into the overlay so keyboard users tabbing during the
+        // wait don't land on a now visually-hidden background element.
+        ov.focus();
+    }
+    window.fsShowPageOverlay = fsShowPageOverlay;
+
+    // Opt-in: <form data-fs-loading="Generating draft…"> shows the overlay for
+    // every submit; put the attribute on a specific <button> instead when a
+    // form has more than one submit action (e.g. "Save" vs "Clean up with
+    // AI") so only that action triggers it — read via the submitter.
+    document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement) || e.defaultPrevented) return;
+        const submitter = e.submitter;
+        const label = (submitter && submitter.getAttribute('data-fs-loading')) || form.getAttribute('data-fs-loading');
+        if (label) fsShowPageOverlay(label);
+    });
+    document.addEventListener('click', function (e) {
+        const a = e.target.closest('a[data-fs-loading]');
+        if (a && !e.defaultPrevented) fsShowPageOverlay(a.getAttribute('data-fs-loading'));
+    });
+
+    // Opt-in: <form data-fs-fetch-loading="Generating draft…"> — for a form
+    // whose POST does real work (e.g. a synchronous LLM call) before
+    // landing on a different page. Submitted via fetch instead of a raw
+    // hard POST so the current page stays fully rendered (overlay shown
+    // immediately on top of it) right up until the response tells us where
+    // to navigate — never a blank/frozen tab waiting on the server.
+    document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement) || e.defaultPrevented) return;
+        const label = form.getAttribute('data-fs-fetch-loading');
+        if (!label) return;
+        e.preventDefault();
+        fsShowPageOverlay(label);
+        const csrf = form.querySelector('[name=csrfmiddlewaretoken]');
+        fetch(form.action || window.location.href, {
+            method: 'POST',
+            headers: Object.assign(
+                { 'X-Requested-With': 'XMLHttpRequest' },
+                csrf ? { 'X-CSRFToken': csrf.value } : {}
+            ),
+            body: new FormData(form),
+        }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+          .then(function (data) {
+              if (data.redirect) window.location.href = data.redirect;
+              else document.getElementById('fsPageOverlay')?.classList.remove('active');
+          })
+          .catch(function () {
+              document.getElementById('fsPageOverlay')?.classList.remove('active');
+              alert('Something went wrong. Please try again.');
+          });
     });
 </script>
 {% block extra_js %}{% endblock %}

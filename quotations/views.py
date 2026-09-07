@@ -17,8 +17,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.core.management import call_command
@@ -112,6 +113,7 @@ def lead_detail(request, pk):
 def lead_save_notes(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     action = request.POST.get('action')
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if action == 'save':
         lead.lead_notes_raw = request.POST.get('lead_notes_raw', '').strip()
@@ -124,8 +126,20 @@ def lead_save_notes(request, pk):
         if raw:
             from .services.llm import cleanup_lead_notes
             lead.lead_notes_clean = cleanup_lead_notes(raw)
+            if is_ajax:
+                # Minimal JSON branch — lets the "Clean up with AI" button
+                # update the Cleaned Notes card in place instead of a full
+                # page reload for what's otherwise a button-triggered action.
+                return JsonResponse({
+                    'ok': True,
+                    'clean_text': lead.lead_notes_clean,
+                    'case_base_url': reverse('case_create'),
+                    'lead_pk': lead.pk,
+                })
             messages.success(request, 'Notes cleaned up by AI.')
         else:
+            if is_ajax:
+                return JsonResponse({'ok': False, 'error': 'No notes to clean up.'})
             messages.warning(request, 'No notes to clean up.')
         lead.save(update_fields=['lead_notes_raw', 'lead_notes_clean'])
 
@@ -141,6 +155,7 @@ def lead_save_notes(request, pk):
 def quotation_save_notes(request, pk):
     quotation = get_object_or_404(Quotation, pk=pk)
     action = request.POST.get('action')
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
     if action == 'save':
         quotation.quotation_notes_raw = request.POST.get('quotation_notes_raw', '').strip()
@@ -153,8 +168,18 @@ def quotation_save_notes(request, pk):
         if raw:
             from .services.llm import cleanup_lead_notes
             quotation.quotation_notes_clean = cleanup_lead_notes(raw)
+            if is_ajax:
+                # Minimal JSON branch — see lead_save_notes for the same pattern.
+                return JsonResponse({
+                    'ok': True,
+                    'clean_text': quotation.quotation_notes_clean,
+                    'case_base_url': reverse('case_create'),
+                    'lead_pk': quotation.lead_id,
+                })
             messages.success(request, 'Notes cleaned up by AI.')
         else:
+            if is_ajax:
+                return JsonResponse({'ok': False, 'error': 'No notes to clean up.'})
             messages.warning(request, 'No notes to clean up.')
         quotation.save(update_fields=['quotation_notes_raw', 'quotation_notes_clean'])
 
@@ -682,6 +707,11 @@ def quotation_pdf_edit(request, pk):
             pdf = weasyprint.HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
             response = HttpResponse(pdf, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{quotation.quotation_number}.pdf"'
+            # Lets the download-triggering page know the file is ready and
+            # hide its loading overlay — a plain form download never fires a
+            # JS "response received" event of its own, so the client polls
+            # for this cookie instead (standard file-download completion trick).
+            response.set_cookie('fs_pdf_ready', request.POST.get('dl_token', '1'), max_age=30)
             return response
         except ImportError:
             return HttpResponse('WeasyPrint is not installed.', status=500)
@@ -1003,6 +1033,12 @@ def quotation_create(request, lead_pk):
                 _upsert_customer(lead, Decimal('0'))
 
         messages.success(request, f'{quotation} created as draft.')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Minimal JSON branch — lets the trigger button show a full-page
+            # loading overlay via fetch (avoiding a blank/frozen moment
+            # during the synchronous LLM draft call above) and then navigate
+            # itself once the draft is ready, instead of a raw hard POST.
+            return JsonResponse({'redirect': reverse('quotation_edit', args=[quotation.pk])})
         return redirect('quotation_edit', pk=quotation.pk)
     return redirect('quotation_select_lead')
 
@@ -1278,5 +1314,9 @@ def _run_poll_emails_bg():
 @require_POST
 def poll_emails_now(request):
     threading.Thread(target=_run_poll_emails_bg, daemon=True).start()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Minimal JSON branch for the fetch-based "Poll Inbox" button — the
+        # background thread has already been started above either way.
+        return JsonResponse({'status': 'started'})
     messages.success(request, 'Inbox poll started in the background — new leads will appear shortly.')
     return redirect(request.META.get('HTTP_REFERER', '/'))

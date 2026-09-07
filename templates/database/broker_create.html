@@ -3,10 +3,11 @@
 
 {% block content %}
 <div style="max-width:640px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-hdr d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-0">{% if broker %}Edit Broker{% else %}Add Broker{% endif %}</h4>
-            <small class="text-muted">{% if broker %}{{ broker.name }}{% else %}Register a new market order broker contact{% endif %}</small>
+            <span class="fs-eyebrow">Database / Market</span>
+            <h4 class="mb-0">{% if broker %}Edit broker{% else %}Add a broker{% endif %}</h4>
+            <small class="text-muted">{% if broker %}{{ broker.name }}{% else %}Register a new market-order broker contact{% endif %}</small>
         </div>
         <a href="{% url 'broker_list' %}" class="btn btn-outline-secondary btn-sm">← Brokers</a>
     </div>
@@ -51,7 +52,7 @@
                 </div>
 
                 <div class="pt-3 border-top d-flex gap-2">
-                    <button type="submit" class="btn btn-dark">Save Broker</button>
+                    <button type="submit" class="btn btn-dark">Save broker</button>
                     <a href="{% url 'broker_list' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>

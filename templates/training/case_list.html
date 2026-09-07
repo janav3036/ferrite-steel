@@ -129,16 +129,20 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
     <div>
-        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Case Library</h4>
+        <span class="fs-eyebrow" style="font-family:'Syne',sans-serif;letter-spacing:.14em;">Module 3A</span>
+        <h4 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:700;">Case library</h4>
         <small class="text-muted">Resolved situations your team can learn from</small>
     </div>
     <div class="d-flex gap-2">
         {% if perms.training.add_case %}
-        <a href="{% url 'case_create' %}" class="btn-amber">+ New Case</a>
+        <a href="{% url 'case_create' %}" class="btn-amber">+ New case</a>
         {% endif %}
         <a href="{% url 'training_home' %}" class="btn btn-outline-secondary btn-sm">← Training</a>
     </div>
 </div>
+{% if cases %}
+<div class="fs-metastrip"><span><strong>{{ cases|length }}</strong> case{{ cases|length|pluralize }} logged</span></div>
+{% endif %}
 
 {% if cases %}
 <div class="case-grid">

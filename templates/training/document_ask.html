@@ -185,7 +185,7 @@
     .doc-picker {
         position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px;
         background: #FFFFFF; border: 1px solid #E8E2D8;
-        border-radius: 10px; box-shadow: 0 8px 24px rgba(28,25,23,.12);
+        border-radius: 10px; box-shadow: var(--shadow-lg);
         z-index: 200;
         overflow: hidden;
         opacity: 0; visibility: hidden; transform: translateY(-4px);
@@ -252,6 +252,15 @@
         <a href="{% url 'document_list' %}" class="ask-hero-action">Documents →</a>
     </div>
 
+    <!-- Result region: input + answer + hints. Wrapped so a contained
+         overlay can cover just this area while it redraws — sidebar/nav
+         outside .ask-wrap stay interactive throughout. -->
+    <div id="askResultRegion" style="position:relative;">
+    <div class="fs-panel-overlay" id="askPanelOverlay" role="status" aria-live="polite" tabindex="-1">
+        <div class="spinner-border" role="status" style="color:#C2670B;"></div>
+        <div class="fs-panel-overlay-label">Searching knowledge base…</div>
+    </div>
+
     <!-- Input -->
     <div class="ask-box">
         <form method="post" id="askForm">
@@ -278,27 +287,25 @@
                     <div class="doc-picker-search-wrap">
                         <i class="bi bi-search"></i>
                         <input type="text" id="docPickerSearch" class="doc-picker-search"
-                               placeholder="Filter documents…" autocomplete="off">
+                               placeholder="Filter documents…" autocomplete="off"
+                               aria-label="Filter documents to scope this question to"
+                               role="combobox" aria-expanded="false" aria-controls="docPickerList">
                     </div>
-                    <div id="docPickerList" class="doc-picker-list"></div>
+                    <div id="docPickerList" class="doc-picker-list" role="listbox" aria-label="Documents"></div>
                     <div class="doc-picker-hint">Click or ↑↓ Enter to select • Esc to close</div>
                 </div>
                 <!-- Hidden inputs for selected doc IDs (populated by JS) -->
                 <div id="scopeInputs"></div>
             </div>
-            {% if not answer %}
-            <div class="scope-tip">
+            <div class="scope-tip" id="scopeTip" {% if answer %}style="display:none"{% endif %}>
                 Tip: type <kbd>/</kbd> in an empty question box to scope the search to specific documents.
             </div>
-            {% endif %}
             <div class="ask-actions" style="margin-top:12px">
                 <button type="submit" class="btn-ask" id="askBtn">
                     <i class="bi bi-stars"></i>
                     <span id="askLabel">Ask</span>
                 </button>
-                {% if answer %}
-                <a href="{% url 'document_ask' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                {% endif %}
+                <a href="{% url 'document_ask' %}" class="btn btn-outline-secondary btn-sm" id="clearLink" {% if not answer %}style="display:none"{% endif %}>Clear</a>
                 <div class="thinking-note" id="thinkingNote">
                     <span class="spinner-border spinner-border-sm" style="color:#C2670B;" role="status"></span>
                     Searching knowledge base…
@@ -307,7 +314,9 @@
         </form>
     </div>
 
-    <!-- Answer -->
+    <!-- Answer (built server-side on first load / no-JS fallback; replaced
+         wholesale by JS on subsequent AJAX asks) -->
+    <div id="answerBlockWrap" role="status" aria-live="polite">
     {% if answer %}
     <div class="answer-panel" id="answerBlock">
         <div class="answer-hdr">
@@ -331,10 +340,10 @@
         <div class="answer-body">{{ answer }}</div>
     </div>
     {% endif %}
+    </div>
 
     <!-- Hint suggestions (shown only when no question/answer yet) -->
-    {% if not answer and not question %}
-    <div class="hints-section">
+    <div class="hints-section" id="hintsSection" {% if answer or question %}style="display:none"{% endif %}>
         <div class="hints-label">Try asking</div>
         <div class="hints-grid">
             <button class="hint-card" data-q="What grades of steel do we stock?" onclick="setQuestion(this)">
@@ -351,8 +360,8 @@
             </button>
         </div>
     </div>
-    {% endif %}
 
+    </div>
 </div>
 {% endblock %}
 
@@ -390,8 +399,8 @@ function renderChips() {
         const chip = document.createElement('span');
         chip.className = 'scope-chip';
         chip.innerHTML = `<span class="scope-chip-name" title="${escHtml(docLabel(d))}">${escHtml(docLabel(d))}</span>
-            <button type="button" class="scope-chip-remove" data-id="${d.id}" title="Remove">
-                <i class="bi bi-x"></i>
+            <button type="button" class="scope-chip-remove" data-id="${d.id}" title="Remove" aria-label="Remove ${escHtml(docLabel(d))} from search scope">
+                <i class="bi bi-x" aria-hidden="true"></i>
             </button>`;
         scopeChipsEl.appendChild(chip);
     });
@@ -439,8 +448,9 @@ function renderPickerList(query) {
     }
     docPickerList.innerHTML = filtered.map((d, i) => {
         const isSel = !!selectedDocs[d.id];
-        return `<div class="doc-picker-item${isSel ? ' selected' : ''}" data-id="${d.id}" data-idx="${i}">
-            <i class="bi bi-file-earmark-text"></i>
+        return `<div class="doc-picker-item${isSel ? ' selected' : ''}" data-id="${d.id}" data-idx="${i}"
+                     id="doc-opt-${i}" role="option" aria-selected="${isSel}">
+            <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
             <span class="doc-picker-item-name">${escHtml(docLabel(d))}</span>
             ${d.filename ? `<span class="doc-picker-item-sub">${escHtml(d.filename)}</span>` : ''}
         </div>`;
@@ -467,6 +477,9 @@ function moveFocus(dir) {
     focusedIdx = Math.max(0, Math.min(items.length - 1, focusedIdx + dir));
     items[focusedIdx].classList.add('focused');
     items[focusedIdx].scrollIntoView({ block: 'nearest' });
+    // Keyboard focus stays in the search input (combobox pattern) — tell
+    // assistive tech which option is "active" via aria-activedescendant.
+    docPickerSearch.setAttribute('aria-activedescendant', items[focusedIdx].id);
 }
 
 function selectFocused() {
@@ -481,11 +494,14 @@ function showPicker() {
     renderPickerList('');
     docPickerSearch.value = '';
     docPicker.classList.add('open');
+    docPickerSearch.setAttribute('aria-expanded', 'true');
     setTimeout(() => docPickerSearch.focus(), 30);
 }
 
 function hidePicker() {
     docPicker.classList.remove('open');
+    docPickerSearch.setAttribute('aria-expanded', 'false');
+    docPickerSearch.removeAttribute('aria-activedescendant');
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
@@ -526,11 +542,88 @@ document.addEventListener('mousedown', function(e) {
     }
 });
 
-// ── Form submit ───────────────────────────────────────────────────────────────
-document.getElementById('askForm').addEventListener('submit', function() {
-    document.getElementById('askBtn').disabled = true;
-    document.getElementById('askLabel').textContent = 'Thinking…';
-    document.getElementById('thinkingNote').classList.add('active');
+// ── Form submit — fetch-based, contained panel overlay ──────────────────────────
+// Redraws the answer/hints inside #askResultRegion only; the sidebar and rest
+// of the page stay interactive throughout. Anti-flicker: the overlay + button
+// spinner only appear if the response hasn't come back within ~300ms.
+const askForm      = document.getElementById('askForm');
+const askBtn       = document.getElementById('askBtn');
+const askLabel     = document.getElementById('askLabel');
+const thinkingNote = document.getElementById('thinkingNote');
+const panelOverlay = document.getElementById('askPanelOverlay');
+const answerWrap   = document.getElementById('answerBlockWrap');
+const hintsSection = document.getElementById('hintsSection');
+const scopeTip     = document.getElementById('scopeTip');
+const clearLink    = document.getElementById('clearLink');
+
+function renderAnswer(data) {
+    if (data.error) {
+        answerWrap.innerHTML = `<div class="answer-panel" style="border-color:#FCA5A5;">
+            <div class="answer-hdr" style="background:#FEF2F2;border-bottom-color:#FCA5A5;">
+                <span class="answer-hdr-label" style="color:#B91C1C;"><i class="bi bi-exclamation-triangle"></i>Couldn't get an answer</span>
+            </div>
+            <div class="answer-body">${escHtml(data.error)}</div>
+        </div>`;
+        return;
+    }
+    if (!data.answer) { answerWrap.innerHTML = ''; return; }
+    let scopeHtml = 'AI-generated from your knowledge base';
+    if (data.selected_docs && data.selected_docs.length) {
+        scopeHtml = 'Searched in: ' + data.selected_docs.map(d =>
+            `<strong>${escHtml(docLabel(d))}</strong>`).join(', ');
+    }
+    answerWrap.innerHTML = `<div class="answer-panel" id="answerBlock">
+        <div class="answer-hdr">
+            <span class="answer-hdr-label"><i class="bi bi-stars"></i>Answer</span>
+            <span class="answer-hdr-sub">${scopeHtml}</span>
+        </div>
+        ${data.question ? `<div class="answer-question">${escHtml(data.question)}</div>` : ''}
+        <div class="answer-body">${escHtml(data.answer)}</div>
+    </div>`;
+    document.getElementById('answerBlock').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+askForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const originalLabel = askLabel.textContent;
+    let overlayShown = false;
+    const flickerTimer = setTimeout(function () {
+        overlayShown = true;
+        askBtn.disabled = true;
+        askBtn.setAttribute('aria-busy', 'true');
+        askLabel.textContent = 'Thinking…';
+        thinkingNote.classList.add('active');
+        panelOverlay.classList.add('active');
+        panelOverlay.focus();
+    }, 300);
+
+    fetch(askForm.action || window.location.href, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new FormData(askForm),
+    }).then(function (r) { return r.json(); })
+      .then(function (data) {
+          clearTimeout(flickerTimer);
+          askBtn.disabled = false;
+          askBtn.removeAttribute('aria-busy');
+          askLabel.textContent = originalLabel;
+          thinkingNote.classList.remove('active');
+          panelOverlay.classList.remove('active');
+
+          renderAnswer(data);
+          hintsSection.style.display = (data.answer || data.question || data.error) ? 'none' : '';
+          scopeTip.style.display = data.answer ? 'none' : '';
+          clearLink.style.display = data.answer ? '' : 'none';
+      })
+      .catch(function () {
+          clearTimeout(flickerTimer);
+          askBtn.disabled = false;
+          askBtn.removeAttribute('aria-busy');
+          askLabel.textContent = originalLabel;
+          thinkingNote.classList.remove('active');
+          panelOverlay.classList.remove('active');
+          alert('Could not get an answer. Please try again.');
+      });
 });
 
 // ── Hint cards ────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 
 {% block extra_head %}
 <style>
-    .compose-wrap { max-width: 700px; }
+    .compose-wrap { max-width: 760px; }
     .compose-field-label {
         font-size: .71rem; font-weight: 600; text-transform: uppercase;
         letter-spacing: .07em; color: var(--muted);
@@ -19,7 +19,7 @@
     .compose-row:last-of-type { border-bottom: none; }
     .compose-row input, .compose-row textarea {
         border: none; outline: none; background: transparent;
-        font-family: 'DM Sans', system-ui, sans-serif;
+        font-family: 'Manrope', system-ui, sans-serif;
         font-size: .88rem; color: var(--text);
         flex: 1; padding: 0;
     }
@@ -27,7 +27,7 @@
     .compose-body { padding: 16px; }
     .compose-body textarea {
         border: none; outline: none; background: transparent;
-        font-family: 'DM Sans', system-ui, sans-serif;
+        font-family: 'Manrope', system-ui, sans-serif;
         font-size: .88rem; color: var(--text);
         width: 100%; resize: vertical;
         min-height: 220px;
@@ -35,7 +35,7 @@
     .compose-body textarea:focus { box-shadow: none; }
     .attach-note {
         font-size: .8rem; color: var(--muted);
-        background: #F8FAFC; border-radius: 6px;
+        background: var(--card-bg-tint); border: 1px dashed var(--border); border-radius: var(--radius-sm);
         padding: 8px 12px; display: flex; align-items: center; gap: 8px;
     }
 </style>
@@ -45,14 +45,14 @@
 <div class="compose-wrap">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="mb-0">Send {{ quotation }}</h4>
-            <small class="text-muted">Compose and send the quotation by email</small>
+            <span class="fs-eyebrow">{{ quotation.quotation_number }}{% if quotation.lead.customer_name %} · {{ quotation.lead.customer_name }}{% endif %}</span>
+            <h4 class="mb-0">Send quotation by email</h4>
         </div>
         <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary btn-sm">← Cancel</a>
     </div>
 
-    <div class="card" style="overflow:hidden;">
-        <div class="card-header fw-semibold" style="font-size:.84rem;">Compose Email</div>
+    <div class="card fs-card-accent" style="overflow:hidden;">
+        <div class="card-header">Compose email</div>
         <form method="post">
             {% csrf_token %}
 
@@ -74,12 +74,12 @@
                 {% if not quotation.lead.broker %}
                 <div class="attach-note mb-4">
                     <i class="bi bi-paperclip"></i>
-                    <span><strong>{{ quotation.quotation_number }}.pdf</strong> will be attached automatically.</span>
+                    <span><strong class="fs-id">{{ quotation.quotation_number }}.pdf</strong> will be attached automatically.</span>
                 </div>
                 {% endif %}
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-success px-4">Send Email</button>
+                    <button type="submit" class="btn btn-success px-4">Send email</button>
                     <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </div>

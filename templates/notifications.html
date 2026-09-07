@@ -12,7 +12,7 @@
         font-size: 1.55rem;
         font-weight: 600;
         letter-spacing: -.02em;
-        color: #0F172A;
+        color: #221D18;
         line-height: 1.2;
     }
     .notif-count-chip {
@@ -71,7 +71,7 @@
         flex-shrink: 0;
         margin-top: 1px;
     }
-    .icon-lead_created       { background: #EFF6FF; color: #2563EB; }
+    .icon-lead_created       { background: #F7E7DD; color: #B8481B; }
     .icon-quotation_approved { background: #F0FDF4; color: #15803D; }
     .icon-quotation_win      { background: #FEFCE8; color: #A16207; }
     .icon-quotation_loss     { background: #FEF2F2; color: #DC2626; }
@@ -80,20 +80,20 @@
     .icon-market_do_pending  { background: #EDE9FE; color: #6D28D9; }
     .icon-market_completed   { background: #F0FDF4; color: #15803D; }
     .icon-credit_high_risk   { background: #FEF2F2; color: #DC2626; }
-    .icon-general            { background: #F1F5F9; color: #475569; }
+    .icon-general            { background: #F1ECDF; color: #6B5F52; }
 
     /* ── Content ── */
     .notif-content { flex: 1; min-width: 0; }
     .notif-title {
         font-size: .875rem;
         font-weight: 600;
-        color: #0F172A;
+        color: #221D18;
         margin-bottom: 2px;
         line-height: 1.4;
     }
     .notif-msg {
         font-size: .81rem;
-        color: #64748B;
+        color: #7C7167;
         line-height: 1.5;
         margin-bottom: 4px;
         display: -webkit-box;
@@ -125,7 +125,7 @@
         border-radius: 7px;
         border: 1px solid #E0D0D5;
         background: white;
-        color: #64748B;
+        color: #7C7167;
         cursor: pointer;
         transition: background .12s, border-color .12s, color .12s;
         text-decoration: none;
@@ -153,7 +153,21 @@
         font-size: 1.4rem;
         margin: 0 auto 14px;
     }
-    .notif-empty p { font-size: .84rem; color: #94A3B8; margin: 0; }
+    .notif-empty p { font-size: .84rem; color: #A79A89; margin: 0; }
+
+    /* ── Day dividers — groups the flat list into "Today / Yesterday / older"
+       chapters instead of one undifferentiated feed, so a week of activity
+       reads like a log rather than a scroll. */
+    .notif-day-divider {
+        display: flex; align-items: center; gap: 10px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: .66rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .1em;
+        color: #C88A98;
+        margin: 18px 2px 8px;
+    }
+    .notif-day-divider:first-child { margin-top: 2px; }
+    .notif-day-divider::after { content: ''; flex: 1; height: 1px; background: #EAD8DC; }
 </style>
 {% endblock %}
 
@@ -161,6 +175,7 @@
 <div class="notif-wrap">
     <div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
         <div>
+            <span class="fs-eyebrow">Activity</span>
             <h4 class="mb-0 notif-page-title">
                 Notifications
                 {% if unread_notification_count > 0 %}
@@ -185,9 +200,12 @@
         {% endif %}
     </div>
 
-    <div class="notif-card">
-        {% if notifs %}
-        {% for n in notifs %}
+    {% if notifs %}
+    {% regroup notifs by created_at.date as notif_days %}
+    {% for day in notif_days %}
+    <div class="notif-day-divider">{{ day.grouper|date:"l, d M" }}</div>
+    <div class="notif-card mb-1">
+        {% for n in day.list %}
         <a href="{% url 'notification_mark_read' n.pk %}"
            class="notif-item {% if not n.is_read %}unread{% else %}read{% endif %}">
 
@@ -215,16 +233,19 @@
                 {% if n.message %}
                 <div class="notif-msg">{{ n.message }}</div>
                 {% endif %}
-                <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+                <div class="notif-time">{{ n.created_at|time:"H:i" }} — {{ n.created_at|timesince }} ago</div>
             </div>
         </a>
         {% endfor %}
-        {% else %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="notif-card">
         <div class="notif-empty">
             <div class="notif-empty-icon">🔔</div>
-            <p>No notifications yet.</p>
+            <p>Nothing here yet — you'll see lead, quotation, and market-order activity as it happens.</p>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

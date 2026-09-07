@@ -2,30 +2,40 @@
 {% block title %}Leads — Ferrite Steel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-hdr">
-    <h2 class="mb-0">Leads</h2>
-    <div class="d-flex gap-2 align-items-center">
+<div class="d-flex justify-content-between align-items-end page-hdr">
+    <div>
+        <span class="fs-eyebrow">Pipeline / Leads</span>
+        <h2 class="mb-0">Leads</h2>
+    </div>
+    <div class="fs-toolbar">
         {% if request.user.role == 'admin' or request.user.role == 'lead' %}
-        <form method="post" action="{% url 'poll_emails_now' %}">
+        <form method="post" action="{% url 'poll_emails_now' %}" id="pollForm">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Poll team inboxes now">
-                <i class="bi bi-arrow-clockwise me-1"></i>Poll Inbox
+            <button type="submit" class="btn btn-outline-secondary btn-sm" id="pollBtn" title="Check every connected inbox right now">
+                <i class="bi bi-arrow-clockwise me-1" id="pollIcon"></i><span id="pollLabel">Poll inbox</span>
             </button>
         </form>
+        <span class="fs-toolbar-div"></span>
         {% endif %}
-        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm">+ New Lead</a>
-        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary btn-sm">+ New Quotation</a>
+        <a href="{% url 'lead_create' %}" class="btn btn-outline-primary btn-sm">+ New lead</a>
+        <a href="{% url 'quotation_select_lead' %}" class="btn btn-primary btn-sm">+ New quotation</a>
     </div>
 </div>
+{% if page_obj %}
+<div class="fs-metastrip">
+    <span><strong>{{ page_obj.paginator.count }}</strong> lead{{ page_obj.paginator.count|pluralize }}{% if q or status_f or source_f or team_f %} matching filters{% endif %}</span>
+    <span>Page <strong>{{ page_obj.number }}</strong> of {{ page_obj.paginator.num_pages }}</span>
+</div>
+{% endif %}
 
 <!-- Search + Filters -->
-<form method="get" class="row g-2 mb-3 align-items-end filter-row">
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-3 filter-row">
     <div class="col-auto">
         <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search name, company, email…" style="min-width:220px">
     </div>
     <div class="col-auto">
         <select name="status" class="form-select form-select-sm">
-            <option value="">All Statuses</option>
+            <option value="">All statuses</option>
             {% for val, label in lead_statuses %}
             <option value="{{ val }}" {% if status_f == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -33,7 +43,7 @@
     </div>
     <div class="col-auto">
         <select name="source" class="form-select form-select-sm">
-            <option value="">All Sources</option>
+            <option value="">All sources</option>
             {% for val, label in lead_sources %}
             <option value="{{ val }}" {% if source_f == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -42,7 +52,7 @@
     {% if request.user.role == 'admin' %}
     <div class="col-auto">
         <select name="team" class="form-select form-select-sm">
-            <option value="">All Teams</option>
+            <option value="">All teams</option>
             {% for val, label in team_choices %}
             <option value="{{ val }}" {% if team_f == val %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -58,16 +68,15 @@
 </form>
 
 {% if page_obj %}
-<p class="text-muted small mb-2">{{ page_obj.paginator.count }} lead{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-dark">
             <tr>
-                <th>#</th>
+                <th>ID</th>
                 <th>Customer</th>
                 <th>Source</th>
                 <th>Status</th>
-                <th class="hide-xs">Created / Received</th>
+                <th class="hide-xs">Created / received via</th>
                 <th class="hide-xs">Date</th>
                 <th></th>
             </tr>
@@ -75,7 +84,7 @@
         <tbody>
             {% for lead in page_obj %}
             <tr>
-                <td>{{ lead.pk }}</td>
+                <td class="fs-id">#{{ lead.pk }}</td>
                 <td>{{ lead.customer_name|default:"—" }}</td>
                 <td>{{ lead.get_source_display }}</td>
                 <td>
@@ -88,14 +97,14 @@
                         {{ lead.get_status_display }}
                     </span>
                 </td>
-                <td class="hide-xs">
+                <td class="hide-xs fs-id">
                     {% if lead.created_by %}{{ lead.created_by.username }}
                     {% elif lead.received_via %}{{ lead.received_via.email_address }}
                     {% else %}—{% endif %}
                 </td>
-                <td class="hide-xs">{{ lead.created_at|date:"d M Y" }}</td>
+                <td class="hide-xs fs-num">{{ lead.created_at|date:"d M Y" }}</td>
                 <td class="d-flex gap-1">
-                    <a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-primary">Open</a>
                     <form method="post" action="{% url 'lead_delete' lead.pk %}"
                           onsubmit="return confirm('Delete Lead #{{ lead.pk }}{% if lead.customer_name %} — {{ lead.customer_name }}{% endif %}? This cannot be undone.')">
                         {% csrf_token %}
@@ -109,6 +118,62 @@
 </div>
 {% include 'partials/pagination.html' %}
 {% else %}
-<p class="text-muted">No leads found. {% if not q and not status_f and not source_f %}<a href="{% url 'lead_create' %}">Create the first one.</a>{% endif %}</p>
+<div class="text-center py-5">
+    <i class="bi bi-funnel" style="font-size:1.8rem;color:#C9BFAE;display:block;margin-bottom:10px;"></i>
+    <p class="text-muted mb-1">No leads match these filters yet.</p>
+    {% if not q and not status_f and not source_f %}<a href="{% url 'lead_create' %}">Create the first one manually →</a>{% endif %}
+</div>
 {% endif %}
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// Poll Inbox — fetch-based so the page never reloads for this. Anti-flicker:
+// only swap to the spinner if the response hasn't come back within ~300ms.
+const pollForm = document.getElementById('pollForm');
+if (pollForm) {
+    pollForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = document.getElementById('pollBtn');
+        const icon = document.getElementById('pollIcon');
+        const label = document.getElementById('pollLabel');
+        const originalIcon = icon.className;
+        const originalLabel = label.textContent;
+
+        const flickerTimer = setTimeout(function () {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            icon.className = 'spinner-border spinner-border-sm me-1';
+            label.textContent = 'Polling inbox…';
+        }, 300);
+
+        fetch(pollForm.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': pollForm.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        }).then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+          .then(function () {
+              clearTimeout(flickerTimer);
+              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
+              icon.className = 'bi bi-check2 me-1';
+              label.textContent = 'Started — new leads shortly';
+              setTimeout(function () {
+                  icon.className = originalIcon;
+                  label.textContent = originalLabel;
+              }, 3000);
+          })
+          .catch(function () {
+              clearTimeout(flickerTimer);
+              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
+              icon.className = originalIcon;
+              label.textContent = originalLabel;
+              alert('Could not start the inbox poll. Please try again.');
+          });
+    });
+}
+</script>
+{% endblock extra_js %}
