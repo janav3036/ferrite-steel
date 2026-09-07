@@ -433,9 +433,12 @@ def document_ask(request):
     if request.method == 'POST':
         question = request.POST.get('question', '').strip()
         raw_ids = request.POST.getlist('doc_ids')
-        selected_ids = [int(x) for x in raw_ids if x.isdigit()]
-        if selected_ids:
-            selected_docs = list(avail_qs.filter(id__in=selected_ids).values('id', 'title', 'filename'))
+        requested_ids = [int(x) for x in raw_ids if x.isdigit()]
+        # Intersect with the documents this user may actually see — the raw POST
+        # ids must never reach the chunk query on their own.
+        if requested_ids:
+            selected_docs = list(avail_qs.filter(id__in=requested_ids).values('id', 'title', 'filename'))
+        selected_ids = [d['id'] for d in selected_docs]
 
         if question:
             from .services.embedder import embed_query
@@ -443,24 +446,35 @@ def document_ask(request):
             try:
                 query_embedding = embed_query(question)
                 chunk_qs = DocumentChunk.objects.filter(document__is_processed=True)
+                if not (user.is_superuser or user.role == 'admin'):
+                    # Department scope always applies, whether or not the user
+                    # narrowed the search to specific documents.
+                    chunk_qs = (
+                        chunk_qs.filter(document__departments__contains=user.team)
+                        if user.team else chunk_qs.none()
+                    )
                 if selected_ids:
                     chunk_qs = chunk_qs.filter(document_id__in=selected_ids)
-                elif not (user.is_superuser or user.role == 'admin') and user.team:
-                    chunk_qs = chunk_qs.filter(document__departments__contains=user.team)
                 chunks = list(chunk_qs.annotate(
                     distance=CosineDistance('embedding', query_embedding)
                 ).order_by('distance')[:5])
                 case_qs = Case.objects.all()
-                if not (user.is_superuser or user.role == 'admin') and user.team:
-                    case_qs = case_qs.filter(departments__contains=user.team)
+                if not (user.is_superuser or user.role == 'admin'):
+                    case_qs = (
+                        case_qs.filter(departments__contains=user.team)
+                        if user.team else case_qs.none()
+                    )
                 cases = list(case_qs.filter(
                     Q(title__icontains=question) |
                     Q(problem_description__icontains=question) |
                     Q(resolution__icontains=question)
                 )[:3])
                 question_qs = Question.objects.all()
-                if not (user.is_superuser or user.role == 'admin') and user.team:
-                    question_qs = question_qs.filter(departments__contains=user.team)
+                if not (user.is_superuser or user.role == 'admin'):
+                    question_qs = (
+                        question_qs.filter(departments__contains=user.team)
+                        if user.team else question_qs.none()
+                    )
                 quiz_questions = list(question_qs.filter(
                     Q(question_text__icontains=question) |
                     Q(correct_answer__icontains=question)

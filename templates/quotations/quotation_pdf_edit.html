@@ -236,25 +236,20 @@ we have received your enquiry and are pleased to offer you our best rates as per
     {% for item in items %}
     <tr>
       <td class="ctr" style="font-size:9.5px;">{{ forloop.counter }}</td>
-      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_hsn" value="{{ item.hsn_code }}" readonly tabindex="-1"></td>
-      <td><input class="e ro" name="item_{{ forloop.counter0 }}_name" value="{{ item.product_name }}" readonly tabindex="-1"></td>
-      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_length" value="{{ item.length }}" readonly tabindex="-1"></td>
-      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_make" value="{{ item.make }}" readonly tabindex="-1"></td>
-      <td><input class="e ro ctr" name="item_{{ forloop.counter0 }}_grade" value="{{ item.grade }}" readonly tabindex="-1"></td>
-      <td><input class="e ro num" name="item_{{ forloop.counter0 }}_pcs" value="{{ item.pcs|default:'' }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" value="{{ item.hsn_code }}" readonly tabindex="-1"></td>
+      <td><input class="e ro" value="{{ item.product_name }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" value="{{ item.length }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" value="{{ item.make }}" readonly tabindex="-1"></td>
+      <td><input class="e ro ctr" value="{{ item.grade }}" readonly tabindex="-1"></td>
+      <td><input class="e ro num" value="{{ item.pcs|default:'' }}" readonly tabindex="-1"></td>
       <td style="white-space:nowrap;">
-        <input class="e ro num item-qty" data-row="{{ forloop.counter0 }}"
-               name="item_{{ forloop.counter0 }}_qty"
-               value="{{ item.quantity }}" readonly tabindex="-1" style="width:55%;display:inline-block;">
-        <input class="e ro" name="item_{{ forloop.counter0 }}_uom"
-               value="{{ item.uom }}" readonly tabindex="-1"
+        <input class="e ro num" value="{{ item.quantity }}" readonly tabindex="-1"
+               style="width:55%;display:inline-block;">
+        <input class="e ro" value="{{ item.uom }}" readonly tabindex="-1"
                style="width:40%;display:inline-block;font-size:8px;padding:0;">
       </td>
-      <td><input class="e ro num item-rate" data-row="{{ forloop.counter0 }}"
-                 name="item_{{ forloop.counter0 }}_rate" value="{{ item.unit_price }}" readonly tabindex="-1"></td>
-      <td><input class="e num item-amount ro" data-row="{{ forloop.counter0 }}"
-                 name="item_{{ forloop.counter0 }}_amount"
-                 value="{{ item.final_price }}" readonly tabindex="-1"></td>
+      <td><input class="e ro num" value="{{ item.unit_price }}" readonly tabindex="-1"></td>
+      <td><input class="e num item-amount ro" value="{{ item.final_price }}" readonly tabindex="-1"></td>
     </tr>
     {% endfor %}
   </tbody>
@@ -370,13 +365,6 @@ function parseNum(v) {
   return parseFloat(String(v).replace(/[₹,\s]/g, '')) || 0;
 }
 
-function recalcRow(idx) {
-  const qty  = parseNum(document.querySelector(`[name="item_${idx}_qty"]`).value);
-  const rate = parseNum(document.querySelector(`[name="item_${idx}_rate"]`).value);
-  const el   = document.querySelector(`.item-amount[data-row="${idx}"]`);
-  if (el) el.value = (qty * rate).toFixed(2);
-}
-
 function recalc() {
   // Sum item amounts
   const amounts = [...document.querySelectorAll('.item-amount')].map(el => parseNum(el.value));
@@ -391,31 +379,13 @@ function recalc() {
   const sgst      = taxable * sgstPct / 100;
   const grand     = taxable + cgst + sgst;
 
-  // Total tons
-  let tons = 0;
-  document.querySelectorAll('.item-qty').forEach(el => {
-    const row = el.dataset.row;
-    const uom = document.querySelector(`[name="item_${row}_uom"]`).value;
-    tons += uom === 'kg' ? parseNum(el.value) / 1000 : parseNum(el.value);
-  });
-
+  // Line items are fixed here, so item value and total tonnage never change —
+  // only the loading/transport/tax-driven figures need recomputing.
   document.getElementById('f-item-value').value = itemVal.toFixed(2);
   document.getElementById('f-cgst').value        = cgst.toFixed(2);
   document.getElementById('f-sgst').value        = sgst.toFixed(2);
   document.getElementById('f-grand').value       = grand.toFixed(2);
-  document.getElementById('f-total-tons').value  = tons.toFixed(2) + ' T';
 }
-
-// Wire qty/rate inputs
-document.querySelectorAll('.item-qty, .item-rate').forEach(el => {
-  el.addEventListener('input', () => {
-    recalcRow(el.dataset.row);
-    recalc();
-  });
-});
-document.querySelectorAll('[name$="_uom"]').forEach(el => {
-  el.addEventListener('change', recalc);
-});
 
 // Auto-grow textareas
 document.querySelectorAll('textarea.e').forEach(ta => {

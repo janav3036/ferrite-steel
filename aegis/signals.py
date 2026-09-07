@@ -32,6 +32,8 @@ BASE = lambda: [
 LEAD_EXTRA = lambda: [
     _perm('quotations', 'can_approve_quotation'),
     _perm('quotations', 'can_assign_loading_dock'),
+    _perm('quotations', 'delete_quotation'),
+    _perm('quotations', 'delete_lead'),
     _perm('database', 'can_reassign_customer'),
     _perm('aegis', 'can_view_user_list'),
     _perm('training', 'add_case'),

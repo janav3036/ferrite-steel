@@ -9,10 +9,18 @@ def inr_words(value):
     """Convert a Decimal/number to Indian-English amount words, e.g. ₹1,36,144.00 → One Lakh Thirty-Six Thousand One Hundred Forty-Four Only."""
     try:
         val = Decimal(str(value))
+        negative = val < 0
+        val = abs(val)
         rupees = int(val)
         paise  = round((val - rupees) * 100)
     except (InvalidOperation, TypeError, ValueError):
         return ''
+
+    # A fraction of .995 or more rounds up to a full rupee — carry it, or _two()
+    # would be asked for 100 and index past the end of the tens table.
+    if paise >= 100:
+        rupees += 1
+        paise = 0
 
     _ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
              'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
@@ -46,7 +54,8 @@ def inr_words(value):
     result = _to_words(rupees) + ' Rupees'
     if paise:
         result += ' and ' + _two(int(paise)) + ' Paise'
-    return result + ' Only'
+    result += ' Only'
+    return 'Minus ' + result if negative else result
 
 
 @register.filter

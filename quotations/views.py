@@ -607,31 +607,25 @@ def _build_pdf_context_from_post(post, original):
     tnc_lines = [line.strip() for line in _s('tnc_text').splitlines() if line.strip()] or list(_DEFAULT_TNC_LINES)
     terms_lines = [line.strip() for line in _s('terms_text').splitlines() if line.strip()] or list(_DEFAULT_TERMS_LINES)
 
-    # Line items
-    items = []
-    i = 0
-    while f'item_{i}_name' in post:
-        qty  = _dec(f'item_{i}_qty')
-        rate = _dec(f'item_{i}_rate')
-        amount = qty * rate
-        uom   = _s(f'item_{i}_uom', 'ton')
-        pcs_raw = _s(f'item_{i}_pcs')
-        item = SimpleNamespace(
-            hsn_code=_s(f'item_{i}_hsn'),
-            product_name=_s(f'item_{i}_name'),
-            length=_s(f'item_{i}_length'),
-            make=_s(f'item_{i}_make'),
-            grade=_s(f'item_{i}_grade'),
-            pcs=int(pcs_raw) if pcs_raw.isdigit() else None,
-            quantity=qty,
-            uom=uom,
-            unit_price=rate,
-            total_price=amount,
-            discount_pct=Decimal('0'),
-            final_price=amount,
+    # Line items are display-only in the edit-PDF form (every input is readonly),
+    # so they come from the database, never from POST.
+    items = [
+        SimpleNamespace(
+            hsn_code=li.hsn_code,
+            product_name=li.product_name,
+            length=li.length,
+            make=li.make,
+            grade=li.grade,
+            pcs=li.pcs,
+            quantity=li.quantity,
+            uom=li.uom,
+            unit_price=li.unit_price,
+            total_price=li.total_price,
+            discount_pct=li.discount_pct,
+            final_price=li.final_price,
         )
-        items.append(item)
-        i += 1
+        for li in original.line_items.all()
+    ]
 
     item_value    = sum(it.final_price for it in items)
     loading_extra  = _dec('loading')
@@ -1013,11 +1007,37 @@ def quotation_create(request, lead_pk):
     return redirect('quotation_select_lead')
 
 
+def _in_team_scope(user, *record_teams):
+    """Whether `user` may act on a record belonging to any of `record_teams`.
+
+    Mirrors the team filter the lead/quotation list views apply, but fails closed
+    for a non-admin with no team of their own (the list views leave those
+    unfiltered, which is safe for reading but not for deleting).
+    """
+    if user.role == 'admin':
+        return True
+    if not user.team:
+        return False
+    return user.team in [t for t in record_teams if t]
+
+
 @login_required
 def quotation_delete(request, pk):
     if request.method != 'POST':
         return redirect('quotation_detail', pk=pk)
-    quotation = get_object_or_404(Quotation, pk=pk)
+    if not request.user.has_perm('quotations.delete_quotation'):
+        messages.error(request, 'Only team leads and admins can delete quotations.')
+        return redirect('quotation_detail', pk=pk)
+    quotation = get_object_or_404(
+        Quotation.objects.select_related('lead__received_via', 'created_by'), pk=pk
+    )
+    record_teams = (
+        quotation.lead.received_via.team if quotation.lead and quotation.lead.received_via else None,
+        quotation.created_by.team if quotation.created_by else None,
+    )
+    if not _in_team_scope(request.user, *record_teams):
+        messages.error(request, "You can only delete your own team's quotations.")
+        return redirect('quotation_detail', pk=pk)
     number = quotation.quotation_number
     quotation.delete()
     messages.success(request, f'{number} deleted.')
@@ -1028,7 +1048,19 @@ def quotation_delete(request, pk):
 def lead_delete(request, pk):
     if request.method != 'POST':
         return redirect('lead_detail', pk=pk)
-    lead = get_object_or_404(Lead, pk=pk)
+    if not request.user.has_perm('quotations.delete_lead'):
+        messages.error(request, 'Only team leads and admins can delete leads.')
+        return redirect('lead_detail', pk=pk)
+    lead = get_object_or_404(
+        Lead.objects.select_related('received_via', 'created_by'), pk=pk
+    )
+    record_teams = (
+        lead.received_via.team if lead.received_via else None,
+        lead.created_by.team if lead.created_by else None,
+    )
+    if not _in_team_scope(request.user, *record_teams):
+        messages.error(request, "You can only delete your own team's leads.")
+        return redirect('lead_detail', pk=pk)
     name = lead.customer_name or f'Lead #{lead.pk}'
     lead.delete()
     messages.success(request, f'Lead "{name}" and all its quotations deleted.')
