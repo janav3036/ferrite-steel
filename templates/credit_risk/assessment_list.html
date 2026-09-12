@@ -62,34 +62,34 @@
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody class="cr-stagger">
+            <tbody class="cr-stagger" id="cr-ledger-body">
                 {% for a in page_obj %}
-                <tr {% if a.status == 'done' %}onclick="window.location='{% url 'assessment_detail' a.pk %}'" style="cursor:pointer"{% endif %}>
+                <tr id="cr-row-{{ a.pk }}" data-pk="{{ a.pk }}" data-status="{{ a.status }}" {% if a.status == 'done' %}onclick="window.location='{% url 'assessment_detail' a.pk %}'" style="cursor:pointer"{% endif %}>
                     <td>{{ a.customer.name }}{% if a.customer.company %} <span class="text-muted small">— {{ a.customer.company }}</span>{% endif %}</td>
                     {% if a.status == 'processing' %}
-                    <td class="text-muted">—</td>
-                    <td class="text-muted">—</td>
-                    <td class="text-muted">—</td>
-                    <td class="text-muted">—</td>
+                    <td class="text-muted cr-cell-score">—</td>
+                    <td class="text-muted cr-cell-risk">—</td>
+                    <td class="text-muted cr-cell-confidence">—</td>
+                    <td class="text-muted cr-cell-recommendation">—</td>
                     {% else %}
-                    <td class="cr-mono">{% if a.score %}{{ a.score }}<span style="color:var(--cr-ink-dim)">/10</span>{% else %}—{% endif %}</td>
-                    <td>
+                    <td class="cr-mono cr-cell-score">{% if a.score %}{{ a.score }}<span style="color:var(--cr-ink-dim)">/10</span>{% else %}—{% endif %}</td>
+                    <td class="cr-cell-risk">
                         {% if a.risk_level == 'low' %}<span class="cr-badge cr-badge-polished">Polished</span>
                         {% elif a.risk_level == 'medium' %}<span class="cr-badge cr-badge-aged">Aged</span>
                         {% elif a.risk_level == 'high' %}<span class="cr-badge cr-badge-tarnished">Tarnished</span>
                         {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
-                    <td>
+                    <td class="cr-cell-confidence">
                         {% if a.data_confidence == 'high' %}<span class="cr-badge cr-badge-polished">High</span>
                         {% elif a.data_confidence == 'medium' %}<span class="cr-badge cr-badge-aged">Medium</span>
                         {% elif a.data_confidence == 'low' %}<span class="cr-badge cr-badge-tarnished">Low</span>
                         {% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
-                    <td>{{ a.get_recommendation_display|default:"—" }}</td>
+                    <td class="cr-cell-recommendation">{{ a.get_recommendation_display|default:"—" }}</td>
                     {% endif %}
                     <td class="text-muted small">{{ a.requested_by|default:"—" }}</td>
                     <td class="text-muted small cr-mono">{{ a.created_at|date:"d M Y" }}</td>
-                    <td>
+                    <td class="cr-cell-status">
                         {% if a.status == 'processing' %}
                         <span class="cr-badge cr-badge-neutral"><span class="spinner-border spinner-border-sm" style="width:.6rem;height:.6rem;border-width:1.5px;"></span> Assaying</span>
                         {% elif a.status == 'failed' %}
@@ -106,7 +106,57 @@
 
     {% if has_processing %}
     <script>
-        setTimeout(function () { window.location.reload(); }, 5000);
+        (function () {
+            var pollUrl = "{% url 'assessment_status_batch' %}";
+
+            function riskBadge(level) {
+                if (level === 'low') return '<span class="cr-badge cr-badge-polished">Polished</span>';
+                if (level === 'medium') return '<span class="cr-badge cr-badge-aged">Aged</span>';
+                if (level === 'high') return '<span class="cr-badge cr-badge-tarnished">Tarnished</span>';
+                return '<span class="text-muted">—</span>';
+            }
+            function confidenceBadge(level) {
+                if (level === 'high') return '<span class="cr-badge cr-badge-polished">High</span>';
+                if (level === 'medium') return '<span class="cr-badge cr-badge-aged">Medium</span>';
+                if (level === 'low') return '<span class="cr-badge cr-badge-tarnished">Low</span>';
+                return '<span class="text-muted">—</span>';
+            }
+
+            function poll() {
+                var rows = document.querySelectorAll('#cr-ledger-body tr[data-status="processing"]');
+                if (!rows.length) return;
+                var ids = Array.prototype.map.call(rows, function (tr) { return tr.dataset.pk; });
+
+                fetch(pollUrl + '?ids=' + ids.join(','), {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        var assessments = data.assessments || {};
+                        rows.forEach(function (tr) {
+                            var info = assessments[tr.dataset.pk];
+                            if (!info || info.status === 'processing') return;
+
+                            tr.dataset.status = info.status;
+                            tr.querySelector('.cr-cell-score').innerHTML = info.score ? ('<span class="cr-mono">' + info.score + '<span style="color:var(--cr-ink-dim)">/10</span></span>') : '—';
+                            tr.querySelector('.cr-cell-risk').innerHTML = riskBadge(info.risk_level);
+                            tr.querySelector('.cr-cell-confidence').innerHTML = confidenceBadge(info.data_confidence);
+                            tr.querySelector('.cr-cell-recommendation').textContent = info.recommendation_display || '—';
+
+                            var statusCell = tr.querySelector('.cr-cell-status');
+                            if (info.status === 'failed') {
+                                statusCell.innerHTML = '<span class="cr-badge cr-badge-tarnished">Failed</span>';
+                            } else {
+                                var url = '/credit-risk/' + tr.dataset.pk + '/';
+                                statusCell.innerHTML = '<a href="' + url + '" class="btn btn-outline-primary btn-sm">View</a>';
+                                tr.style.cursor = 'pointer';
+                                tr.onclick = function () { window.location = url; };
+                            }
+                        });
+                        setTimeout(poll, 5000);
+                    })
+                    .catch(function () { setTimeout(poll, 5000); });
+            }
+            setTimeout(poll, 5000);
+        })();
     </script>
     {% endif %}
 

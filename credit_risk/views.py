@@ -5,7 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import connection
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from aegis.models import CustomUser
@@ -124,6 +126,32 @@ def assessment_list(request):
         'has_processing': has_processing,
     })
 
+
+@login_required
+def assessment_status_batch(request):
+    """Polled from assessment_list.html for rows still 'processing' so only
+    those rows patch in place — no full-page reload."""
+    ids = [int(x) for x in request.GET.get('ids', '').split(',') if x.strip().isdigit()]
+    if not ids:
+        return JsonResponse({'assessments': {}})
+
+    qs = CreditAssessment.objects.select_related('customer').filter(pk__in=ids)
+    if request.user.role == 'lead' and request.user.team:
+        qs = qs.filter(customer__handling_team=request.user.team)
+    elif request.user.role != 'admin':
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    data = {}
+    for a in qs:
+        data[a.pk] = {
+            'status': a.status,
+            'score': a.score,
+            'risk_level': a.risk_level,
+            'data_confidence': a.data_confidence,
+            'recommendation_display': a.get_recommendation_display() if a.recommendation else '',
+        }
+    return JsonResponse({'assessments': data})
+
 @login_required
 def assessment_create(request):
     if request.user.role not in ('lead', 'admin'):
@@ -167,17 +195,7 @@ def assessment_create(request):
     })
 
 
-@login_required
-def assessment_detail(request, pk):
-    assessment = get_object_or_404(
-        CreditAssessment.objects.select_related('customer', 'requested_by'), pk=pk
-    )
-    if request.user.role not in ('lead', 'admin'):
-        messages.error(request, 'You do not have access to Credit Risk.')
-        return redirect('dashboard')
-    if request.user.role == 'lead' and request.user.team and assessment.customer.handling_team != request.user.team:
-        messages.error(request, 'You do not have access to this assessment.')
-        return redirect('assessment_list')
+def _assessment_panel_context(assessment):
     prior_assessment = CreditAssessment.objects.filter(
         customer=assessment.customer, status='done', created_at__lt=assessment.created_at,
     ).order_by('-created_at').first()
@@ -203,12 +221,54 @@ def assessment_detail(request, pk):
                 'note': note.get('note', ''), 'reputation_flag': note.get('reputation_flag', 'none'),
             })
 
-    return render(request, 'credit_risk/assessment_detail.html', {
+    return {
         'assessment': assessment, 'prior_assessment': prior_assessment,
         'ring_circumference': ring_circumference, 'ring_offset': ring_offset,
         'top_tier_rows': top_tier_rows,
         'pct_of_total_sales_from_listed': listed['pct_of_total_sales_from_listed'] if listed else None,
-    })
+    }
+
+
+def _assessment_access_denied(request, assessment):
+    if request.user.role not in ('lead', 'admin'):
+        return True
+    if request.user.role == 'lead' and request.user.team and assessment.customer.handling_team != request.user.team:
+        return True
+    return False
+
+
+@login_required
+def assessment_detail(request, pk):
+    assessment = get_object_or_404(
+        CreditAssessment.objects.select_related('customer', 'requested_by'), pk=pk
+    )
+    if request.user.role not in ('lead', 'admin'):
+        messages.error(request, 'You do not have access to Credit Risk.')
+        return redirect('dashboard')
+    if request.user.role == 'lead' and request.user.team and assessment.customer.handling_team != request.user.team:
+        messages.error(request, 'You do not have access to this assessment.')
+        return redirect('assessment_list')
+
+    return render(request, 'credit_risk/assessment_detail.html', _assessment_panel_context(assessment))
+
+
+@login_required
+def assessment_status_json(request, pk):
+    """Polled from assessment_detail.html while status='processing' so only
+    the result panel loads in place — no full-page reload."""
+    assessment = get_object_or_404(
+        CreditAssessment.objects.select_related('customer', 'requested_by'), pk=pk
+    )
+    if _assessment_access_denied(request, assessment):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+
+    if assessment.status == 'processing':
+        return JsonResponse({'status': 'processing'})
+
+    html = render_to_string(
+        'credit_risk/_assessment_panel.html', _assessment_panel_context(assessment), request=request,
+    )
+    return JsonResponse({'status': assessment.status, 'html': html})
 
 
 @login_required

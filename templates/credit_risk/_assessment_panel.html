@@ -1,0 +1,239 @@
+{% load fs_filters %}
+{% if assessment.status == 'processing' %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body text-center py-5">
+        <div class="cr-vault-spinner mb-3"></div>
+        <p class="mb-1" style="color:var(--text);">Assaying <strong>{{ assessment.customer.name }}</strong>'s trading history…</p>
+        <p class="text-muted small mb-4">This panel refreshes automatically. Extraction + scoring usually takes under a minute.</p>
+        <form method="post" action="{% url 'assessment_mark_failed' assessment.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Mark this as failed? Only do this if it looks stuck.');">Mark as Failed</button>
+        </form>
+    </div>
+</div>
+
+{% elif assessment.status == 'failed' %}
+<div class="alert alert-danger">
+    <strong>Assay failed.</strong>
+    {{ assessment.error_message|default:"No error details recorded." }}
+</div>
+
+{% else %}
+<div class="card shadow-sm mb-3">
+    <div class="cr-hero">
+        <div class="cr-medallion" style="--ring-circumference:{{ ring_circumference }};--ring-offset:{{ ring_offset }}">
+            <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--cr-border-soft)" stroke-width="6"/>
+                <circle class="cr-ring" cx="60" cy="60" r="50" fill="none" stroke="url(#brassGrad)"
+                        stroke-width="6" stroke-linecap="round"
+                        stroke-dasharray="{{ ring_circumference }}"
+                        transform="rotate(-90 60 60)"/>
+                <defs>
+                    <linearGradient id="brassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#E4C878"/>
+                        <stop offset="100%" stop-color="#9C7D3E"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="cr-medallion-score">
+                <span class="cr-medallion-num">{{ assessment.score }}</span>
+                <span class="cr-medallion-den">OUT OF 10</span>
+            </div>
+        </div>
+        <div class="cr-hero-stats">
+            <div class="cr-hero-row">
+                <span class="cr-hero-label">Condition</span>
+                {% if assessment.risk_level == 'low' %}<span class="cr-badge cr-badge-polished">Polished — Low Risk</span>
+                {% elif assessment.risk_level == 'medium' %}<span class="cr-badge cr-badge-aged">Aged — Medium Risk</span>
+                {% elif assessment.risk_level == 'high' %}<span class="cr-badge cr-badge-tarnished">Tarnished — High Risk</span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+            </div>
+            <div class="cr-hero-row">
+                <span class="cr-hero-label">Recommendation</span>
+                {% if assessment.recommendation == 'approve' %}<span class="cr-badge cr-badge-polished">Approve</span>
+                {% elif assessment.recommendation == 'decline' %}<span class="cr-badge cr-badge-tarnished">Decline</span>
+                {% else %}<span class="cr-badge cr-badge-aged">Refer for Review</span>{% endif %}
+            </div>
+            <div class="cr-hero-row">
+                <span class="cr-hero-label">Data Confidence</span>
+                {% if assessment.data_confidence == 'high' %}<span class="cr-badge cr-badge-polished">High</span>
+                {% elif assessment.data_confidence == 'medium' %}<span class="cr-badge cr-badge-aged">Medium</span>
+                {% elif assessment.data_confidence == 'low' %}<span class="cr-badge cr-badge-tarnished">Low</span>
+                {% else %}<span class="text-muted">—</span>{% endif %}
+            </div>
+            <div class="cr-hero-row">
+                <span class="cr-hero-label">Assessed</span>
+                <span class="cr-mono" style="color:var(--text);">{{ assessment.created_at|date:"d M Y" }}</span>
+                <span class="text-muted small">by {{ assessment.requested_by|default:"—" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if prior_assessment %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Compared to Prior Entry</div>
+    <div class="card-body small">
+        <a href="{% url 'assessment_detail' prior_assessment.pk %}">{{ prior_assessment.created_at|date:"d M Y" }}</a>
+        scored <span class="cr-mono">{{ prior_assessment.score }}/10</span>
+        ({% if prior_assessment.risk_level == 'low' %}<span class="cr-badge cr-badge-polished">Polished</span>
+        {% elif prior_assessment.risk_level == 'medium' %}<span class="cr-badge cr-badge-aged">Aged</span>
+        {% else %}<span class="cr-badge cr-badge-tarnished">Tarnished</span>{% endif %})
+        —
+        {% if assessment.score > prior_assessment.score %}<span style="color:var(--cr-patina-bright);font-weight:600;">polished further</span>
+        {% elif assessment.score < prior_assessment.score %}<span style="color:var(--cr-tarnish-bright);font-weight:600;">tarnished since</span>
+        {% else %}<span class="text-muted fw-semibold">unchanged</span>{% endif %}
+        since then.
+    </div>
+</div>
+{% endif %}
+
+{% if assessment.score_breakdown %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Marks Breakdown</span>
+        <span class="cr-mono small" style="color:var(--cr-brass);">{{ assessment.points_earned }} / {{ assessment.points_possible }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+            <tbody>
+                {% for b in assessment.score_breakdown %}
+                <tr>
+                    <td class="fw-semibold" style="width:28%;color:var(--text);">{{ b.label }}</td>
+                    <td class="cr-mono" style="width:12%;">{{ b.points }}<span style="color:var(--cr-ink-dim)">/{{ b.max }}</span></td>
+                    <td style="color:var(--muted);">{{ b.detail }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if assessment.weight_overrides %}
+    <div class="card-body py-2 small text-muted border-top">
+        Custom weights were used for this assessment (admin override): {{ assessment.weight_overrides }}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if top_tier_rows %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Top-Tier Buyers — Listed Status &amp; Background</div>
+    <div class="card-body">
+        {% if pct_of_total_sales_from_listed is not None %}
+        <p class="small mb-2" style="color:var(--text);">
+            {{ pct_of_total_sales_from_listed }}% of this top-tier group's sales value comes from
+            NSE/BSE-listed companies.
+        </p>
+        {% endif %}
+        <div class="alert alert-secondary small mb-2">
+            <strong>Background notes are unverified — general AI knowledge, not a live lookup.</strong> Treat as context only.
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Company</th><th>Listed</th><th>Background Note</th></tr></thead>
+                <tbody>
+                    {% for row in top_tier_rows %}
+                    <tr>
+                        <td class="cr-mono" style="color:var(--text);">{{ row.name }}</td>
+                        <td>{% if row.listed %}<span class="cr-badge cr-badge-polished">Listed</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                        <td style="color:var(--muted);">
+                            {{ row.note|default:"—" }}
+                            {% if row.reputation_flag == "caution" %}<span class="cr-badge cr-badge-tarnished ms-1">Caution</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Summary</div>
+    <div class="card-body" style="color:var(--text);">{{ assessment.summary|linebreaksbr }}</div>
+</div>
+
+{% if assessment.factors %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Factors</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+            <tbody>
+                {% for f in assessment.factors %}
+                <tr>
+                    <td style="width:1%; white-space:nowrap;">
+                        {% if f.impact == 'positive' %}<span class="cr-badge cr-badge-polished">+</span>
+                        {% elif f.impact == 'negative' %}<span class="cr-badge cr-badge-tarnished">−</span>
+                        {% else %}<span class="cr-badge cr-badge-neutral">·</span>{% endif %}
+                    </td>
+                    <td class="fw-semibold" style="width:25%;color:var(--text);">{{ f.factor }}</td>
+                    <td style="color:var(--muted);">{{ f.detail }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Trading History <span class="text-muted small">(customer's own Tally export — {{ assessment.trading_history_source_filename }})</span></div>
+    <div class="card-body">
+        {% with th=assessment.trading_history %}
+        {% if th.quotation_signal %}
+        <div class="alert alert-warning small mb-3">
+            <strong>In-house quotation history:</strong>
+            {{ th.quotation_signal.total_quotations }} quotations on file —
+            {{ th.quotation_signal.won }} won, {{ th.quotation_signal.lost }} lost
+            {% if th.quotation_signal.win_rate_pct is not None %}({{ th.quotation_signal.win_rate_pct }}% win rate){% endif %}.
+            Most recent: {{ th.quotation_signal.most_recent_date|default:"—" }}.
+        </div>
+        {% endif %}
+
+        {% if not th.sales and not th.purchase %}
+        <div class="alert alert-warning">
+            <strong>No usable trading data</strong> found in the uploaded file. This assessment is based on the salesperson's notes only.
+        </div>
+        {% else %}
+        <div class="row g-3">
+            <div class="col-md-6">
+                <h6 style="color:var(--text);">Sales <span class="text-muted small">(top 10 by value — companies the customer sold to)</span></h6>
+                {% if th.sales.rows %}
+                <p class="small text-muted mb-1">{{ th.sales.row_count }} customers on file — total {{ th.sales.grand_total_taxable_value|inr }}.</p>
+                <table class="table table-sm cr-mono">
+                    <thead><tr><th>Name</th><th>Total Value</th></tr></thead>
+                    <tbody>
+                        {% for row in th.sales.rows|dictsortreversed:"total_taxable_value"|slice:":10" %}
+                        <tr><td style="font-family:var(--font-ui);">{{ row.name }}</td><td>{{ row.total_taxable_value|inr }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted small">No Sales sheet found in the uploaded file.</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <h6 style="color:var(--text);">Competitor Matches <span class="text-muted small">(companies the customer buys from)</span></h6>
+                {% for m in th.competitor_matches %}
+                <div class="alert alert-secondary py-2 small mb-2">
+                    <strong>{{ m.competitor }}</strong> ({{ m.tier }}, matched to "{{ m.matched_row }}") — {{ m.streak }} — {{ m.points }} marks
+                </div>
+                {% empty %}
+                <p class="text-muted small">No named competitors were found buying from this customer.</p>
+                {% endfor %}
+                {% if th.purchase.rows %}
+                <p class="small text-muted mb-1 mt-2">{{ th.purchase.row_count }} vendors on file — total {{ th.purchase.grand_total_taxable_value|inr }}.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header">Salesperson Notes</div>
+    <div class="card-body" style="color:var(--text);">{{ assessment.notes|linebreaksbr|default:"—" }}</div>
+</div>
+{% endif %}
