@@ -55,7 +55,14 @@
                         {{ form.email }}
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">GST number</label>
+                        <label class="form-label d-flex justify-content-between align-items-center">
+                            <span>GST number</span>
+                            <a href="https://services.gst.gov.in/services/searchtp" target="_blank" rel="noopener"
+                               class="small gst-portal-link" id="gst-portal-link"
+                               title="Copies the GST number and opens the GST portal's Search Taxpayer page to verify it">
+                                Verify on GST portal ↗
+                            </a>
+                        </label>
                         {{ form.gst_number }}
                     </div>
                 </div>
@@ -128,4 +135,15 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('gst-portal-link').addEventListener('click', function () {
+    const gstInput = document.getElementById('id_gst_number');
+    if (gstInput && gstInput.value.trim() && navigator.clipboard) {
+        navigator.clipboard.writeText(gstInput.value.trim()).catch(() => {});
+    }
+});
+</script>
 {% endblock %}

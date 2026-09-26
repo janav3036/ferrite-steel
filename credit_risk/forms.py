@@ -34,10 +34,11 @@ class CreditAssessmentRequestForm(forms.Form):
         if not self.is_admin:
             for name in ('override_competitor_max', 'override_concentration_max', 'override_turnover_max'):
                 del self.fields[name]
-        if user and user.role == 'lead' and user.team:
-            self.fields['customer'].queryset = Customer.objects.filter(handling_team=user.team)
-        else:
-            self.fields['customer'].queryset = Customer.objects.all()
+        # Credit checks can be run against any customer, regardless of handling_team —
+        # the search box (customer_search_json) queries the full table, so restricting
+        # this queryset by team left almost every searched result unselectable
+        # (handling_team is blank on nearly all imported customers).
+        self.fields['customer'].queryset = Customer.objects.all()
 
     def clean_trading_file(self):
         f = self.cleaned_data['trading_file']
