@@ -8,6 +8,14 @@
        that clips the absolutely-positioned #customer-results dropdown, which needs
        to float above the Tally Export card below it. */
     .fs-main .card.cr-customer-card { overflow: visible; }
+    /* .cr-stagger's entrance animation ends on transform: translateY(0) with
+       fill-mode: forwards, which — since that's a real (identity) transform, not
+       the keyword "none" — leaves every card as its own stacking context
+       permanently. That traps #customer-results' z-index inside the Customer
+       card, so later sibling cards (Tally Export, etc.) still paint over it
+       regardless of the value. Giving the whole card a z-index lifts that
+       stacking context above its siblings instead. */
+    .fs-main .card.cr-customer-card { z-index: 5; }
 </style>
 {% endblock %}
 
