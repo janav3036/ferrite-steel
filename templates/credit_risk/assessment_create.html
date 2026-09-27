@@ -3,6 +3,12 @@
 
 {% block extra_head %}
 {% include "credit_risk/_sb_credit.html" %}
+<style>
+    /* _sb_credit.html sets .fs-main .card { overflow: hidden } for the hover sheen —
+       that clips the absolutely-positioned #customer-results dropdown, which needs
+       to float above the Tally Export card below it. */
+    .fs-main .card.cr-customer-card { overflow: visible; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -17,7 +23,7 @@
         <form method="post" enctype="multipart/form-data" class="cr-stagger">
             {% csrf_token %}
 
-            <div class="card shadow-sm mb-3">
+            <div class="card shadow-sm mb-3 cr-customer-card">
                 <div class="card-header">Customer</div>
                 <div class="card-body">
                     {% if preset_customer %}
