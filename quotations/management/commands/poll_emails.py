@@ -242,13 +242,14 @@ class Command(BaseCommand):
         # Scheduled (cron-driven) runs respect the pause flag — a manual run
         # (the "Poll Inbox" button, or a bare terminal invocation) always goes
         # ahead regardless, so it can both catch up on the backlog and prove
-        # credits are back (which auto-clears the flag — see ferite_steel.ai).
+        # the AI service is back (which auto-clears the flag — see ferite_steel.ai).
         if scheduled:
             llm_status = LLMApiStatus.objects.filter(pk=1).first()
             if llm_status and llm_status.email_polling_paused:
                 self.stdout.write(self.style.WARNING(
-                    'Email polling is paused (together.ai credits exhausted) — skipping. '
-                    'Use the "Poll Inbox" button once credits are restored to resume.'
+                    'Email polling is paused (AI service unavailable — out of credits or the '
+                    'configured model was rejected) — skipping. '
+                    'Use the "Poll Inbox" button once it is confirmed working to resume.'
                 ))
                 return
 
@@ -270,14 +271,36 @@ class Command(BaseCommand):
                 self._poll(config, dry_run, scheduled)
             except LLMUnavailableError as exc:
                 self.stderr.write(self.style.ERROR(f'  ERROR: {exc.user_message}'))
-                if exc.status_code == 402:
+                # 402 = out of credits. 400 with model_not_available = together.ai
+                # pulled serverless access to the model (has happened before — see
+                # the TOGETHER_MODEL comment in services/llm.py). Both mean every
+                # remaining inbox will fail the same way, so stop burning through
+                # them one per minute and surface it instead of just logging it.
+                is_model_unavailable = (
+                    exc.status_code == 400 and 'model_not_available' in (exc.technical_detail or '')
+                )
+                if exc.status_code == 402 or is_model_unavailable:
                     status, _ = LLMApiStatus.objects.get_or_create(pk=1)
                     status.email_polling_paused = True
                     status.save(update_fields=['email_polling_paused'])
+                    reason = (
+                        'together.ai credits exhausted' if exc.status_code == 402
+                        else 'together.ai rejected the configured model (model_not_available)'
+                    )
                     self.stdout.write(self.style.WARNING(
-                        'together.ai credits exhausted — pausing email polling until credits are '
-                        'restored (remaining inboxes skipped this run; use "Poll Inbox" to resume).'
+                        f'{reason} — pausing email polling until the AI service is confirmed working '
+                        'again (remaining inboxes skipped this run; use "Poll Inbox" to resume once fixed).'
                     ))
+                    recipients = CustomUser.objects.filter(role='admin')
+                    if recipients:
+                        notify(
+                            recipients,
+                            'Email polling paused — AI service unavailable',
+                            message=f'{reason}. Inbound inquiry emails will not become leads until this is '
+                                     f'resolved and polling is resumed. Detail: {exc.technical_detail[:300]}',
+                            link='/dashboard/',
+                            notif_type='general',
+                        )
                     break
             except Exception as exc:
                 self.stderr.write(self.style.ERROR(f'  ERROR: {exc}'))

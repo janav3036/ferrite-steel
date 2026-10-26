@@ -290,6 +290,8 @@ def quotation_edit(request, pk):
             _apply_catalog_rate_updates(request)
             messages.success(request, 'Quotation saved.')
             return redirect('quotation_detail', pk=pk)
+        else:
+            messages.error(request, 'Quotation was not saved — see the errors below.')
     else:
         initial = {}
         if quotation.transport_extra == 0 and not lead.broker:

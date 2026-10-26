@@ -14,6 +14,29 @@
 
 <form method="post">
     {% csrf_token %}
+    {% if form.errors or formset.non_form_errors or formset.errors %}
+    <div class="alert alert-danger mb-4">
+        <div class="fw-semibold mb-2"><i class="bi bi-exclamation-triangle-fill"></i> Not saved — fix the following and save again:</div>
+        {% if form.non_field_errors %}
+        <ul class="mb-1">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% for field in form %}
+        {% for e in field.errors %}
+        <div>• <strong>{{ field.label }}:</strong> {{ e }}</div>
+        {% endfor %}
+        {% endfor %}
+        {% if formset.non_form_errors %}
+        <ul class="mb-1">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% for item_form in formset %}
+        {% if item_form.errors %}
+        <div>• <strong>Line item {{ forloop.counter }}:</strong>
+            {% for field_name, errs in item_form.errors.items %}{{ field_name }} — {{ errs|join:", " }}{% if not forloop.last %}; {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
     <datalist id="make-options">
         {% for value, label in make_choices %}<option value="{{ value }}">{% endfor %}
     </datalist>
@@ -109,7 +132,7 @@
                     <tbody id="formset-body">
                         {% for item_form in formset %}
                         <tr
-                            class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %}">
+                            class="line-item-row {% if item_form.instance.pk and item_form.DELETE.value %}d-none{% endif %} {% if item_form.errors %}table-danger{% endif %}">
                             <td class="text-muted row-num col-num">{{ forloop.counter }}</td>
                             <td class="col-product">
                                 {{ item_form.product_name }}
@@ -202,6 +225,11 @@
                                         {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
                                     </div>
                                 </div>
+                                {% if item_form.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for field_name, errs in item_form.errors.items %}{{ field_name }}: {{ errs|join:", " }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                                </div>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -475,6 +503,30 @@
         return true;
     }
 
+    // A row with no product name is the untouched trailing blank row (or a
+    // freshly-added one the user hasn't filled in yet). Writing anything into
+    // it — customer notes, add-on defaults — makes Django's formset treat it
+    // as "changed" and then demand its other required fields (product name,
+    // quantity, price), which are empty, so the whole save is silently
+    // rejected. So defaults are only ever applied once a row actually has a
+    // product, and only once per row (via the dataset flag).
+    function rowHasProduct(row) {
+        const nameField = row.querySelector('[name$="-product_name"]');
+        return !!(nameField && nameField.value.trim());
+    }
+
+    function activateRowDefaults(row) {
+        if (!row || row.dataset.defaultsApplied === '1') return;
+        const restored = loadAddonsFromHidden(row);
+        if (!restored) fillAddonDefaults(row);
+        const { notesRow } = getRowGroup(row);
+        const notesField = notesRow ? notesRow.querySelector('[name$="-notes"]') : null;
+        if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
+        serializeAddons(row);
+        recalcRow(row);
+        row.dataset.defaultsApplied = '1';
+    }
+
     function recalcRow(row) {
         const qty = parseFloat(row.querySelector('.qty-field').value) || 0;
         const uom = row.querySelector('.uom-field')?.value || 'ton';
@@ -535,10 +587,18 @@
     });
 
     document.getElementById('formset-body').addEventListener('change', function (e) {
-        if (!e.target.matches('.uom-field')) return;
-        const row = e.target.closest('tr');
-        if (row && row.classList.contains('line-item-row')) recalcRow(row);
-        updateSummary();
+        if (e.target.matches('.uom-field')) {
+            const row = e.target.closest('tr');
+            if (row && row.classList.contains('line-item-row')) recalcRow(row);
+            updateSummary();
+            return;
+        }
+        if (e.target.matches('[name$="-product_name"]')) {
+            // Product name typed manually (not via picker) — now that the row
+            // has a product, it's safe to apply notes/add-on defaults to it.
+            const mainRow = getMainRowFromAny(e.target.closest('tr'));
+            if (mainRow && rowHasProduct(mainRow)) activateRowDefaults(mainRow);
+        }
     });
 
     if (loadingInput) loadingInput.addEventListener('input', updateSummary);
@@ -564,13 +624,9 @@
         const newHtml = document.getElementById('empty-form-template').innerHTML.replace(/__prefix__/g, formNum);
         document.getElementById('formset-body').insertAdjacentHTML('beforeend', newHtml);
         totalFormsInput.value = formNum + 1;
-        const allMainRows = document.querySelectorAll('#formset-body .line-item-row');
-        const newRow = allMainRows[allMainRows.length - 1];
-        fillAddonDefaults(newRow);
-        serializeAddons(newRow);
-        const { notesRow } = getRowGroup(newRow);
-        const newNotes = notesRow ? notesRow.querySelector('[name$="-notes"]') : null;
-        if (newNotes && customerNotes) newNotes.value = customerNotes;
+        // Defaults (notes, add-ons) are applied once this row actually gets a
+        // product — via the picker, or by typing a product name — not here
+        // while it's still blank. See activateRowDefaults().
         updateRowNumbers();
     });
 
@@ -595,16 +651,13 @@
         updateSummary();
     });
 
-    // Initialise all existing rows
+    // Initialise all existing rows. A saved row always has a product_name
+    // (it's a required model field), so this only ever skips the trailing
+    // blank extra row — which must be left untouched (see activateRowDefaults).
     document.querySelectorAll('#formset-body .line-item-row').forEach(row => {
-        // Restore saved per-row add-on values first; only fall back to session
-        // defaults / customer.customer_history for rows that have nothing saved yet.
-        const restored = loadAddonsFromHidden(row);
-        if (!restored) fillAddonDefaults(row);
+        if (rowHasProduct(row)) activateRowDefaults(row);
 
-        const { discountRow, notesRow } = getRowGroup(row);
-        const notesField = notesRow ? notesRow.querySelector('[name$="-notes"]') : null;
-        if (notesField && !notesField.value.trim() && customerNotes) notesField.value = customerNotes;
+        const { discountRow } = getRowGroup(row);
         // Pre-populate final-price-display from saved amt and discount
         const amt = parseFloat(row.querySelector('.amt-field')?.value) || 0;
         const discPct = parseFloat(discountRow?.querySelector('.discount-pct-field')?.value) || 0;
@@ -742,10 +795,10 @@
             purchaseRateField.dataset.productId = row.dataset.productId || '';
             purchaseRateField.dataset.productName = productName;
             addonRow.style.display = 'table-row';
-            serializeAddons(pickerTargetRow);
-            recalcRow(pickerTargetRow);
-            updateSummary();
         }
+        // Product is set now — safe to apply notes/add-on defaults to this row.
+        activateRowDefaults(pickerTargetRow);
+        updateSummary();
 
         bootstrap.Modal.getInstance(pickerModal).hide();
     });
@@ -805,21 +858,36 @@
         new bootstrap.Modal(document.getElementById('rateChangeModal')).show();
     }
 
+    // Tracks which button closed the modal so the single 'hidden.bs.modal'
+    // handler below knows whether to apply catalog rate updates. Stays null
+    // if the modal is closed any other way (✕, Esc, clicking the backdrop) —
+    // that case is treated the same as "No, keep as-is" rather than silently
+    // dropping the save, which is what used to happen (see Fix 2).
+    let rateModalAction = null;
+
     document.getElementById('rate-skip-btn').addEventListener('click', function () {
+        rateModalAction = 'skip';
         bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
-        submitFormNow();
     });
 
     document.getElementById('rate-update-btn').addEventListener('click', function () {
-        const form = document.querySelector('form[method="post"]');
-        document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
-            const inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = `catalog_rate_update_${cb.dataset.productId}`;
-            inp.value = cb.dataset.newRate;
-            form.appendChild(inp);
-        });
+        rateModalAction = 'update';
         bootstrap.Modal.getInstance(document.getElementById('rateChangeModal')).hide();
+    });
+
+    // Fires once the modal has finished closing, no matter how it was closed.
+    document.getElementById('rateChangeModal').addEventListener('hidden.bs.modal', function () {
+        if (rateModalAction === 'update') {
+            const form = document.querySelector('form[method="post"]');
+            document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = `catalog_rate_update_${cb.dataset.productId}`;
+                inp.value = cb.dataset.newRate;
+                form.appendChild(inp);
+            });
+        }
+        rateModalAction = null;
         submitFormNow();
     });
 
