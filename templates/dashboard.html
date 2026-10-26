@@ -293,7 +293,7 @@
                             since {{ llm_status.last_failure_at|timesince }} ago
                         </div>
                         {% if llm_status.last_error_message %}
-                        <div class="small text-muted mt-1" style="word-break:break-word;">{{ llm_status.last_error_message|truncatechars:200 }}</div>
+                        <div class="small text-muted mt-1" style="white-space:pre-wrap;word-break:break-word;max-height:160px;overflow-y:auto;font-family:var(--font-mono);font-size:.78rem;background:#F8F4EA;border:1px solid var(--border,#E4DCC9);border-radius:4px;padding:.5rem;">{{ llm_status.last_error_message }}</div>
                         {% endif %}
                         {% if llm_status.last_success_at %}
                         <div class="small text-muted mt-1">Last successful call: {{ llm_status.last_success_at|timesince }} ago</div>
