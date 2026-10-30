@@ -6,11 +6,12 @@ import json
 from ferite_steel.ai import chat_completion
 from .tools.pricing import lookup_pricing, TOOL_DEFINITION as PRICING_TOOL
 
-TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-# Was meta-llama/Llama-3.2-3B-Instruct ($0.06/1M) — together.ai pulled it (and every
-# other small/cheap model tried) off serverless, returning model_not_available unless
-# a paid dedicated endpoint is created. Falling back to TOGETHER_MODEL ($1.04/1M) since
-# it's the only model confirmed still servable; swap back if a cheaper one reappears.
+TOGETHER_MODEL = 'zai-org/GLM-5.3-Flash'
+# Was meta-llama/Llama-3.3-70B-Instruct-Turbo ($1.04/1M) — together.ai pulled it off
+# serverless 2026-10-22 (dedicated-endpoint only now). GLM-5.3-Flash confirmed working
+# on serverless incl. tool calls as of 2026-10-30 ($0.15/1M in, $0.50/1M out — cheaper
+# on both counts). Swap back if this one gets pulled too; check together.ai deprecations
+# page first before picking a replacement.
 TOGETHER_CLASSIFIER_MODEL = TOGETHER_MODEL
 
 
@@ -42,7 +43,11 @@ def classify_message(text: str) -> bool:
             },
             {'role': 'user', 'content': text},
         ],
-        max_tokens=5,
+        # GLM-5.3-Flash is a reasoning model — it spends tokens on a hidden
+        # reasoning_content pass before the real answer lands in content.
+        # A tight budget (e.g. 5) gets cut off mid-reasoning and returns
+        # content=None. 150 leaves enough room for reasoning + the one-word reply.
+        max_tokens=150,
     )
     answer = (response.choices[0].message.content or '').strip().upper()
     return answer.startswith('YES')
@@ -69,7 +74,8 @@ def classify_broker_response(text: str) -> str:
             },
             {'role': 'user', 'content': text},
         ],
-        max_tokens=10,
+        # Same reasoning-model headroom issue as classify_message above.
+        max_tokens=150,
     )
     answer = (response.choices[0].message.content or '').strip().lower()
     if answer.startswith('confirmation'):

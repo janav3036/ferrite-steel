@@ -1,7 +1,9 @@
 import json
 from ferite_steel.ai import chat_completion
 
-TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+TOGETHER_MODEL = 'zai-org/GLM-5.3-Flash'
+# Was meta-llama/Llama-3.3-70B-Instruct-Turbo — pulled off serverless 2026-10-22.
+# See the matching comment in quotations/services/llm.py for details.
 
 def judge_quiz_answer(question_text, correct_answer, user_answer):
     system_prompt = (
