@@ -9,7 +9,7 @@ import imaplib
 import io
 import re
 from email.header import decode_header
-from datetime import timedelta
+from datetime import timedelta, timezone as dt_timezone
 
 from django.core.management.base import BaseCommand
 
@@ -216,7 +216,9 @@ def _parse_msg_date(msg):
     if dt is None:
         return None
     if timezone.is_naive(dt):
-        dt = timezone.make_aware(dt, timezone.utc)
+        # django.utils.timezone.utc was removed in this Django version —
+        # use the stdlib datetime.timezone.utc instead.
+        dt = timezone.make_aware(dt, dt_timezone.utc)
     return dt
 
 
