@@ -132,7 +132,14 @@ def _strip_reply_chain(text: str) -> str:
 def _decode(value, charset=None):
     """Decode an encoded email header value to a plain string."""
     if isinstance(value, bytes):
-        return value.decode(charset or 'utf-8', errors='replace')
+        try:
+            return value.decode(charset or 'utf-8', errors='replace')
+        except LookupError:
+            # Some senders declare a bogus/non-standard charset name (e.g.
+            # "unknown-8bit") that isn't a registered Python codec at all —
+            # decode() raises before errors='replace' can even apply. Fall
+            # back to utf-8 with lossy replacement rather than crash.
+            return value.decode('utf-8', errors='replace')
     return value or ''
 
 
