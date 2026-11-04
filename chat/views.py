@@ -1,11 +1,25 @@
+from datetime import timedelta
+from itertools import groupby
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import ChatMessage, ChatReadState
 from aegis.models import CustomUser
+
+
+def _day_label(d):
+    """WhatsApp-style date divider label — 'Today'/'Yesterday', else the date."""
+    today = timezone.localdate()
+    if d == today:
+        return 'Today'
+    if d == today - timedelta(days=1):
+        return 'Yesterday'
+    return d.strftime('%d %B %Y')
 
 CHANNEL_LABELS = {
     'all_staff':        'All Staff',
@@ -70,12 +84,16 @@ def _link_url(link_type, link_id):
 
 
 def _msg_dict(m, current_user_id):
+    local_created = timezone.localtime(m.created_at)
     d = {
         'id': m.pk,
         'sender': m.sender.get_full_name() or m.sender.username,
         'initials': m.sender.username[:2].upper(),
         'content': m.content,
-        'time': m.created_at.strftime('%H:%M'),
+        # strftime('%H:%M') on the raw (UTC) datetime would show the wrong
+        # clock time — always format the localized (Asia/Kolkata) version.
+        'time': local_created.strftime('%H:%M'),
+        'date_label': _day_label(local_created.date()),
         'is_me': m.sender_id == current_user_id,
         'attachment_url': m.attachment.url if m.attachment else '',
         'attachment_name': m.attachment_name,
@@ -101,16 +119,29 @@ def chat_home(request):
     if messages_qs:
         _mark_read(request.user, active, messages_qs[-1].pk)
 
+    read_states = {
+        rs.channel: rs.last_read_id
+        for rs in ChatReadState.objects.filter(user=request.user, channel__in=channels)
+    }
     channel_data = [
-        {'slug': c, 'label': CHANNEL_LABELS[c]}
+        {
+            'slug': c,
+            'label': CHANNEL_LABELS[c],
+            'unread': ChatMessage.objects.filter(channel=c, pk__gt=read_states.get(c, 0)).count(),
+        }
         for c in channels
+    ]
+
+    message_days = [
+        {'label': _day_label(day), 'messages': list(msgs)}
+        for day, msgs in groupby(messages_qs, key=lambda m: timezone.localtime(m.created_at).date())
     ]
 
     return render(request, 'chat/chat.html', {
         'channels': channel_data,
         'active_channel': active,
         'active_label': CHANNEL_LABELS.get(active, active),
-        'messages': messages_qs,
+        'message_days': message_days,
         'link_icons': LINK_ICONS,
     })
 

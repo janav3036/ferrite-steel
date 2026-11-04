@@ -44,6 +44,21 @@
         transition: background .1s, color .1s;
         font-weight: 400;
     }
+    .channel-link-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-unread-badge {
+        background: #0D9488;
+        color: white;
+        font-size: .64rem;
+        font-weight: 700;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 5px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
     .chat-sidebar .channel-link:hover { background: #DDF0E8; color: #1A4A3A; text-decoration: none; }
     .chat-sidebar .channel-link.active {
         background: #C8EEE2;
@@ -477,7 +492,10 @@
         <a href="?channel={{ ch.slug }}"
            class="channel-link {% if ch.slug == active_channel %}active{% endif %}">
             <span class="channel-hash">#</span>
-            {{ ch.label }}
+            <span class="channel-link-label">{{ ch.label }}</span>
+            {% if ch.unread %}
+            <span class="channel-unread-badge">{{ ch.unread }}</span>
+            {% endif %}
         </a>
         {% endfor %}
     </div>
@@ -495,8 +513,10 @@
         </div>
 
         <div class="chat-messages" id="msg-container">
-            {% if messages %}
-            {% for msg in messages %}
+            {% if message_days %}
+            {% for day in message_days %}
+            <div class="date-divider" data-date-label="{{ day.label }}"><span>{{ day.label }}</span></div>
+            {% for msg in day.messages %}
             <div class="msg-row {% if msg.sender == request.user %}me{% endif %}" data-id="{{ msg.pk }}">
                 <div class="msg-avatar {% if msg.sender == request.user %}me{% endif %}">
                     {{ msg.sender.username|slice:":2"|upper }}
@@ -528,6 +548,7 @@
                     </div>
                 </div>
             </div>
+            {% endfor %}
             {% endfor %}
             {% else %}
             <div class="chat-empty" id="empty-msg">
@@ -594,6 +615,14 @@
         if (id > lastId) lastId = id;
     });
 
+    // Tracks the most recent date-divider label rendered (server-side or by
+    // appendMessage) so a live-polled/sent message only gets a new divider
+    // when the day actually changes — same WhatsApp "Today/Yesterday/date" format.
+    let lastDateLabel = (function () {
+        const dividers = container.querySelectorAll('.date-divider');
+        return dividers.length ? dividers[dividers.length - 1].dataset.dateLabel : null;
+    })();
+
     function scrollBottom() { container.scrollTop = container.scrollHeight; }
 
     function escHtml(s) {
@@ -620,6 +649,15 @@
     function appendMessage(m) {
         const empty = document.getElementById('empty-msg');
         if (empty) empty.remove();
+
+        if (m.date_label && m.date_label !== lastDateLabel) {
+            const divider = document.createElement('div');
+            divider.className = 'date-divider';
+            divider.dataset.dateLabel = m.date_label;
+            divider.innerHTML = `<span>${escHtml(m.date_label)}</span>`;
+            container.appendChild(divider);
+            lastDateLabel = m.date_label;
+        }
 
         const wrap = document.createElement('div');
         wrap.className = 'msg-row' + (m.is_me ? ' me' : '');
