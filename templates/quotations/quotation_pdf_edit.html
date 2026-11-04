@@ -197,7 +197,7 @@ select.e   { cursor: pointer; }
     <td style="vertical-align:top; padding:4px 5px;">
       <input class="e bold" name="customer_name" value="{{ quotation.lead.customer_name }}" placeholder="Customer Name"><br>
       <input class="e" name="company" value="{{ quotation.lead.company }}" placeholder="Company"><br>
-      <textarea class="e" name="billing_address" rows="2" style="width:100%;">{{ customer.billing_address|default:quotation.lead.location }}</textarea>
+      <textarea class="e" name="billing_address" rows="2" style="width:100%;">{% if customer and customer.billing_address %}{{ customer.billing_address }}{% elif quotation.lead.location %}{{ quotation.lead.location }}{% endif %}</textarea>
       <input class="e" name="city" value="{{ customer.city }}" placeholder="City" style="width:59%;display:inline-block;">
       <input class="e" name="pincode" value="{{ customer.pincode }}" placeholder="PIN" style="width:39%;display:inline-block;">
       <br>IN<br>
@@ -210,7 +210,7 @@ select.e   { cursor: pointer; }
     <td style="vertical-align:top; padding:4px 5px;">
       <input class="e bold" name="consignee_name" value="{{ quotation.lead.customer_name }}" placeholder="Consignee Name"><br>
       <input class="e" name="consignee_company" value="{{ quotation.lead.company }}" placeholder="Company"><br>
-      <textarea class="e" name="consignee_address" rows="2" style="width:100%;">{{ quotation.delivery_address|default:customer.shipping_address|default:quotation.lead.location }}</textarea>
+      <textarea class="e" name="consignee_address" rows="2" style="width:100%;">{% if quotation.delivery_address %}{{ quotation.delivery_address }}{% elif customer and customer.shipping_address %}{{ customer.shipping_address }}{% elif quotation.lead.location %}{{ quotation.lead.location }}{% endif %}</textarea>
       <input class="e" name="consignee_city" value="{{ customer.city }}" placeholder="City" style="width:59%;display:inline-block;">
       <input class="e" name="consignee_pincode" value="{{ customer.pincode }}" placeholder="PIN" style="width:39%;display:inline-block;">
       <br>IN<br>
