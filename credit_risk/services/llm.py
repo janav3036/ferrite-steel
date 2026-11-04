@@ -1,10 +1,21 @@
 import json
+import re
 
 from ferite_steel.ai import chat_completion
 
-TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+TOGETHER_MODEL = 'zai-org/GLM-5.3-Flash'
 
 RISK_BANDS = [(8, 10, 'low'), (4, 7, 'medium'), (1, 3, 'high')]
+
+_JSON_FENCE_RE = re.compile(r'^```(?:json)?\s*\n?(.*?)\n?```$', re.DOTALL)
+
+
+def _strip_json_fence(raw):
+    """GLM-5.3-Flash (like most chat models) reliably wraps JSON responses in a
+    markdown code fence despite being told to return JSON only — strip it
+    before parsing instead of letting json.loads crash on it."""
+    match = _JSON_FENCE_RE.match(raw.strip())
+    return match.group(1).strip() if match else raw.strip()
 
 
 def _risk_level_for_score(score):
@@ -50,7 +61,7 @@ def background_company_notes(company_names):
     )
     raw = response.choices[0].message.content or '{}'
     try:
-        return json.loads(raw)
+        return json.loads(_strip_json_fence(raw))
     except (json.JSONDecodeError, TypeError):
         return {}
 
@@ -158,7 +169,7 @@ def assess_credit(customer, notes, score_result, background_notes,
         max_tokens=900,
     )
     raw = response.choices[0].message.content or ''
-    parsed = json.loads(raw)
+    parsed = json.loads(_strip_json_fence(raw))
 
     return {
         'recommendation': parsed['recommendation'] if parsed.get('recommendation') in ('approve', 'decline', 'refer') else 'refer',
