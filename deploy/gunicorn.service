@@ -9,6 +9,7 @@ WorkingDirectory=/var/www/ferite_steel
 EnvironmentFile=/var/www/ferite_steel/.env
 ExecStart=/var/www/ferite_steel/.venv/bin/gunicorn \
     --workers 3 \
+    --timeout 60 \
     --bind unix:/run/gunicorn/ferite_steel.sock \
     --access-logfile /var/log/gunicorn/ferite_steel.log \
     --error-logfile /var/log/gunicorn/ferite_steel_error.log \

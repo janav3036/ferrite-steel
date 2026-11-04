@@ -1,7 +1,16 @@
 import os
 from together import Together, TogetherError
 
-together_client = Together(api_key=os.environ.get('TOGETHER_API_KEY', ''))
+# Explicit, tight bounds — the SDK's own defaults (60s timeout x 2 retries) let
+# a single call take up to ~3 minutes before raising, which outlasts Gunicorn's
+# worker timeout and nginx's proxy_read_timeout. That means the OS kills the
+# connection before our LLMUnavailableError/friendly-message path ever runs,
+# leaving the user looking at a raw browser/502 error instead of our message.
+together_client = Together(
+    api_key=os.environ.get('TOGETHER_API_KEY', ''),
+    timeout=25.0,
+    max_retries=1,
+)
 
 
 class LLMUnavailableError(Exception):
