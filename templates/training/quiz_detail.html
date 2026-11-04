@@ -186,7 +186,7 @@
 
         {% if questions %}
 
-        {% if perms.training.change_question %}
+        {% if perms.training.change_question or has_passed %}
         {% for q in questions %}
         <div class="q-item">
             <div class="q-num">{{ forloop.counter }}</div>
@@ -194,17 +194,19 @@
                 <div class="q-text">{{ q.question_text }}</div>
                 <div class="q-answer">{{ q.correct_answer|truncatechars:110 }}</div>
             </div>
+            {% if perms.training.change_question %}
             <div class="q-actions">
                 <a href="{% url 'question_edit' q.pk %}" class="btn-xs btn-xs-sec">Edit</a>
                 <a href="{% url 'question_delete' q.pk %}" class="btn-xs btn-xs-danger">Delete</a>
             </div>
+            {% endif %}
         </div>
         {% endfor %}
 
         {% else %}
         <div class="hidden-note">
             This quiz has {{ questions|length }} question{{ questions|length|pluralize }}.
-            Questions are revealed only during the quiz — start to begin.
+            Questions are revealed only during the quiz, or once you've passed it — start to begin.
         </div>
         {% endif %}
 

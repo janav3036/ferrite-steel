@@ -183,6 +183,7 @@
         margin-bottom: 10px; width: fit-content;
     }
     .tag-live { background: #FEF0D3; color: #B85C08; }
+    .tag-offline { background: #F1F1EF; color: #78716C; }
 
     .module-title {
         font-family: 'Syne', sans-serif;
@@ -324,17 +325,18 @@
                 <div class="card-3c-text">
                     <div class="d-flex align-items-baseline gap-3 mb-2">
                         <div class="module-num num-3c">3C</div>
-                        <span class="module-tag tag-live"><i class="bi bi-stars"></i> Knowledge Base</span>
+                        <span class="module-tag tag-offline"><i class="bi bi-dash-circle"></i> Offline</span>
                     </div>
                     <div class="module-title" style="font-size:1rem;">Ask the Knowledge Base</div>
                     <div class="module-desc" style="max-width:520px;">
                         Ask operational questions in plain English. Searches uploaded documents —
                         catalogues, SOPs, pricing guides, policies — and generates a grounded answer.
+                        <strong>Temporarily offline</strong> — the embedding provider is being switched, back shortly.
                     </div>
                 </div>
                 <div class="card-3c-actions">
-                    <a href="{% url 'document_ask' %}" class="btn-amber">
-                        <i class="bi bi-stars me-1"></i>Ask a question
+                    <a href="{% url 'document_ask' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-dash-circle me-1"></i>View (offline)
                     </a>
                     {% if perms.training.add_case %}
                     <a href="{% url 'document_list' %}" class="btn btn-outline-secondary btn-sm" style="white-space:nowrap;">Manage documents</a>
