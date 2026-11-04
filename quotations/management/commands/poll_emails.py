@@ -356,221 +356,229 @@ class Command(BaseCommand):
             ).first()
 
             for msg_id in msg_ids:
-                _, raw = imap.fetch(msg_id, '(BODY.PEEK[])')
-                msg = email.message_from_bytes(raw[0][1])
+                try:
+                    _, raw = imap.fetch(msg_id, '(BODY.PEEK[])')
+                    msg = email.message_from_bytes(raw[0][1])
 
-                subject_parts = decode_header(msg.get('Subject', ''))
-                subject = ''.join(_decode(p, enc) for p, enc in subject_parts).strip()
-                sender_name, sender_email = _parse_sender(msg.get('From', ''))
+                    subject_parts = decode_header(msg.get('Subject', ''))
+                    subject = ''.join(_decode(p, enc) for p, enc in subject_parts).strip()
+                    sender_name, sender_email = _parse_sender(msg.get('From', ''))
 
-                if resume_boundary:
-                    msg_date = _parse_msg_date(msg)
-                    if msg_date and msg_date < resume_boundary:
-                        self.stdout.write(
-                            f'  [SKIP-BACKLOG] {sender_email} | Subject: {subject[:60]} '
-                            f'(dated {msg_date.strftime("%d %b %H:%M")}, before resume)'
-                        )
+                    if resume_boundary:
+                        msg_date = _parse_msg_date(msg)
+                        if msg_date and msg_date < resume_boundary:
+                            self.stdout.write(
+                                f'  [SKIP-BACKLOG] {sender_email} | Subject: {subject[:60]} '
+                                f'(dated {msg_date.strftime("%d %b %H:%M")}, before resume)'
+                            )
+                            if not dry_run:
+                                imap.store(msg_id, '+FLAGS', '\\Seen')
+                            continue
+
+                    raw_body = _parse_plain_body(msg).strip()
+                    # body_text (no attachments) is what gets classified — attachment
+                    # extraction can pull in thousands of tokens per PDF/DOCX/XLSX and
+                    # a classifier call only needs subject + message text to decide
+                    # yes/no. Full `body` (with attachments) is still stored on the
+                    # Lead/notes so nothing is lost for later quotation drafting.
+                    body_text = _strip_reply_chain(raw_body)
+                    attachment_text = _extract_attachments_text(msg)
+                    body = f'{body_text}\n\n{attachment_text}'.strip() if attachment_text else body_text
+
+                    # ── Pre-filter: skip automated senders/subjects ────────────────────
+                    # Catches these before spending an LLM call — sender check covers
+                    # obvious automated addresses, subject check catches auto-replies/
+                    # bounces/out-of-office notices that can come from a real person's
+                    # address (so the sender check alone wouldn't skip them).
+                    if SPAM_PATTERNS.search(sender_email) or SUBJECT_SPAM_PATTERNS.search(subject):
+                        self.stdout.write(f'  [SKIP-SPAM]    {sender_email} | Subject: {subject[:60]}')
                         if not dry_run:
                             imap.store(msg_id, '+FLAGS', '\\Seen')
                         continue
 
-                raw_body = _parse_plain_body(msg).strip()
-                # body_text (no attachments) is what gets classified — attachment
-                # extraction can pull in thousands of tokens per PDF/DOCX/XLSX and
-                # a classifier call only needs subject + message text to decide
-                # yes/no. Full `body` (with attachments) is still stored on the
-                # Lead/notes so nothing is lost for later quotation drafting.
-                body_text = _strip_reply_chain(raw_body)
-                attachment_text = _extract_attachments_text(msg)
-                body = f'{body_text}\n\n{attachment_text}'.strip() if attachment_text else body_text
+                    # -- Handle broker replies -----------------------------------------
+                    broker = _find_broker(sender_email)
+                    if broker:
+                        open_order = MarketOrder.objects.filter(
+                            broker=broker,
+                            status='rate_sent',
+                        ).order_by('-created_at').first()
 
-                # ── Pre-filter: skip automated senders/subjects ────────────────────
-                # Catches these before spending an LLM call — sender check covers
-                # obvious automated addresses, subject check catches auto-replies/
-                # bounces/out-of-office notices that can come from a real person's
-                # address (so the sender check alone wouldn't skip them).
-                if SPAM_PATTERNS.search(sender_email) or SUBJECT_SPAM_PATTERNS.search(subject):
-                    self.stdout.write(f'  [SKIP-SPAM]    {sender_email} | Subject: {subject[:60]}')
-                    if not dry_run:
-                        imap.store(msg_id, '+FLAGS', '\\Seen')
-                    continue
+                        if open_order:
+                            response_type = classify_broker_response(body_text[:CLASSIFY_CHAR_LIMIT])
+                            stamp = timezone.now().strftime('%d %b %Y %H:%M')
+                            block = (
+                                f'\n\n--- Broker reply ({response_type}) on {stamp} ---\n'
+                                f'{body.strip()}'
+                            )
+                            if not dry_run:
+                                if open_order.lead:
+                                    open_order.lead.notes = (open_order.lead.notes or '') + block
+                                    open_order.lead.save(update_fields=['notes'])
 
-                # -- Handle broker replies -----------------------------------------
-                broker = _find_broker(sender_email)
-                if broker:
-                    open_order = MarketOrder.objects.filter(
-                        broker=broker,
-                        status='rate_sent',
-                    ).order_by('-created_at').first()
+                                if response_type == 'confirmation':
+                                    open_order.status = 'broker_confirmed'
+                                    open_order.broker_confirmed_at = timezone.now()
+                                    open_order.save(update_fields=['status', 'broker_confirmed_at'])
 
-                    if open_order:
-                        response_type = classify_broker_response(body_text[:CLASSIFY_CHAR_LIMIT])
-                        stamp = timezone.now().strftime('%d %b %Y %H:%M')
-                        block = (
-                            f'\n\n--- Broker reply ({response_type}) on {stamp} ---\n'
-                            f'{body.strip()}'
-                        )
-                        if not dry_run:
-                            if open_order.lead:
-                                open_order.lead.notes = (open_order.lead.notes or '') + block
-                                open_order.lead.save(update_fields=['notes'])
+                                    recipients = _get_recipients('market')
+                                    notify(
+                                        recipients,
+                                        f'Broker confirmed: {broker.name}',
+                                        message=f'MO-{open_order.pk:05d} status → broker confirmed.',
+                                        link=f'/quotations/market-orders/{open_order.pk}/',
+                                        notif_type='general',
+                                    )
+                                
+                                elif response_type == 'counter':
+                                    recipients = _get_recipients('market')
+                                    notify(
+                                        recipients,
+                                        f'Broker counter-reply: {broker.name}',
+                                        message=f'MO-{open_order.pk:05d} — broker sent a counter offer.',
+                                        link=f'/quotations/market-orders/{open_order.pk}/',
+                                        notif_type='general',
+                                    )
+
 
                             if response_type == 'confirmation':
-                                open_order.status = 'broker_confirmed'
-                                open_order.broker_confirmed_at = timezone.now()
-                                open_order.save(update_fields=['status', 'broker_confirmed_at'])
-
-                                recipients = _get_recipients('market')
-                                notify(
-                                    recipients,
-                                    f'Broker confirmed: {broker.name}',
-                                    message=f'MO-{open_order.pk:05d} status → broker confirmed.',
-                                    link=f'/quotations/market-orders/{open_order.pk}/',
-                                    notif_type='general',
-                                )
-                                
-                            elif response_type == 'counter':
-                                recipients = _get_recipients('market')
-                                notify(
-                                    recipients,
-                                    f'Broker counter-reply: {broker.name}',
-                                    message=f'MO-{open_order.pk:05d} — broker sent a counter offer.',
-                                    link=f'/quotations/market-orders/{open_order.pk}/',
-                                    notif_type='general',
+                                self.stdout.write(self.style.SUCCESS(
+                                    f'  [BROKER-CONFIRM] {broker.name} → MO-{open_order.pk:05d}'
+                                ))
+                            else:
+                                self.stdout.write(
+                                    f'  [BROKER-COUNTER] {broker.name} → MO-{open_order.pk:05d}'
                                 )
 
+                            if not dry_run:
+                                imap.store(msg_id, '+FLAGS', '\\Seen')
+                            continue
 
-                        if response_type == 'confirmation':
-                            self.stdout.write(self.style.SUCCESS(
-                                f'  [BROKER-CONFIRM] {broker.name} → MO-{open_order.pk:05d}'
-                            ))
-                        else:
-                            self.stdout.write(
-                                f'  [BROKER-COUNTER] {broker.name} → MO-{open_order.pk:05d}'
+                        # Broker email but no open rate_sent order — treat as a new inquiry
+                        self.stdout.write(self.style.SUCCESS(
+                            f'  [BROKER-NEW]   {broker.name} — new inquiry, creating lead + market order'
+                        ))
+                        if not dry_run:
+                            new_lead = Lead.objects.create(
+                                source='email',
+                                raw_text=f"Subject: {subject}\n\n{body}",
+                                customer_name=broker.name,
+                                customer_email=sender_email,
+                                status='new',
+                                broker=broker,
+                                received_via=config,
                             )
+                            MarketOrder.objects.create(
+                                broker=broker,
+                                lead=new_lead,
+                                product_details=body,
+                                sub_team='primary',
+                                status='new',
+                                created_by=None,
+                            )
+                            recipients = _get_recipients(config.team)
+                            notify(
+                                recipients,
+                                f'New broker inquiry: {broker.name}',
+                                message=f'Subject: {subject[:80]}',
+                                link=f'/quotations/leads/{new_lead.pk}/',
+                                notif_type='lead_created',
+                            )
+                            imap.store(msg_id, '+FLAGS', '\\Seen')
+                        continue
 
+                    # ── Handle replies to our own quotations ──────────────────────────
+                    # Primary signal: In-Reply-To/References headers matched against the
+                    # Message-ID we stamped on the outbound quotation email (reliable —
+                    # not user-editable, survives client-side quoting differences).
+                    referenced_ids = _extract_referenced_ids(msg)
+                    replied_quotation = None
+                    if referenced_ids:
+                        replied_quotation = Quotation.objects.select_related('lead').filter(
+                            sent_message_id__in=referenced_ids
+                        ).first()
+
+                    # Fallback: legacy text marker, for quotations sent before this field
+                    # existed or if a client strips headers.
+                    has_marker = '[Quotation Reference:' in raw_body
+                    if replied_quotation is None and has_marker:
+                        qt_match = re.search(r'\[Quotation Reference: (QT-[\d]+-?v?[\d]*)\]', raw_body)
+                        if qt_match:
+                            replied_quotation = Quotation.objects.select_related('lead').filter(
+                                quotation_number=qt_match.group(1)
+                            ).first()
+
+                    if replied_quotation is not None or has_marker:
+                        linked = False
+                        if replied_quotation is not None and not dry_run:
+                            lead = replied_quotation.lead
+                            stripped = body
+                            stamp = timezone.now().strftime('%d %b %Y %H:%M')
+                            block = (
+                                f'\n\n--- Reply from {sender_name} <{sender_email}> on {stamp} ---\n'
+                                f'{stripped.strip()}'
+                            )
+                            lead.notes = (lead.notes or '') + block
+                            lead.save(update_fields=['notes'])
+                            linked = True
+                            recipients = _get_recipients(config.team)
+                            notify(
+                                recipients,
+                                f'Reply received: {replied_quotation.quotation_number}',
+                                message=f'{sender_name or sender_email} replied - Lead #{lead.pk}',
+                                link=f'/quotations/leads/{lead.pk}/',
+                                notif_type='general',
+                            )
+                            self.stdout.write(self.style.SUCCESS(
+                                f'  [REPLY-LINKED] {sender_email} → {replied_quotation.quotation_number} (Lead #{lead.pk})'
+                            ))
+                        if not linked:
+                            self.stdout.write(f'  [SKIP-REPLY]   From: {sender_email} | Subject: {subject[:60]}')
                         if not dry_run:
                             imap.store(msg_id, '+FLAGS', '\\Seen')
                         continue
 
-                    # Broker email but no open rate_sent order — treat as a new inquiry
-                    self.stdout.write(self.style.SUCCESS(
-                        f'  [BROKER-NEW]   {broker.name} — new inquiry, creating lead + market order'
-                    ))
+                    text = f"Subject: {subject}\n\n{body}"
+                    classify_text = f"Subject: {subject}\n\n{body_text[:CLASSIFY_CHAR_LIMIT]}"
+
+                    # ── LLM classification ────────────────────────────────────────────
+                    is_inquiry = classify_message(classify_text)
+
+                    if not is_inquiry:
+                        self.stdout.write(f'  [NOT-INQUIRY]  From: {sender_email} | Subject: {subject[:60]}')
+                        if not dry_run:
+                            imap.store(msg_id, '+FLAGS', '\\Seen')
+                        continue
+
+                    # ── Create Lead ───────────────────────────────────────────────────
+                    self.stdout.write(
+                        self.style.SUCCESS(f'  [INQUIRY]      From: {sender_email} | Subject: {subject[:60]}')
+                    )
                     if not dry_run:
-                        new_lead = Lead.objects.create(
+                        lead = Lead.objects.create(
                             source='email',
-                            raw_text=f"Subject: {subject}\n\n{body}",
-                            customer_name=broker.name,
+                            raw_text=text,
+                            customer_name=sender_name,
                             customer_email=sender_email,
                             status='new',
-                            broker=broker,
                             received_via=config,
                         )
-                        MarketOrder.objects.create(
-                            broker=broker,
-                            lead=new_lead,
-                            product_details=body,
-                            sub_team='primary',
-                            status='new',
-                            created_by=None,
-                        )
                         recipients = _get_recipients(config.team)
                         notify(
                             recipients,
-                            f'New broker inquiry: {broker.name}',
+                            f'New lead from email: {sender_name or sender_email}',
                             message=f'Subject: {subject[:80]}',
-                            link=f'/quotations/leads/{new_lead.pk}/',
-                            notif_type='lead_created',
-                        )
-                        imap.store(msg_id, '+FLAGS', '\\Seen')
-                    continue
-
-                # ── Handle replies to our own quotations ──────────────────────────
-                # Primary signal: In-Reply-To/References headers matched against the
-                # Message-ID we stamped on the outbound quotation email (reliable —
-                # not user-editable, survives client-side quoting differences).
-                referenced_ids = _extract_referenced_ids(msg)
-                replied_quotation = None
-                if referenced_ids:
-                    replied_quotation = Quotation.objects.select_related('lead').filter(
-                        sent_message_id__in=referenced_ids
-                    ).first()
-
-                # Fallback: legacy text marker, for quotations sent before this field
-                # existed or if a client strips headers.
-                has_marker = '[Quotation Reference:' in raw_body
-                if replied_quotation is None and has_marker:
-                    qt_match = re.search(r'\[Quotation Reference: (QT-[\d]+-?v?[\d]*)\]', raw_body)
-                    if qt_match:
-                        replied_quotation = Quotation.objects.select_related('lead').filter(
-                            quotation_number=qt_match.group(1)
-                        ).first()
-
-                if replied_quotation is not None or has_marker:
-                    linked = False
-                    if replied_quotation is not None and not dry_run:
-                        lead = replied_quotation.lead
-                        stripped = body
-                        stamp = timezone.now().strftime('%d %b %Y %H:%M')
-                        block = (
-                            f'\n\n--- Reply from {sender_name} <{sender_email}> on {stamp} ---\n'
-                            f'{stripped.strip()}'
-                        )
-                        lead.notes = (lead.notes or '') + block
-                        lead.save(update_fields=['notes'])
-                        linked = True
-                        recipients = _get_recipients(config.team)
-                        notify(
-                            recipients,
-                            f'Reply received: {replied_quotation.quotation_number}',
-                            message=f'{sender_name or sender_email} replied - Lead #{lead.pk}',
                             link=f'/quotations/leads/{lead.pk}/',
-                            notif_type='general',
+                            notif_type='lead_created'
                         )
-                        self.stdout.write(self.style.SUCCESS(
-                            f'  [REPLY-LINKED] {sender_email} → {replied_quotation.quotation_number} (Lead #{lead.pk})'
-                        ))
-                    if not linked:
-                        self.stdout.write(f'  [SKIP-REPLY]   From: {sender_email} | Subject: {subject[:60]}')
-                    if not dry_run:
                         imap.store(msg_id, '+FLAGS', '\\Seen')
-                    continue
-
-                text = f"Subject: {subject}\n\n{body}"
-                classify_text = f"Subject: {subject}\n\n{body_text[:CLASSIFY_CHAR_LIMIT]}"
-
-                # ── LLM classification ────────────────────────────────────────────
-                is_inquiry = classify_message(classify_text)
-
-                if not is_inquiry:
-                    self.stdout.write(f'  [NOT-INQUIRY]  From: {sender_email} | Subject: {subject[:60]}')
-                    if not dry_run:
-                        imap.store(msg_id, '+FLAGS', '\\Seen')
-                    continue
-
-                # ── Create Lead ───────────────────────────────────────────────────
-                self.stdout.write(
-                    self.style.SUCCESS(f'  [INQUIRY]      From: {sender_email} | Subject: {subject[:60]}')
-                )
-                if not dry_run:
-                    lead = Lead.objects.create(
-                        source='email',
-                        raw_text=text,
-                        customer_name=sender_name,
-                        customer_email=sender_email,
-                        status='new',
-                        received_via=config,
-                    )
-                    recipients = _get_recipients(config.team)
-                    notify(
-                        recipients,
-                        f'New lead from email: {sender_name or sender_email}',
-                        message=f'Subject: {subject[:80]}',
-                        link=f'/quotations/leads/{lead.pk}/',
-                        notif_type='lead_created'
-                    )
-                    imap.store(msg_id, '+FLAGS', '\\Seen')
+                except LLMUnavailableError:
+                    raise
+                except Exception as exc:
+                    self.stderr.write(self.style.ERROR(
+                        f'  ERROR processing message {msg_id!r}: {exc} '
+                        '(left unseen for manual review; other messages continue)'
+                    ))
 
             if not dry_run:
                 config.last_polled_at = timezone.now()
