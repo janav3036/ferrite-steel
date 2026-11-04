@@ -428,11 +428,15 @@
     </div>
 </div>
 
+{{ addon_defaults|json_script:"addonDefaultsData" }}
 <script>
     const totalFormsInput = document.getElementById('id_line_items-TOTAL_FORMS');
     const loadingInput = document.getElementById('id_loading_extra');
     const transportInput = document.getElementById('id_transport_extra');
-    const addonDefaults = {{ addon_defaults_json| safe }};
+    // Read from the json_script block above, not inlined directly — customer
+    // notes text containing "</script>" would otherwise break out of this
+    // block and execute (stored XSS).
+    const addonDefaults = JSON.parse(document.getElementById('addonDefaultsData').textContent);
     const customerNotes = "{{ customer_notes|escapejs }}";
 
     // A line item is now 4 sibling <tr>s: line-item-row, addon-row, discount-row, notes-row.

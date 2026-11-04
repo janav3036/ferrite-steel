@@ -216,6 +216,7 @@ def quiz_detail(request, pk):
         'quiz_set': quiz_set,
         'questions': questions,
         'attempts': attempts,
+        'has_passed': attempts.filter(passed=True).exists(),
         'pass_threshold': int(PASS_THRESHOLD * 100),
     })
 
@@ -506,14 +507,11 @@ def document_ask(request):
                 'error': error_msg,
                 'selected_docs': selected_docs,
             })
-    import json as _json
     return render(request, 'training/document_ask.html', {
         'question': question,
         'answer': answer,
         'available_docs': available_docs,
         'selected_docs': selected_docs,
-        'available_docs_json': _json.dumps(available_docs),
-        'selected_docs_json': _json.dumps(selected_docs),
     })
 @login_required
 def question_list(request):

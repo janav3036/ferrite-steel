@@ -205,6 +205,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ voice_keywords|json_script:"voiceKeywordsData" }}
 <script>
     (function () {
         const btn = document.getElementById('micBtn');
@@ -231,7 +232,9 @@
         ];
 
         // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
-        const KEYWORDS = {{ voice_keywords|safe }};
+        // Read from the json_script block above, not inlined — a keyword
+        // containing "</script>" would otherwise break out and execute.
+        const KEYWORDS = JSON.parse(document.getElementById('voiceKeywordsData').textContent);
     KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 
     function postProcess(text) {

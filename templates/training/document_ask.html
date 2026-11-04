@@ -252,6 +252,18 @@
         <a href="{% url 'document_list' %}" class="ask-hero-action">Documents →</a>
     </div>
 
+    <!-- Offline notice — embedding provider is being switched (together.ai
+         discontinued its embedding models); re-enable the form below once a
+         replacement provider is wired in. -->
+    <div style="display:flex;align-items:center;gap:10px;background:#F1F1EF;border:1px solid #E0D8CE;
+                border-radius:10px;padding:12px 16px;margin-bottom:16px;">
+        <i class="bi bi-dash-circle" style="color:#78716C;font-size:1.1rem;"></i>
+        <div style="font-size:.84rem;color:#57534E;">
+            <strong>Knowledge Base is temporarily offline.</strong>
+            The embedding provider is being switched — Q&amp;A search is paused until that's wired back in.
+        </div>
+    </div>
+
     <!-- Result region: input + answer + hints. Wrapped so a contained
          overlay can cover just this area while it redraws — sidebar/nav
          outside .ask-wrap stay interactive throughout. -->
@@ -280,7 +292,8 @@
                     id="questionInput"
                     class="ask-input"
                     rows="3"
-                    placeholder="Type your question… or / to scope to specific documents"
+                    placeholder="Knowledge Base is offline — check back shortly"
+                    disabled
                     required>{{ question }}</textarea>
                 <!-- Doc picker dropdown -->
                 <div id="docPicker" class="doc-picker">
@@ -301,7 +314,7 @@
                 Tip: type <kbd>/</kbd> in an empty question box to scope the search to specific documents.
             </div>
             <div class="ask-actions" style="margin-top:12px">
-                <button type="submit" class="btn-ask" id="askBtn">
+                <button type="submit" class="btn-ask" id="askBtn" disabled>
                     <i class="bi bi-stars"></i>
                     <span id="askLabel">Ask</span>
                 </button>
@@ -366,16 +379,21 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ available_docs|json_script:"allDocsData" }}
+{{ selected_docs|json_script:"selectedDocsData" }}
 <script>
 // ── Doc data ──────────────────────────────────────────────────────────────────
-const ALL_DOCS = {{ available_docs_json|safe }};
+// Read from the json_script blocks above, not inlined directly into this
+// <script> — a document title containing "</script>" would otherwise break
+// out of this block and execute (stored XSS).
+const ALL_DOCS = JSON.parse(document.getElementById('allDocsData').textContent);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 // {id: {id, title, filename}}
 const selectedDocs = {};
 
 // Pre-populate from POST response (re-renders chips after page reload)
-({{ selected_docs_json|safe }}).forEach(d => { selectedDocs[d.id] = d; });
+JSON.parse(document.getElementById('selectedDocsData').textContent).forEach(d => { selectedDocs[d.id] = d; });
 
 // ── Elements ──────────────────────────────────────────────────────────────────
 const questionInput  = document.getElementById('questionInput');

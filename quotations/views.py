@@ -1,5 +1,4 @@
 import base64
-import json
 import os
 import re
 import threading
@@ -100,7 +99,7 @@ def lead_create(request):
 @login_required
 def lead_detail(request, pk):
     lead = get_object_or_404(Lead.objects.prefetch_related('quotations'), pk=pk)
-    keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
+    keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
     customer = _find_customer(lead)
     addon_marker = '--- Pricing Add-ons ---'
     raw_notes = customer.customer_history if customer else ''
@@ -302,13 +301,13 @@ def quotation_edit(request, pk):
         form = QuotationEditForm(instance=quotation, initial=initial)
         formset = LineItemFormSet(instance=quotation)
 
-    addon_defaults_json = json.dumps({k: addon_notes.get(k, '') for k in _ADDON_KEYS})
+    addon_defaults = {k: addon_notes.get(k, '') for k in _ADDON_KEYS}
     return render(request, 'quotations/quotation_edit.html', {
         'quotation': quotation,
         'lead': lead,
         'form': form,
         'formset': formset,
-        'addon_defaults_json': addon_defaults_json,
+        'addon_defaults': addon_defaults,
         'customer_notes': customer.customer_history if customer else '',
         'make_choices': QuotationLineItem.MAKE_CHOICES,
         'length_choices': QuotationLineItem.LENGTH_CHOICES,
@@ -516,7 +515,7 @@ def _quotation_context(quotation):
         Q(pk=root.pk) | Q(parent_quotation=root)
     ).select_related('created_by').order_by('version')
 
-    voice_keywords = json.dumps(list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to')))
+    voice_keywords = list(ProductKeyword.objects.filter(is_active=True).values('keyword', 'maps_to'))
     valid_until_str = quotation.valid_until.strftime('%d-%b-%Y') if quotation.valid_until else 'Today Only'
 
     tnc_lines = _get_customer_tnc(customer)
