@@ -221,6 +221,8 @@ def notification_mark_read(request, pk):
 def notifications_mark_all_read(request):
     if request.method == 'POST':
         request.user.notifications.filter(is_read=False).update(is_read=True)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
     next_url = request.POST.get('next') or request.GET.get('next') or 'notifications_list'
     if next_url.startswith('/'):
         return redirect(next_url)

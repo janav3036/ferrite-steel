@@ -329,27 +329,20 @@
             <div class="notif-panel-header">
                 <span class="notif-panel-title">
                     Notifications
-                    {% if unread_notification_count > 0 %}
-                    <span style="background:#C0392B;color:white;font-size:.62rem;font-weight:700;
-                                 padding:1px 7px;border-radius:100px;margin-left:6px;">
+                    <span id="notifPanelBadge" style="background:#C0392B;color:white;font-size:.62rem;font-weight:700;
+                                 padding:1px 7px;border-radius:100px;margin-left:6px;
+                                 {% if not unread_notification_count %}display:none;{% endif %}">
                         {{ unread_notification_count }}
                     </span>
-                    {% endif %}
                 </span>
                 <div class="d-flex gap-2 align-items-center">
-                    {% if unread_notification_count > 0 %}
-                    <form method="post" action="{% url 'notifications_mark_all_read' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="/dashboard/">
-                        <button type="submit" class="btn btn-link btn-sm text-muted p-0"
-                                style="font-size:.75rem;text-decoration:none;">Mark all read</button>
-                    </form>
-                    {% endif %}
+                    <button type="button" id="markAllReadBtn" class="btn btn-link btn-sm text-muted p-0"
+                            style="font-size:.75rem;text-decoration:none;{% if not unread_notification_count %}display:none;{% endif %}">Mark all read</button>
                     <a href="{% url 'notifications_list' %}" class="btn btn-link btn-sm text-muted p-0"
                        style="font-size:.75rem;text-decoration:none;">See all</a>
                 </div>
             </div>
-            <div class="notif-panel-body">
+            <div class="notif-panel-body" id="notifPanelBody">
                 {% if recent_notifs %}
                 {% for n in recent_notifs %}
                 <a href="{% url 'notification_mark_read' n.pk %}"
@@ -386,3 +379,39 @@
 
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const btn = document.getElementById('markAllReadBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        fetch('{% url "notifications_mark_all_read" %}', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) { btn.disabled = false; return; }
+            // Panel-only update — no page reload.
+            document.querySelectorAll('#notifPanelBody .np-item.unread').forEach(el => {
+                el.classList.remove('unread');
+                const dot = el.querySelector('.np-dot');
+                if (dot) dot.classList.add('read');
+            });
+            btn.style.display = 'none';
+            const badge = document.getElementById('notifPanelBadge');
+            if (badge) badge.style.display = 'none';
+            // Also clear the sidebar bell badge (base.html nav), same count.
+            const sidebarBadge = document.getElementById('sidebarNotifBadge');
+            if (sidebarBadge) sidebarBadge.style.display = 'none';
+        })
+        .catch(() => { btn.disabled = false; });
+    });
+})();
+</script>
+{% endblock extra_js %}
