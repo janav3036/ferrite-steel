@@ -42,12 +42,7 @@
         </select>
     </div>
     <div class="col-auto">
-        <select name="source" class="form-select form-select-sm">
-            <option value="">All sources</option>
-            {% for val, label in lead_sources %}
-            <option value="{{ val }}" {% if source_f == val %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
+        <input type="text" name="source" value="{{ source_f }}" class="form-control form-control-sm" placeholder="Source (e.g. IndiaMART)" style="min-width:160px">
     </div>
     {% if request.user.role == 'admin' %}
     <div class="col-auto">
@@ -86,7 +81,7 @@
             <tr>
                 <td class="fs-id">#{{ lead.pk }}</td>
                 <td>{{ lead.display_name|default:"—" }}</td>
-                <td>{{ lead.get_source_display }}</td>
+                <td>{{ lead.source }}</td>
                 <td>
                     <form method="post" action="{% url 'lead_set_status' lead.pk %}" class="d-inline">
                         {% csrf_token %}

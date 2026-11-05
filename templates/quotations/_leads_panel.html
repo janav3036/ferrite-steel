@@ -17,7 +17,7 @@
             <tr>
                 <td class="fs-id">{{ lead.pk }}</td>
                 <td>{{ lead.display_name|default:"—" }}</td>
-                <td>{{ lead.get_source_display }}</td>
+                <td>{{ lead.source }}</td>
                 <td>{{ lead.created_by.username|default:"—" }}</td>
                 <td class="fs-num">{{ lead.created_at|date:"d M Y" }}</td>
                 <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-sm btn-outline-warning">View lead</a></td>

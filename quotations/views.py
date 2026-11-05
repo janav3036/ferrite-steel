@@ -54,7 +54,7 @@ def lead_list(request):
     if status_f:
         qs = qs.filter(status=status_f)
     if source_f:
-        qs = qs.filter(source=source_f)
+        qs = qs.filter(source__icontains=source_f)
     params = request.GET.copy()
     params.pop('page', None)
     paginator = Paginator(qs, 25)
@@ -71,7 +71,6 @@ def lead_list(request):
         'team_choices': _CU.TEAM_CHOICES,
         'query_string': params.urlencode(),
         'lead_statuses': Lead.STATUS_CHOICES,
-        'lead_sources': Lead.SOURCE_CHOICES,
     })
 
 
@@ -92,8 +91,8 @@ def lead_create(request):
                    link=f'/quotations/leads/{lead.pk}/', notif_type='lead_created')
             return redirect('lead_detail', pk=lead.pk)
     else:
-        form = ManualLeadForm(initial={'source': 'manual'})
-    return render(request, 'quotations/lead_create.html', {'form': form})
+        form = ManualLeadForm(initial={'source': 'Manual'})
+    return render(request, 'quotations/lead_create.html', {'form': form, 'source_suggestions': Lead.SOURCE_SUGGESTIONS})
 
 
 @login_required

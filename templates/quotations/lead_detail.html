@@ -19,7 +19,7 @@
     </div>
 </div>
 <div class="fs-metastrip">
-    <span>Source <strong>{{ lead.get_source_display }}</strong></span>
+    <span>Source <strong>{{ lead.source|default:"—" }}</strong></span>
     <span>Status
         <form method="post" action="{% url 'lead_set_status' lead.pk %}" class="d-inline">
             {% csrf_token %}

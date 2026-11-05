@@ -52,7 +52,7 @@
                     <td class="fs-id">{{ lead.pk }}</td>
                     <td class="fw-semibold">{{ lead.customer_name|default:"—" }}</td>
                     <td class="text-muted">{{ lead.company|default:"—" }}</td>
-                    <td>{{ lead.get_source_display }}</td>
+                    <td>{{ lead.source }}</td>
                     <td>
                         <span class="lead-status
                             {% if lead.status == 'new' %}st-new

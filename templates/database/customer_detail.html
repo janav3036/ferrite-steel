@@ -179,7 +179,7 @@
                 {% for lead in leads %}
                 <tr>
                     <td>Lead #{{ lead.pk }}</td>
-                    <td>{{ lead.get_source_display }}</td>
+                    <td>{{ lead.source }}</td>
                     <td><span class="badge bg-secondary">{{ lead.get_status_display }}</span></td>
                     <td class="text-muted small">{{ lead.created_at|date:"d M Y" }}</td>
                     <td><a href="{% url 'lead_detail' lead.pk %}" class="btn btn-outline-secondary btn-sm">View</a></td>

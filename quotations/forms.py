@@ -19,7 +19,7 @@ class ManualLeadForm(forms.ModelForm):
             'company': forms.TextInput(attrs={'class': 'form-control'}),
             'industry': forms.TextInput(attrs={'class': 'form-control'}),
             'location': forms.TextInput(attrs={'class': 'form-control'}),
-            'source': forms.Select(attrs={'class': 'form-select'}),
+            'source': forms.TextInput(attrs={'class': 'form-control', 'list': 'source-suggestions', 'autocomplete': 'off'}),
             'broker': forms.Select(attrs={'class': 'form-select'}),
             'raw_text': forms.Textarea(attrs={
                 'class': 'form-control',

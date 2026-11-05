@@ -92,8 +92,11 @@
                 </div>
                 <div class="lc-grid mt-3">
                     <div>
-                        <label for="{{ form.source.id_for_label }}" class="form-label">{{ form.source.label }}</label>
+                        <label for="{{ form.source.id_for_label }}" class="form-label">{{ form.source.label }} <span class="text-muted fw-normal">(type anything — e.g. IndiaMART, JustDial)</span></label>
                         {{ form.source }}
+                        <datalist id="source-suggestions">
+                            {% for s in source_suggestions %}<option value="{{ s }}">{% endfor %}
+                        </datalist>
                         {% for error in form.source.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     <div>

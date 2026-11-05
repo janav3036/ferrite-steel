@@ -5,10 +5,17 @@ from django.dispatch import receiver
 from django.core.mail import send_mail
 
 class Lead(models.Model):
-    SOURCE_CHOICES = [
-        ('whatsapp', 'WhatsApp'),
-        ('email', 'Email'),
-        ('manual', 'Manual Entry'),
+    # Not an enforced choice list — free text (see SOURCE_SUGGESTIONS below).
+    # Kept only as a reference for code that sets this automatically.
+    SOURCE_WHATSAPP = 'whatsapp'
+    SOURCE_EMAIL = 'email'
+    SOURCE_MANUAL = 'manual'
+
+    # Starter suggestions for the source datalist — a lead's actual source is
+    # free text (e.g. a Team 9 lead might be "IndiaMART" or "JustDial"), not
+    # a fixed set of choices.
+    SOURCE_SUGGESTIONS = [
+        'WhatsApp', 'Email', 'Manual', 'IndiaMART', 'JustDial', 'TradeIndia', 'BNL', 'Referral',
     ]
     STATUS_CHOICES = [
         ('new', 'New'),
@@ -18,7 +25,7 @@ class Lead(models.Model):
         ('rejected', 'Rejected'),
     ]
 
-    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
+    source = models.CharField(max_length=50)
     raw_text = models.TextField(help_text='Original message or enquiry text')
     customer_name = models.CharField(max_length=255, blank=True)
     customer_phone = models.CharField(max_length=30, blank=True)
@@ -60,7 +67,7 @@ class Lead(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'Lead #{self.pk} — {self.customer_name or "Unknown"} ({self.get_source_display()})'
+        return f'Lead #{self.pk} — {self.customer_name or "Unknown"} ({self.source or "Unknown source"})'
 
 
 class Quotation(models.Model):
