@@ -153,14 +153,13 @@ we have received your enquiry and are pleased to offer you our best rates as per
   <thead>
     <tr>
       <th style="width:18px;">#</th>
-      <th style="width:64px;">HSN</th>
       <th>Description (Size)</th>
       <th style="width:46px;">Length</th>
       <th style="width:52px;">Make</th>
       <th style="width:38px;">Grade</th>
       <th style="width:28px;">Pcs</th>
-      <th style="width:55px;">Qty(Nos)</th>
-      <th style="width:68px;">INR per(Nos)</th>
+      <th style="width:55px;">Qty</th>
+      <th style="width:68px;">INR per</th>
       <th style="width:72px;">Amount (INR)</th>
     </tr>
   </thead>
@@ -168,7 +167,6 @@ we have received your enquiry and are pleased to offer you our best rates as per
     {% for item in items %}
     <tr>
       <td class="ctr">{{ forloop.counter }}</td>
-      <td class="ctr">{{ item.hsn_code|default:"" }}</td>
       <td>{{ item.product_name }}{% if item.discount_pct %} <em style="font-size:8px;">({{ item.discount_pct|floatformat:2 }}% disc.)</em>{% endif %}</td>
       <td class="ctr">{{ item.length|default:"" }}</td>
       <td class="ctr">{{ item.make|default:"" }}</td>
@@ -182,41 +180,41 @@ we have received your enquiry and are pleased to offer you our best rates as per
     <!-- Padding rows (minimum 5 visible rows) -->
     {% with pad=items|length %}
     {% if pad < 5 %}{% for i in "12345"|make_list %}{% if forloop.counter > pad %}
-    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
     {% endif %}{% endfor %}{% endif %}
     {% endwith %}
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none; background:#f9f9f9;">Total Item Value</td>
+      <td colspan="8" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none; background:#f9f9f9;">Total Item Value</td>
       <td class="num" style="font-weight:bold; background:#f9f9f9;">{{ item_value|inr }}</td>
     </tr>
     {% if loading_extra %}
     <tr>
-      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Loading Extra (₹)</td>
+      <td colspan="8" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Loading Extra (₹)</td>
       <td class="num">{{ loading_extra|inr }}</td>
     </tr>
     {% endif %}
     {% if transport_extra %}
     <tr>
-      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Transport Extra (₹)</td>
+      <td colspan="8" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">Transport Extra (₹)</td>
       <td class="num">{{ transport_extra|inr }}</td>
     </tr>
     {% endif %}
     {% if quotation.cgst_percent %}
     <tr>
-      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">CGST {{ quotation.cgst_percent }} %</td>
+      <td colspan="8" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">CGST {{ quotation.cgst_percent }} %</td>
       <td class="num">{{ cgst|inr }}</td>
     </tr>
     {% endif %}
     {% if quotation.sgst_percent %}
     <tr>
-      <td colspan="9" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">SGST {{ quotation.sgst_percent }} %</td>
+      <td colspan="8" style="text-align:right; font-weight:bold; border-left:none; border-right:none; border-bottom:none;">SGST {{ quotation.sgst_percent }} %</td>
       <td class="num">{{ sgst|inr }}</td>
     </tr>
     {% endif %}
     <tr class="grand-row">
-      <td colspan="6" style="font-weight:bold; font-size:10px;">TOTAL</td>
+      <td colspan="5" style="font-weight:bold; font-size:10px;">TOTAL</td>
       <td class="num" style="font-size:10px;">—</td>
       <td class="num" style="font-size:10px;">{{ total_tons|floatformat:2 }} T</td>
       <td></td>
@@ -296,6 +294,9 @@ we have received your enquiry and are pleased to offer you our best rates as per
   <div class="co">Ferrite Structural Steels Pvt. Ltd.</div>
   <div>H.O.: 803, Excel Plaza, B-Wing, Bldg No.7, 90 Feet Road, Pantnagar, Ghatkopar (E), Mumbai — 400075 &nbsp;|&nbsp; Mobile: +91 9920777335 / 022-21022818 &nbsp;|&nbsp; Email: accounts@ferrite.in &nbsp;|&nbsp; sales@ferrite.in</div>
   <div>Sales / Godown: Plot 18, KWC Kalamboli, Navi Mumbai — 410218, Dist. Raigad &nbsp;|&nbsp; www.ferrite.in &nbsp;|&nbsp; CIN U27200MH2014PTC259228 &nbsp;|&nbsp; GST NO.: 27AACCF4875H1ZE</div>
+  {% if received_via_email %}
+  <div>This enquiry was received at: <strong>{{ received_via_email }}</strong></div>
+  {% endif %}
 </div>
 
 </body>

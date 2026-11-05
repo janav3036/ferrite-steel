@@ -12,7 +12,7 @@
     <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">← Cancel</a>
 </div>
 
-<form method="post">
+<form method="post" id="quotation-form">
     {% csrf_token %}
     {% if form.errors or formset.non_form_errors or formset.errors %}
     <div class="alert alert-danger mb-4">
@@ -280,7 +280,8 @@
     </div>
     {% endif %}
 
-    <div class="d-flex gap-2 justify-content-end">
+    <div class="d-flex gap-2 justify-content-end align-items-center">
+        <span id="autosave-indicator" class="text-muted small me-auto"></span>
         <a href="{% url 'quotation_detail' quotation.pk %}" class="btn btn-outline-secondary">Cancel</a>
         <button type="submit" class="btn btn-dark">Save quotation</button>
     </div>
@@ -434,8 +435,8 @@
     const loadingInput = document.getElementById('id_loading_extra');
     const transportInput = document.getElementById('id_transport_extra');
     // Read from the json_script block above, not inlined directly — customer
-    // notes text containing "</script>" would otherwise break out of this
-    // block and execute (stored XSS).
+    // notes text containing a closing script tag would otherwise break out
+    // of this block and execute (stored XSS).
     const addonDefaults = JSON.parse(document.getElementById('addonDefaultsData').textContent);
     const customerNotes = "{{ customer_notes|escapejs }}";
 
@@ -811,7 +812,7 @@
 
     let pendingRateChanges = [];
 
-    document.querySelector('form[method="post"]').addEventListener('submit', function (e) {
+    document.getElementById('quotation-form').addEventListener('submit', function (e) {
         // If we already handled the modal and are re-submitting, let it through
         if (this.querySelector('input[name="catalog_updates_applied"]')) return;
 
@@ -882,7 +883,7 @@
     // Fires once the modal has finished closing, no matter how it was closed.
     document.getElementById('rateChangeModal').addEventListener('hidden.bs.modal', function () {
         if (rateModalAction === 'update') {
-            const form = document.querySelector('form[method="post"]');
+            const form = document.getElementById('quotation-form');
             document.querySelectorAll('.rate-change-cb:checked').forEach(cb => {
                 const inp = document.createElement('input');
                 inp.type = 'hidden';
@@ -896,7 +897,7 @@
     });
 
     function submitFormNow() {
-        const form = document.querySelector('form[method="post"]');
+        const form = document.getElementById('quotation-form');
         const flag = document.createElement('input');
         flag.type = 'hidden';
         flag.name = 'catalog_updates_applied';
@@ -904,5 +905,39 @@
         form.appendChild(flag);
         form.submit();
     }
+
+    // ── Autosave ─────────────────────────────────────────────────────────────────
+    // Silently saves the quotation header + line items in the background every
+    // minute, so a closed tab or crashed browser doesn't lose work. Separate
+    // from the main submit flow above — skips the catalog-rate-change modal and
+    // never redirects or shows messages; a failed/incomplete-row autosave just
+    // retries on the next tick.
+    const AUTOSAVE_INTERVAL_MS = 60000;
+    const autosaveIndicator = document.getElementById('autosave-indicator');
+
+    async function autosaveQuotation() {
+        const form = document.getElementById('quotation-form');
+        const data = new FormData(form);
+        data.set('autosave', '1');
+        if (autosaveIndicator) autosaveIndicator.textContent = 'Saving…';
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const result = await resp.json();
+            if (autosaveIndicator) {
+                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                autosaveIndicator.textContent = result.ok
+                    ? `Autosaved at ${now}`
+                    : 'Autosave skipped — finish the current row first';
+            }
+        } catch {
+            if (autosaveIndicator) autosaveIndicator.textContent = 'Autosave failed — check your connection';
+        }
+    }
+
+    setInterval(autosaveQuotation, AUTOSAVE_INTERVAL_MS);
 </script>
 {% endblock %}

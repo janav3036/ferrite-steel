@@ -9,8 +9,8 @@ from aegis.notifications import notify
 from aegis.models import CustomUser
 
 from django.db import transaction
-from django.db.models import F
-from django.db.models.functions import Greatest
+from django.db.models import F, Case, When, Sum, DecimalField
+from django.db.models.functions import Greatest, Lower
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -60,6 +60,7 @@ def lead_list(request):
     paginator = Paginator(qs, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
     elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
+    _resolve_customer_display_names(page_obj)
     return render(request, 'quotations/lead_list.html', {
         'page_obj': page_obj,
         'elided_page_range': elided,
@@ -80,7 +81,6 @@ def lead_create(request):
         form = ManualLeadForm(request.POST)
         if form.is_valid():
             lead = form.save(commit=False)
-            lead.source = 'manual'
             lead.created_by = request.user
             lead.save()
             messages.success(request, f'Lead #{lead.pk} created.')
@@ -92,7 +92,7 @@ def lead_create(request):
                    link=f'/quotations/leads/{lead.pk}/', notif_type='lead_created')
             return redirect('lead_detail', pk=lead.pk)
     else:
-        form = ManualLeadForm()
+        form = ManualLeadForm(initial={'source': 'manual'})
     return render(request, 'quotations/lead_create.html', {'form': form})
 
 
@@ -104,7 +104,12 @@ def lead_detail(request, pk):
     addon_marker = '--- Pricing Add-ons ---'
     raw_notes = customer.customer_history if customer else ''
     customer_notes_display = raw_notes.split(addon_marker)[0].strip() if raw_notes else ''
-    return render(request, 'quotations/lead_detail.html', {'lead': lead, 'voice_keywords': keywords, 'customer_notes_display': customer_notes_display})
+    return render(request, 'quotations/lead_detail.html', {
+        'lead': lead,
+        'voice_keywords': keywords,
+        'customer_notes_display': customer_notes_display,
+        'lead_statuses': Lead.STATUS_CHOICES,
+    })
 
 
 @login_required
@@ -215,6 +220,15 @@ def quotation_list(request):
     params.pop('page', None)
     params.pop('lead_page', None)
     query_string = params.urlencode()
+    total_weight_tons = QuotationLineItem.objects.filter(quotation__in=qs).aggregate(
+        total=Sum(
+            Case(
+                When(uom='kg', then=F('quantity') / 1000),
+                default=F('quantity'),
+                output_field=DecimalField(max_digits=14, decimal_places=3),
+            )
+        )
+    )['total'] or Decimal('0')
     paginator = Paginator(qs, 25)
     page_obj = paginator.get_page(request.GET.get('page'))
     elided = [None if r == paginator.ELLIPSIS else r for r in paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)]
@@ -227,6 +241,8 @@ def quotation_list(request):
     leads_paginator = Paginator(unquoted_leads, 25)
     leads_page_obj = leads_paginator.get_page(request.GET.get('lead_page'))
     leads_elided = [None if r == leads_paginator.ELLIPSIS else r for r in leads_paginator.get_elided_page_range(leads_page_obj.number, on_each_side=2, on_ends=1)]
+    _resolve_customer_display_names([qt.lead for qt in page_obj if qt.lead])
+    _resolve_customer_display_names(leads_page_obj)
     context = {
         'page_obj': page_obj,
         'elided_page_range': elided,
@@ -240,6 +256,7 @@ def quotation_list(request):
         'query_string': query_string,
         'quotation_statuses': Quotation.STATUS_CHOICES,
         'quotation_outcomes': Quotation.OUTCOME_CHOICES,
+        'total_weight_tons': total_weight_tons,
     }
 
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -258,7 +275,9 @@ def quotation_detail(request, pk):
         Quotation.objects.select_related('lead', 'created_by', 'approved_by').prefetch_related('line_items'),
         pk=pk,
     )
-    return render(request, 'quotations/quotation_detail.html', _quotation_context(quotation))
+    ctx = _quotation_context(quotation)
+    ctx['quotation_statuses'] = Quotation.STATUS_CHOICES
+    return render(request, 'quotations/quotation_detail.html', ctx)
 
 
 @login_required
@@ -269,6 +288,7 @@ def quotation_edit(request, pk):
     addon_notes = _parse_addon_notes(customer.customer_history if customer else '')
 
     if request.method == 'POST':
+        is_autosave = request.POST.get('autosave') == '1'
         form = QuotationEditForm(request.POST, instance=quotation)
         formset = LineItemFormSet(request.POST, instance=quotation)
         if form.is_valid() and formset.is_valid():
@@ -286,10 +306,14 @@ def quotation_edit(request, pk):
             quotation.total_amount = total
             quotation.save(update_fields=['total_amount'])
             _upsert_customer(lead, quotation.transport_extra)
+            if is_autosave:
+                return JsonResponse({'ok': True})
             _apply_catalog_rate_updates(request)
             messages.success(request, 'Quotation saved.')
             return redirect('quotation_detail', pk=pk)
         else:
+            if is_autosave:
+                return JsonResponse({'ok': False})
             messages.error(request, 'Quotation was not saved — see the errors below.')
     else:
         initial = {}
@@ -313,6 +337,34 @@ def quotation_edit(request, pk):
         'length_choices': QuotationLineItem.LENGTH_CHOICES,
         'grade_choices': QuotationLineItem.GRADE_CHOICES,
     })
+
+
+def _resolve_customer_display_names(leads):
+    """Attach `.display_name` to each Lead for list display.
+
+    Matches by email against the Customer table: if found, shows that customer's
+    company (falling back to name) — the "official" record, not whatever name the
+    inbound email happened to carry. If the email isn't in the Customer table yet,
+    falls back to the lead's own entered name with a '(new)' suffix so salespeople
+    can tell at a glance this contact hasn't been added as a customer.
+    """
+    leads = list(leads)
+    emails = {l.customer_email.strip().lower() for l in leads if l.customer_email}
+    customer_by_email = {}
+    if emails:
+        customers = Customer.objects.annotate(email_lower=Lower('email')).filter(email_lower__in=emails)
+        for c in customers:
+            customer_by_email.setdefault(c.email_lower, c)
+    for lead in leads:
+        email_lower = (lead.customer_email or '').strip().lower()
+        customer = customer_by_email.get(email_lower) if email_lower else None
+        if customer:
+            lead.display_name = customer.company or customer.name
+        elif email_lower:
+            lead.display_name = f'{lead.customer_name or lead.customer_email} (new)'
+        else:
+            lead.display_name = lead.customer_name or lead.company or '—'
+    return leads
 
 
 def _find_customer(lead):
@@ -389,8 +441,7 @@ def _tnc_rows(lines):
 
 
 _DEFAULT_TERMS_LINES = [
-    'Delivery will be made within 15 days following receipt of payment.',
-    'Validity of the Quotation — 15 Days.',
+    'Validity of the Quotation — 1 Day.',
     'The Work Shall Commence ONLY After The Written Confirmation Via E-Mail.',
     'Kindly Mention The Quotation Number in The Subject Line of All of Your E-Mail Communications Related to This Order.',
     'Material would be dispatched ONLY after the receipt of the technically & commercially confirmed Purchase Order and/or on receipt of the mentioned Advance Amount.',
@@ -520,9 +571,14 @@ def _quotation_context(quotation):
 
     tnc_lines = _get_customer_tnc(customer)
     terms_lines = _get_customer_terms(customer)
+    received_via_email = (
+        quotation.lead.received_via.email_address
+        if (quotation.lead and quotation.lead.received_via) else ''
+    )
 
     return {
         'quotation': quotation,
+        'received_via_email': received_via_email,
         'items': items,
         'total_tons': total_tons,
         'item_value': item_value,
@@ -549,7 +605,7 @@ def _quotation_context(quotation):
 @login_required
 def quotation_pdf(request, pk):
     quotation = get_object_or_404(
-        Quotation.objects.select_related('lead', 'created_by').prefetch_related('line_items'),
+        Quotation.objects.select_related('lead', 'lead__received_via', 'created_by').prefetch_related('line_items'),
         pk=pk,
     )
     ctx = _quotation_context(quotation)
@@ -629,6 +685,10 @@ def _build_pdf_context_from_post(post, original):
     )
 
     valid_until_str = _s('valid_until', 'Today Only')
+    received_via_email = (
+        original.lead.received_via.email_address
+        if (original.lead and original.lead.received_via) else ''
+    )
 
     tnc_lines = [line.strip() for line in _s('tnc_text').splitlines() if line.strip()] or list(_DEFAULT_TNC_LINES)
     terms_lines = [line.strip() for line in _s('terms_text').splitlines() if line.strip()] or list(_DEFAULT_TERMS_LINES)
@@ -666,6 +726,7 @@ def _build_pdf_context_from_post(post, original):
 
     return {
         'quotation': quotation,
+        'received_via_email': received_via_email,
         'items': items,
         'customer': customer,
         'item_value': item_value,
@@ -688,7 +749,7 @@ def _build_pdf_context_from_post(post, original):
 @login_required
 def quotation_pdf_edit(request, pk):
     quotation = get_object_or_404(
-        Quotation.objects.select_related('lead', 'lead__broker', 'created_by')
+        Quotation.objects.select_related('lead', 'lead__broker', 'lead__received_via', 'created_by')
                          .prefetch_related('line_items__product'),
         pk=pk,
     )
@@ -1102,6 +1163,37 @@ def lead_delete(request, pk):
     lead.delete()
     messages.success(request, f'Lead "{name}" and all its quotations deleted.')
     return redirect('lead_list')
+
+
+@login_required
+@require_POST
+def lead_set_status(request, pk):
+    """Manual status override — a lead worked outside the app's automatic triggers
+    (e.g. closed over the phone) still needs a way to reflect that here."""
+    lead = get_object_or_404(Lead, pk=pk)
+    status = request.POST.get('status', '')
+    valid_statuses = dict(Lead.STATUS_CHOICES)
+    if status in valid_statuses:
+        lead.status = status
+        lead.save(update_fields=['status'])
+        messages.success(request, f'Lead #{lead.pk} status set to {valid_statuses[status]}.')
+    return redirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('lead_detail', args=[pk]))
+
+
+@login_required
+@require_POST
+def quotation_set_status(request, pk):
+    """Manual status override — a quotation sent outside the app (WhatsApp, a call,
+    etc.) has no automatic way to reach 'sent', which otherwise gates marking an
+    outcome (see quotation_detail.html's Win/Loss buttons)."""
+    quotation = get_object_or_404(Quotation, pk=pk)
+    status = request.POST.get('status', '')
+    valid_statuses = dict(Quotation.STATUS_CHOICES)
+    if status in valid_statuses:
+        quotation.status = status
+        quotation.save(update_fields=['status'])
+        messages.success(request, f'{quotation.quotation_number} status set to {valid_statuses[status]}.')
+    return redirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('quotation_detail', args=[pk]))
 
 
 @login_required

@@ -81,6 +81,11 @@ class Customer(models.Model):
     company = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
+    alt_emails = models.TextField(
+        blank=True,
+        verbose_name='Additional Emails',
+        help_text='Extra email addresses for this customer, one per line.',
+    )
     gst_number = models.CharField(max_length=20, blank=True)
     pan_number = models.CharField(max_length=20, blank=True, verbose_name='PAN Number')
     msme_number = models.CharField(max_length=50, blank=True, verbose_name='MSME/Udhyan Number')

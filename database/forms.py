@@ -29,7 +29,7 @@ class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = [
-            'customer_code', 'name', 'company', 'phone', 'email',
+            'customer_code', 'name', 'company', 'phone', 'email', 'alt_emails',
             'gst_number', 'billing_address', 'shipping_address',
             'payment_terms', 'transport_extra', 'loading_rate',
             'handling_team', 'rm', 'customer_history', 'competitors',
@@ -40,6 +40,7 @@ class CustomerForm(forms.ModelForm):
             'company': forms.TextInput(attrs={'class': 'form-control'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'alt_emails': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'One extra email per line'}),
             'gst_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 27AABCU9603R1ZX'}),
             'billing_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'shipping_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -52,6 +53,7 @@ class CustomerForm(forms.ModelForm):
             'competitors': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'One competitor per line'}),
         }
         labels = {
+            'alt_emails': 'Additional Emails',
             'customer_history': 'Customer History (AI context)',
             'transport_extra': 'Transport Extra (₹/T)',
             'loading_rate': 'Loading Rate (₹/T)',

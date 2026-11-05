@@ -384,8 +384,8 @@
 <script>
 // ── Doc data ──────────────────────────────────────────────────────────────────
 // Read from the json_script blocks above, not inlined directly into this
-// <script> — a document title containing "</script>" would otherwise break
-// out of this block and execute (stored XSS).
+// script block — a document title containing a closing script tag would
+// otherwise break out of this block and execute (stored XSS).
 const ALL_DOCS = JSON.parse(document.getElementById('allDocsData').textContent);
 
 // ── State ─────────────────────────────────────────────────────────────────────

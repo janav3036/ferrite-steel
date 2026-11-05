@@ -16,7 +16,7 @@
             {% for lead in leads_page_obj %}
             <tr>
                 <td class="fs-id">{{ lead.pk }}</td>
-                <td>{{ lead.customer_name|default:"—" }}</td>
+                <td>{{ lead.display_name|default:"—" }}</td>
                 <td>{{ lead.get_source_display }}</td>
                 <td>{{ lead.created_by.username|default:"—" }}</td>
                 <td class="fs-num">{{ lead.created_at|date:"d M Y" }}</td>

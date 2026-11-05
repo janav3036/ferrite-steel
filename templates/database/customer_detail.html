@@ -45,6 +45,10 @@
                         <dd>{{ customer.phone|default:"—" }}</dd>
                         <dt class="text-muted small">Email</dt>
                         <dd>{{ customer.email|default:"—" }}</dd>
+                        {% if customer.alt_emails %}
+                        <dt class="text-muted small">Additional Emails</dt>
+                        <dd>{% for line in customer.alt_emails.splitlines %}{% if line.strip %}{{ line }}<br>{% endif %}{% endfor %}</dd>
+                        {% endif %}
                         <dt class="text-muted small">GST Number</dt>
                         <dd>{{ customer.gst_number|default:"—" }}</dd>
                         <dt class="text-muted small">Relationship Manager</dt>

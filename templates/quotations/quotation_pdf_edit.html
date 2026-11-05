@@ -243,14 +243,13 @@ we have received your enquiry and are pleased to offer you our best rates as per
   <thead>
     <tr>
       <th style="width:18px;">#</th>
-      <th style="width:64px;">HSN</th>
       <th>Description (Size)</th>
       <th style="width:46px;">Length</th>
       <th style="width:52px;">Make</th>
       <th style="width:38px;">Grade</th>
       <th style="width:28px;">Pcs</th>
-      <th style="width:58px;">Qty(Nos)</th>
-      <th style="width:68px;">INR per(Nos)</th>
+      <th style="width:58px;">Qty</th>
+      <th style="width:68px;">INR per</th>
       <th style="width:72px;">Amount (INR)</th>
     </tr>
   </thead>
@@ -258,7 +257,6 @@ we have received your enquiry and are pleased to offer you our best rates as per
     {% for item in items %}
     <tr>
       <td class="ctr" style="font-size:9.5px;">{{ forloop.counter }}</td>
-      <td><input class="e ro ctr" value="{{ item.hsn_code }}" readonly tabindex="-1"></td>
       <td><input class="e ro" value="{{ item.product_name }}" readonly tabindex="-1"></td>
       <td><input class="e ro ctr" value="{{ item.length }}" readonly tabindex="-1"></td>
       <td><input class="e ro ctr" value="{{ item.make }}" readonly tabindex="-1"></td>
@@ -277,37 +275,37 @@ we have received your enquiry and are pleased to offer you our best rates as per
   </tbody>
   <tfoot>
     <tr>
-      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;background:#f9f9f9;">Total Item Value</td>
+      <td colspan="8" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;background:#f9f9f9;">Total Item Value</td>
       <td style="background:#f9f9f9;"><input class="e num ro" id="f-item-value" readonly tabindex="-1" value="{{ item_value }}"></td>
     </tr>
     <tr>
-      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+      <td colspan="8" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
         Loading Extra (₹)
       </td>
       <td><input class="e num" id="f-loading" name="loading" value="{{ loading_extra }}" oninput="recalc()"></td>
     </tr>
     <tr>
-      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+      <td colspan="8" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
         Transport Extra (₹)
       </td>
       <td><input class="e num" id="f-transport" name="transport" value="{{ transport_extra }}" oninput="recalc()"></td>
     </tr>
     <tr>
-      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+      <td colspan="8" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
         CGST&nbsp;<input class="e num" name="cgst_pct" id="f-cgst-pct" value="{{ quotation.cgst_percent }}"
                          style="width:30px;display:inline-block;text-align:center;" oninput="recalc()">&nbsp;%
       </td>
       <td><input class="e num ro" id="f-cgst" readonly tabindex="-1" value="{{ cgst }}"></td>
     </tr>
     <tr>
-      <td colspan="9" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
+      <td colspan="8" style="text-align:right;font-weight:bold;border-left:1px solid #000;border-right:1px solid #000;">
         SGST&nbsp;<input class="e num" name="sgst_pct" id="f-sgst-pct" value="{{ quotation.sgst_percent }}"
                          style="width:30px;display:inline-block;text-align:center;" oninput="recalc()">&nbsp;%
       </td>
       <td><input class="e num ro" id="f-sgst" readonly tabindex="-1" value="{{ sgst }}"></td>
     </tr>
     <tr class="grand-row">
-      <td colspan="6" style="font-weight:bold;font-size:10px;">TOTAL</td>
+      <td colspan="5" style="font-weight:bold;font-size:10px;">TOTAL</td>
       <td class="num" style="font-size:10px;">—</td>
       <td class="num" style="font-size:10px;"><input class="e num ro" id="f-total-tons" readonly tabindex="-1" value="{{ total_tons|floatformat:2 }} T" style="font-weight:bold;font-size:10px;"></td>
       <td></td>
@@ -376,6 +374,9 @@ we have received your enquiry and are pleased to offer you our best rates as per
   <div class="co">Ferrite Structural Steels Pvt. Ltd.</div>
   <div>H.O.: 803, Excel Plaza, B-Wing, Bldg No.7, 90 Feet Road, Pantnagar, Ghatkopar (E), Mumbai — 400075 &nbsp;|&nbsp; Mobile: +91 9920777335 / 022-21022818 &nbsp;|&nbsp; Email: accounts@ferrite.in &nbsp;|&nbsp; sales@ferrite.in</div>
   <div>Sales / Godown: Plot 18, KWC Kalamboli, Navi Mumbai — 410218, Dist. Raigad &nbsp;|&nbsp; www.ferrite.in &nbsp;|&nbsp; CIN U27200MH2014PTC259228 &nbsp;|&nbsp; GST NO.: 27AACCF4875H1ZE</div>
+  {% if received_via_email %}
+  <div>This enquiry was received at: <strong>{{ received_via_email }}</strong></div>
+  {% endif %}
 </div>
 
 </form><!-- /pdf-form -->

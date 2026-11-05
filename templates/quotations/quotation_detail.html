@@ -48,13 +48,21 @@
                 <dl class="row mb-0">
                     <dt class="col-sm-5">Status</dt>
                     <dd class="col-sm-7">
-                        <span class="badge
-                            {% if quotation.status == 'draft' %}bg-secondary
-                            {% elif quotation.status == 'approved' %}bg-success
-                            {% elif quotation.status == 'sent' %}bg-primary
-                            {% else %}bg-danger{% endif %}">
-                            {{ quotation.get_status_display }}
-                        </span>
+                        <form method="post" action="{% url 'quotation_set_status' quotation.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <select name="status" onchange="this.form.submit()" title="Change status — e.g. mark Sent if you sent this outside the app"
+                                    class="form-select form-select-sm border-0
+                                    {% if quotation.status == 'draft' %}bg-secondary text-white
+                                    {% elif quotation.status == 'approved' %}bg-success text-white
+                                    {% elif quotation.status == 'sent' %}bg-primary text-white
+                                    {% else %}bg-danger text-white{% endif %}"
+                                    style="width:auto;display:inline-block;">
+                                {% for val, label in quotation_statuses %}
+                                <option value="{{ val }}" {% if quotation.status == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
                     </dd>
                     <dt class="col-sm-5">Outcome</dt>
                     <dd class="col-sm-7">
@@ -331,7 +339,7 @@
     ];
 
     // Read from the json_script block above, not inlined — a keyword
-    // containing "</script>" would otherwise break out and execute.
+    // containing a closing script tag would otherwise break out and execute.
     const KEYWORDS = JSON.parse(document.getElementById('voiceKeywordsData').textContent);
     KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 

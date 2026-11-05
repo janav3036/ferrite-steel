@@ -9,7 +9,7 @@ class ManualLeadForm(forms.ModelForm):
         model = Lead
         fields = [
             'customer_name', 'customer_phone', 'customer_email',
-            'company', 'industry', 'location',
+            'company', 'industry', 'location', 'source',
             'broker', 'raw_text', 'notes',
         ]
         widgets = {
@@ -19,6 +19,7 @@ class ManualLeadForm(forms.ModelForm):
             'company': forms.TextInput(attrs={'class': 'form-control'}),
             'industry': forms.TextInput(attrs={'class': 'form-control'}),
             'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'source': forms.Select(attrs={'class': 'form-select'}),
             'broker': forms.Select(attrs={'class': 'form-select'}),
             'raw_text': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -30,6 +31,7 @@ class ManualLeadForm(forms.ModelForm):
         labels = {
             'raw_text': 'Enquiry Text',
             'broker': 'Broker (Market team only)',
+            'source': 'Source',
         }
 
 

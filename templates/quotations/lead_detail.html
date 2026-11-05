@@ -20,7 +20,24 @@
 </div>
 <div class="fs-metastrip">
     <span>Source <strong>{{ lead.get_source_display }}</strong></span>
-    <span>Status <strong>{{ lead.get_status_display }}</strong></span>
+    <span>Status
+        <form method="post" action="{% url 'lead_set_status' lead.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select name="status" onchange="this.form.submit()" title="Change status"
+                    class="form-select form-select-sm border-0 d-inline-block
+                    {% if lead.status == 'new' %}bg-secondary text-white
+                    {% elif lead.status == 'processing' %}bg-warning text-dark
+                    {% elif lead.status == 'quoted' %}bg-success text-white
+                    {% elif lead.status == 'closed' %}bg-primary text-white
+                    {% else %}bg-danger text-white{% endif %}"
+                    style="width:auto;">
+                {% for val, label in lead_statuses %}
+                <option value="{{ val }}" {% if lead.status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </span>
     <span>Logged <strong class="fs-num">{{ lead.created_at|date:"d M Y" }}</strong></span>
 </div>
 {% include 'chat/_share_modal.html' %}
@@ -233,7 +250,7 @@
 
         // ProductKeyword substitutions from DB (keyword → maps_to, longest first to avoid partial matches)
         // Read from the json_script block above, not inlined — a keyword
-        // containing "</script>" would otherwise break out and execute.
+        // containing a closing script tag would otherwise break out and execute.
         const KEYWORDS = JSON.parse(document.getElementById('voiceKeywordsData').textContent);
     KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 

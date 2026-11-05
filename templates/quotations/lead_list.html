@@ -85,17 +85,25 @@
             {% for lead in page_obj %}
             <tr>
                 <td class="fs-id">#{{ lead.pk }}</td>
-                <td>{{ lead.customer_name|default:"—" }}</td>
+                <td>{{ lead.display_name|default:"—" }}</td>
                 <td>{{ lead.get_source_display }}</td>
                 <td>
-                    <span class="badge
-                        {% if lead.status == 'new' %}bg-secondary
-                        {% elif lead.status == 'processing' %}bg-warning text-dark
-                        {% elif lead.status == 'quoted' %}bg-success
-                        {% elif lead.status == 'closed' %}bg-primary
-                        {% else %}bg-danger{% endif %}">
-                        {{ lead.get_status_display }}
-                    </span>
+                    <form method="post" action="{% url 'lead_set_status' lead.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <select name="status" onchange="this.form.submit()" title="Change status"
+                                class="form-select form-select-sm border-0
+                                {% if lead.status == 'new' %}bg-secondary text-white
+                                {% elif lead.status == 'processing' %}bg-warning text-dark
+                                {% elif lead.status == 'quoted' %}bg-success text-white
+                                {% elif lead.status == 'closed' %}bg-primary text-white
+                                {% else %}bg-danger text-white{% endif %}"
+                                style="width:auto;display:inline-block;">
+                            {% for val, label in lead_statuses %}
+                            <option value="{{ val }}" {% if lead.status == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
                 </td>
                 <td class="hide-xs fs-id">
                     {% if lead.created_by %}{{ lead.created_by.username }}

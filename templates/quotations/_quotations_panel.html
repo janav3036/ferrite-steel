@@ -1,6 +1,6 @@
 {% load fs_filters %}
 {% if page_obj %}
-<p class="text-muted small mb-2">{{ page_obj.paginator.count }} quotation{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+<p class="text-muted small mb-2">{{ page_obj.paginator.count }} quotation{{ page_obj.paginator.count|pluralize }} — page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} &nbsp;·&nbsp; total weight: <strong>{{ total_weight_tons|floatformat:3 }} T</strong></p>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead class="table-dark">
@@ -19,15 +19,23 @@
             {% for qt in page_obj %}
             <tr>
                 <td class="fs-id">{{ qt.quotation_number }}</td>
-                <td>{{ qt.lead.customer_name|default:"—" }}</td>
+                <td>{{ qt.lead.display_name|default:"—" }}</td>
                 <td>
-                    <span class="badge
-                        {% if qt.status == 'draft' %}bg-secondary
-                        {% elif qt.status == 'approved' %}bg-success
-                        {% elif qt.status == 'sent' %}bg-primary
-                        {% else %}bg-danger{% endif %}">
-                        {{ qt.get_status_display }}
-                    </span>
+                    <form method="post" action="{% url 'quotation_set_status' qt.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <select name="status" onchange="this.form.submit()" title="Change status"
+                                class="form-select form-select-sm border-0
+                                {% if qt.status == 'draft' %}bg-secondary text-white
+                                {% elif qt.status == 'approved' %}bg-success text-white
+                                {% elif qt.status == 'sent' %}bg-primary text-white
+                                {% else %}bg-danger text-white{% endif %}"
+                                style="width:auto;display:inline-block;">
+                            {% for val, label in quotation_statuses %}
+                            <option value="{{ val }}" {% if qt.status == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
                 </td>
                 <td>
                     <span class="badge
