@@ -30,7 +30,6 @@ BASE = lambda: [
 ]
 
 LEAD_EXTRA = lambda: [
-    _perm('quotations', 'can_approve_quotation'),
     _perm('quotations', 'can_assign_loading_dock'),
     _perm('quotations', 'delete_quotation'),
     _perm('quotations', 'delete_lead'),

@@ -272,7 +272,7 @@ def quotation_list(request):
 @login_required
 def quotation_detail(request, pk):
     quotation = get_object_or_404(
-        Quotation.objects.select_related('lead', 'created_by', 'approved_by').prefetch_related('line_items'),
+        Quotation.objects.select_related('lead', 'created_by').prefetch_related('line_items'),
         pk=pk,
     )
     ctx = _quotation_context(quotation)
@@ -1195,25 +1195,6 @@ def quotation_set_status(request, pk):
         messages.success(request, f'{quotation.quotation_number} status set to {valid_statuses[status]}.')
     return redirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('quotation_detail', args=[pk]))
 
-
-@login_required
-def quotation_approve(request, pk):
-    if request.user.role not in ('lead', 'admin'):
-        messages.error(request, 'Only team leads and admins can approve quotations.')
-        return redirect('quotation_detail', pk=pk)
-
-    quotation = get_object_or_404(Quotation, pk=pk, status='draft')
-    if request.method == 'POST':
-        quotation.status = 'approved'
-        quotation.approved_by = request.user
-        quotation.approved_at = timezone.now()
-        quotation.save()
-        messages.success(request, f'{quotation} approved.')
-        if quotation.created_by and quotation.created_by != request.user:
-            notify([quotation.created_by], f'{quotation} approved',
-                   message=f'Approved by {request.user.get_full_name() or request.user.username}.',
-                   link=f'/quotations/{quotation.pk}/', notif_type='quotation_approved')
-    return redirect('quotation_detail', pk=pk)
 
 
 # ── Broker views ─────────────────────────────────────────────────────────────

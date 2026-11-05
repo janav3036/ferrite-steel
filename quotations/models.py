@@ -132,9 +132,6 @@ class Quotation(models.Model):
         verbose_name = 'Quotation'
         verbose_name_plural = 'Quotations'
         ordering = ['-created_at']
-        permissions = [
-            ('can_approve_quotation', 'Can approve quotation'),
-        ]
 
     def __str__(self):
         return self.quotation_number or f'Quotation #{self.pk}'

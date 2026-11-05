@@ -19,7 +19,6 @@ urlpatterns = [
     path('<int:pk>/set-status/', views.quotation_set_status, name='quotation_set_status'),
     path('<int:pk>/revise/', views.quotation_revise, name='quotation_revise'),
     path('<int:pk>/send/', views.quotation_send, name='quotation_send'),
-    path('<int:pk>/approve/', views.quotation_approve, name='quotation_approve'),
     path('<int:pk>/delete/', views.quotation_delete, name='quotation_delete'),
     path('<int:pk>/notes/', views.quotation_save_notes, name='quotation_save_notes'),
 

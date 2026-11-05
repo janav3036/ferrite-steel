@@ -107,12 +107,6 @@
                     <dd class="col-sm-7">{{ quotation.created_by.username|default:"—" }}</dd>
                     <dt class="col-sm-5">Created</dt>
                     <dd class="col-sm-7">{{ quotation.created_at|date:"d M Y, H:i" }}</dd>
-                    {% if quotation.approved_by %}
-                    <dt class="col-sm-5">Approved By</dt>
-                    <dd class="col-sm-7">{{ quotation.approved_by.username }}</dd>
-                    <dt class="col-sm-5">Approved</dt>
-                    <dd class="col-sm-7">{{ quotation.approved_at|date:"d M Y, H:i" }}</dd>
-                    {% endif %}
                     {% if quotation.delivery_address %}
                     <dt class="col-sm-5">Delivery Address</dt>
                     <dd class="col-sm-7">{{ quotation.delivery_address }}</dd>
@@ -253,15 +247,6 @@
             </div>
         </div>
     </div>
-
-    {% if quotation.status == 'draft' and request.user.role == 'lead' or quotation.status == 'draft' and request.user.role == 'admin' %}
-    <div class="col-12">
-        <form method="post" action="{% url 'quotation_approve' quotation.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success">Approve quotation</button>
-        </form>
-    </div>
-    {% endif %}
 
     {% if versions|length > 1 %}
     <div class="col-12">
